@@ -1,7 +1,7 @@
 {
-  "exported_at": "2026-06-18T19:12:24.547Z",
-  "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id",
-  "redaction_note": "access_info, phone_numbers, and whatsapp_accounts are omitted; secret-like strings and phone numbers are redacted recursively.",
+  "exported_at": "2026-06-18T19:35:04.904Z",
+  "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
+  "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
     "voice": {
       "voice_id": "wfJ7pHCS3lXZdaz77rIG",
@@ -17,18 +17,30 @@
         "locale": "en-US"
       }
     },
-    "llm": "gemini-3.5-flash"
+    "llm": "gemini-3.5-flash",
+    "web_search_tool": {
+      "tool_id": "tool_0701kve33j7cf14v2vwsmd7pqjma",
+      "name": "web_search",
+      "url": "https://webhooks.aifurman.com/web-search",
+      "method": "POST",
+      "auth": "[redacted]",
+      "response_fields": [
+        "ok",
+        "query",
+        "provider",
+        "source_note",
+        "results",
+        "searched_query",
+        "as_of",
+        "result_count",
+        "answer_text",
+        "sports_events"
+      ]
+    }
   },
   "agent": {
     "agent_id": "agent_0901kve1zxf8eg281mx3ng82m7y3",
     "name": "Andrew Assistant Agent",
-    "tags": [
-      "phoneclaw",
-      "personal-assistant"
-    ],
-    "version_id": "agtvrsn_0801kve260skep79x134t8hywvm0",
-    "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
-    "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "conversation_config": {
       "asr": {
         "quality": "high",
@@ -117,13 +129,15 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
           "temperature": 0.5,
           "max_tokens": -1,
-          "tool_ids": [],
+          "tool_ids": [
+            "tool_0701kve33j7cf14v2vwsmd7pqjma"
+          ],
           "built_in_tools": {
             "end_call": null,
             "language_detection": null,
@@ -168,9 +182,307 @@
             ]
           },
           "cascade_timeout_seconds": 8,
-          "tools": []
+          "tools": [
+            {
+              "type": "webhook",
+              "name": "web_search",
+              "description": "Searches the public web for current or external information and returns concise results. For FIFA World Cup schedule/score questions, it may also return structured ESPN scoreboard events. Use this for current events, today/recent facts, sports schedules, companies, products, docs, or anything that may have changed.",
+              "response_timeout_secs": 12,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/web-search",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "query"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "A concise web search query. Include dates, locations, or names when useful.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_results": {
+                      "type": "integer",
+                      "description": "Maximum number of results to return. Use 3 unless Andrew asks for more.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Search response containing compact web results.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the search request succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "query": {
+                      "type": "string",
+                      "description": "The query that was searched.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "provider": {
+                      "type": "string",
+                      "description": "The search provider used.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "source_note": {
+                      "type": "string",
+                      "description": "Limitations or notes about the search source.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "results": {
+                      "type": "array",
+                      "description": "Search results to summarize for Andrew.",
+                      "items": {
+                        "type": "object",
+                        "required": [],
+                        "description": "One search result.",
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "description": "Result title.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "Result URL.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "snippet": {
+                            "type": "string",
+                            "description": "Short excerpt or summary from the result.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          }
+                        }
+                      },
+                      "dynamic_variable": "",
+                      "constant_value": null,
+                      "is_omitted": false
+                    },
+                    "searched_query": {
+                      "type": "string",
+                      "description": "The actual query sent to the search provider, including date context when useful.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "as_of": {
+                      "type": "string",
+                      "description": "ISO timestamp for when the search was run.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "result_count": {
+                      "type": "integer",
+                      "description": "Number of web results returned.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "A compact plain-text summary of the most useful search and schedule results. Prefer this when answering by voice.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "sports_events": {
+                      "type": "array",
+                      "description": "Structured sports schedule or score events when the query matches a supported sports source.",
+                      "items": {
+                        "type": "object",
+                        "required": [],
+                        "description": "One sports event.",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Full event name.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "short_name": {
+                            "type": "string",
+                            "description": "Short event name.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "start_time_utc": {
+                            "type": "string",
+                            "description": "Event start time in UTC.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "start_time_eastern": {
+                            "type": "string",
+                            "description": "Event start time in Eastern time.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "status": {
+                            "type": "string",
+                            "description": "Current event status.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "venue": {
+                            "type": "string",
+                            "description": "Venue name.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "home_team": {
+                            "type": "string",
+                            "description": "Home team name.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "away_team": {
+                            "type": "string",
+                            "description": "Away team name.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "score": {
+                            "type": "string",
+                            "description": "Current or final score when available.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          }
+                        }
+                      },
+                      "dynamic_variable": "",
+                      "constant_value": null,
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            }
+          ]
         }
       }
+    },
+    "metadata": {
+      "created_at_unix_secs": 1781809543,
+      "updated_at_unix_secs": 1781811145
     },
     "platform_settings": {
       "evaluation": {
@@ -455,7 +767,7 @@
         "enable_auth": false,
         "allowlist": [],
         "require_origin_header": false,
-        "shareable_token": "[REDACTED]"
+        "shareable_token": null
       },
       "call_limits": {
         "agent_concurrency_limit": -1,
@@ -502,7 +814,317 @@
       },
       "prevent_subagent_loops": false
     },
+    "tags": [
+      "phoneclaw",
+      "personal-assistant"
+    ],
+    "version_id": "agtvrsn_8801kve3gtyzeegvf31mzz9hpgb8",
+    "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
+    "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
     "trust_context": "unknown"
-  }
+  },
+  "tools": [
+    {
+      "id": "tool_0701kve33j7cf14v2vwsmd7pqjma",
+      "tool_config": {
+        "type": "webhook",
+        "name": "web_search",
+        "description": "Searches the public web for current or external information and returns concise results. For FIFA World Cup schedule/score questions, it may also return structured ESPN scoreboard events. Use this for current events, today/recent facts, sports schedules, companies, products, docs, or anything that may have changed.",
+        "response_timeout_secs": 12,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/web-search",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "query"
+            ],
+            "description": "",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "A concise web search query. Include dates, locations, or names when useful.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_results": {
+                "type": "integer",
+                "description": "Maximum number of results to return. Use 3 unless Andrew asks for more.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Search response containing compact web results.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the search request succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "query": {
+                "type": "string",
+                "description": "The query that was searched.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "provider": {
+                "type": "string",
+                "description": "The search provider used.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "source_note": {
+                "type": "string",
+                "description": "Limitations or notes about the search source.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "results": {
+                "type": "array",
+                "description": "Search results to summarize for Andrew.",
+                "items": {
+                  "type": "object",
+                  "required": [],
+                  "description": "One search result.",
+                  "properties": {
+                    "title": {
+                      "type": "string",
+                      "description": "Result title.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "Result URL.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "snippet": {
+                      "type": "string",
+                      "description": "Short excerpt or summary from the result.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "dynamic_variable": "",
+                "constant_value": null,
+                "is_omitted": false
+              },
+              "searched_query": {
+                "type": "string",
+                "description": "The actual query sent to the search provider, including date context when useful.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "as_of": {
+                "type": "string",
+                "description": "ISO timestamp for when the search was run.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "result_count": {
+                "type": "integer",
+                "description": "Number of web results returned.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "A compact plain-text summary of the most useful search and schedule results. Prefer this when answering by voice.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "sports_events": {
+                "type": "array",
+                "description": "Structured sports schedule or score events when the query matches a supported sports source.",
+                "items": {
+                  "type": "object",
+                  "required": [],
+                  "description": "One sports event.",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Full event name.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "short_name": {
+                      "type": "string",
+                      "description": "Short event name.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "start_time_utc": {
+                      "type": "string",
+                      "description": "Event start time in UTC.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "start_time_eastern": {
+                      "type": "string",
+                      "description": "Event start time in Eastern time.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Current event status.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "venue": {
+                      "type": "string",
+                      "description": "Venue name.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "home_team": {
+                      "type": "string",
+                      "description": "Home team name.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "away_team": {
+                      "type": "string",
+                      "description": "Away team name.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "score": {
+                      "type": "string",
+                      "description": "Current or final score when available.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "dynamic_variable": "",
+                "constant_value": null,
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    }
+  ]
 }

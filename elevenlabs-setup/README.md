@@ -58,3 +58,9 @@ Before enabling it against a real command bridge:
 - Authenticate every request.
 - Send jobs to a supervised worker, not directly to a shell.
 - Keep pushes, deletes, migrations, and deploys behind explicit approval.
+
+## Web Search Tool
+
+`Andrew Assistant Agent` has a webhook tool named `web_search` attached. It points at the hosted `/web-search` endpoint and is authenticated with `WEB_SEARCH_TOKEN`.
+
+The agent prompt tells the model to use `web_search` for current events, recent facts, schedules, sports, companies, products, docs, or anything that may have changed. The tool returns structured results and a compact `answer_text` field that the agent should prefer for spoken answers.

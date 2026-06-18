@@ -1,6 +1,12 @@
 import {
   ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
 } from "../shared/telephony-audio-format.mjs";
+import { basicWebSearch } from "../shared/basic-web-search.mjs";
+import {
+  isAllowedCaller,
+  lastFourDigits,
+  parseAllowedCallerNumbers,
+} from "../shared/phone-numbers.mjs";
 
 const XML_HEADERS = {
   "content-type": "application/xml; charset=utf-8",
@@ -11,6 +17,9 @@ const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
 };
+
+const OUTSIDE_COVERAGE_MESSAGE =
+  "Thanks for calling Andrew's assistance line. Sorry we haven't set up outside coverage yet.";
 
 export default {
   async fetch(request, env, ctx) {
@@ -23,8 +32,12 @@ export default {
           env.ELEVENLABS_API_KEY && env.ELEVENLABS_AGENT_ID
         ),
         command_bridge_configured: Boolean(env.CLAUDE_BRIDGE_URL),
+        web_search_configured: Boolean(env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN),
         expected_elevenlabs_audio_format:
           env.ELEVENLABS_TELEPHONY_AUDIO_FORMAT || ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
+        allowed_caller_numbers_configured: parseAllowedCallerNumbers(
+          env.ALLOWED_CALLER_NUMBERS
+        ).length > 0,
         twilio_webhook_token_required: Boolean(env.TWILIO_WEBHOOK_TOKEN),
       });
     }
@@ -35,6 +48,7 @@ export default {
         endpoints: {
           twilio_inbound: "POST /twilio/inbound",
           twilio_outbound: "POST /twilio/outbound",
+          web_search: "POST /web-search",
           future_claude_tool: "POST /agent-command",
           health: "GET /health",
         },
@@ -68,6 +82,10 @@ export default {
       return handleAgentCommand(request, env);
     }
 
+    if (request.method === "POST" && url.pathname === "/web-search") {
+      return handleWebSearch(request, env);
+    }
+
     return json({ ok: false, error: "not_found" }, 404);
   },
 };
@@ -83,15 +101,28 @@ async function handleTwilioCall(request, env, direction) {
     const toNumber =
       body.To || body.to_number || body.toNumber || env.TWILIO_PHONE_NUMBER;
 
-    if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_AGENT_ID) {
-      return xml(
-        sayTwiml("The ElevenLabs voice agent is not configured on this server yet.")
-      );
-    }
-
     if (!fromNumber || !toNumber) {
       return xml(
         sayTwiml("The call did not include the phone number details this bridge needs.")
+      );
+    }
+
+    if (direction === "inbound" && !isAllowedCaller(fromNumber, env.ALLOWED_CALLER_NUMBERS)) {
+      console.log(
+        JSON.stringify({
+          event: "twilio_call_rejected",
+          direction,
+          from_last4: lastFourDigits(fromNumber),
+          to_last4: lastFourDigits(toNumber),
+          call_sid: body.CallSid,
+        })
+      );
+      return xml(sayTwiml(env.OUTSIDE_COVERAGE_MESSAGE || OUTSIDE_COVERAGE_MESSAGE));
+    }
+
+    if (!env.ELEVENLABS_API_KEY || !env.ELEVENLABS_AGENT_ID) {
+      return xml(
+        sayTwiml("The ElevenLabs voice agent is not configured on this server yet.")
       );
     }
 
@@ -99,8 +130,8 @@ async function handleTwilioCall(request, env, direction) {
       JSON.stringify({
         event: "twilio_call",
         direction,
-        from: fromNumber,
-        to: toNumber,
+        from_last4: lastFourDigits(fromNumber),
+        to_last4: lastFourDigits(toNumber),
         call_sid: body.CallSid,
       })
     );
@@ -242,6 +273,32 @@ async function handleAgentCommand(request, env) {
     status: "forwarded",
     upstream_body: upstreamBody,
   });
+}
+
+async function handleWebSearch(request, env) {
+  const webSearchToken = env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN;
+  if (!webSearchToken) {
+    return json(
+      {
+        ok: false,
+        status: "tool_auth_not_configured",
+        message: "WEB_SEARCH_TOKEN is not configured on this Worker.",
+      },
+      503
+    );
+  }
+
+  const authHeader = request.headers.get("authorization") || "";
+  if (authHeader !== `Bearer ${webSearchToken}`) {
+    return json({ ok: false, status: "unauthorized" }, 401);
+  }
+
+  const body = await parseRequestBody(request);
+  const query = body.query || body.search_query || body.searchQuery;
+  const maxResults = body.max_results || body.maxResults || 5;
+
+  const result = await basicWebSearch({ query, maxResults });
+  return json(result, result.ok ? 200 : 400);
 }
 
 function isValidTwilioWebhookRequest(request, env) {

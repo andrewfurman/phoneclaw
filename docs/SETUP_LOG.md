@@ -15,6 +15,9 @@ This log captures the prototype shape without publishing credentials or live pro
 - Configured the Twilio number voice webhook to point at the Worker.
 - Confirmed the phone line could reach a simple TwiML test response.
 - Switched the call path back toward the ElevenLabs register-call flow.
+- Added an inbound caller allow-list so only configured caller IDs reach the ElevenLabs agent.
+- Added an authenticated ElevenLabs `web_search` webhook tool backed by the Worker.
+- Added basic DuckDuckGo web results, a voice-friendly `answer_text` field, and prototype FIFA World Cup schedule enrichment.
 
 ## Current Prototype
 
@@ -23,10 +26,12 @@ The working path is:
 1. Caller dials a Twilio number.
 2. Twilio sends the voice webhook to the public Cloudflare Worker.
 3. The Worker validates the webhook token.
-4. The Worker calls ElevenLabs `register-call`.
-5. ElevenLabs returns TwiML.
-6. The Worker returns that TwiML to Twilio.
-7. Twilio connects the live call to the ElevenLabs agent.
+4. The Worker checks the inbound caller allow-list.
+5. The Worker calls ElevenLabs `register-call`.
+6. ElevenLabs returns TwiML.
+7. The Worker returns that TwiML to Twilio.
+8. Twilio connects the live call to the ElevenLabs agent.
+9. When needed, the agent can call the Worker's `web_search` tool for current information.
 
 ## Not Published
 

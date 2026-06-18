@@ -2,6 +2,12 @@ import { timingSafeEqual } from "node:crypto";
 import Fastify from "fastify";
 import formbody from "@fastify/formbody";
 import twilio from "twilio";
+import { basicWebSearch } from "../shared/basic-web-search.mjs";
+import {
+  isAllowedCaller,
+  lastFourDigits,
+  parseAllowedCallerNumbers,
+} from "../shared/phone-numbers.mjs";
 import { ELEVENLABS_TELEPHONY_AUDIO_FORMAT } from "../shared/telephony-audio-format.mjs";
 
 const { validateRequest } = twilio;
@@ -13,11 +19,15 @@ const elevenLabsApiBase =
 const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 const elevenLabsAgentId = process.env.ELEVENLABS_AGENT_ID;
 const commandBridgeToken = process.env.COMMAND_BRIDGE_TOKEN;
+const webSearchToken = process.env.WEB_SEARCH_TOKEN || commandBridgeToken;
 const claudeBridgeUrl = process.env.CLAUDE_BRIDGE_URL;
 const claudeBridgeToken = process.env.CLAUDE_BRIDGE_TOKEN;
 const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
 const enforceTwilioSignature =
   process.env.ENFORCE_TWILIO_SIGNATURE === "true" && Boolean(twilioAuthToken);
+const outsideCoverageMessage =
+  process.env.OUTSIDE_COVERAGE_MESSAGE ||
+  "Thanks for calling Andrew's assistance line. Sorry we haven't set up outside coverage yet.";
 
 const app = Fastify({
   logger: true,
@@ -32,6 +42,7 @@ app.get("/", async () => ({
   endpoints: {
     twilio_inbound: "POST /twilio/inbound",
     twilio_outbound: "POST /twilio/outbound",
+    web_search: "POST /web-search",
     future_claude_tool: "POST /agent-command",
     health: "GET /health",
   },
@@ -41,7 +52,10 @@ app.get("/health", async () => ({
   ok: true,
   elevenlabs_agent_configured: Boolean(elevenLabsAgentId),
   command_bridge_configured: Boolean(claudeBridgeUrl),
+  web_search_configured: Boolean(webSearchToken),
   expected_elevenlabs_audio_format: ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
+  allowed_caller_numbers_configured:
+    parseAllowedCallerNumbers(process.env.ALLOWED_CALLER_NUMBERS).length > 0,
   twilio_signature_enforced: enforceTwilioSignature,
 }));
 
@@ -54,6 +68,8 @@ app.post("/twilio/outbound", async (request, reply) =>
 );
 
 app.post("/agent-command", async (request, reply) => handleAgentCommand(request, reply));
+
+app.post("/web-search", async (request, reply) => handleWebSearch(request, reply));
 
 try {
   await app.listen({ host, port });
@@ -73,13 +89,6 @@ async function handleTwilioCall(request, reply, direction) {
     const toNumber =
       body.To || body.to_number || body.toNumber || process.env.TWILIO_PHONE_NUMBER;
 
-    if (!elevenLabsAgentId || !elevenLabsApiKey) {
-      return reply
-        .code(200)
-        .type("application/xml")
-        .send(sayTwiml("The ElevenLabs voice agent is not configured on this server yet."));
-    }
-
     if (!fromNumber || !toNumber) {
       return reply
         .code(200)
@@ -87,12 +96,36 @@ async function handleTwilioCall(request, reply, direction) {
         .send(sayTwiml("The call did not include the phone number details this bridge needs."));
     }
 
+    if (
+      direction === "inbound" &&
+      !isAllowedCaller(fromNumber, process.env.ALLOWED_CALLER_NUMBERS)
+    ) {
+      request.log.info(
+        {
+          event: "twilio_call_rejected",
+          direction,
+          from_last4: lastFourDigits(fromNumber),
+          to_last4: lastFourDigits(toNumber),
+          call_sid: body.CallSid,
+        },
+        "rejected non-allowlisted Twilio call"
+      );
+      return reply.code(200).type("application/xml").send(sayTwiml(outsideCoverageMessage));
+    }
+
+    if (!elevenLabsAgentId || !elevenLabsApiKey) {
+      return reply
+        .code(200)
+        .type("application/xml")
+        .send(sayTwiml("The ElevenLabs voice agent is not configured on this server yet."));
+    }
+
     request.log.info(
       {
         event: "twilio_call",
         direction,
-        from: fromNumber,
-        to: toNumber,
+        from_last4: lastFourDigits(fromNumber),
+        to_last4: lastFourDigits(toNumber),
         call_sid: body.CallSid,
       },
       "received Twilio call"
@@ -232,6 +265,28 @@ async function handleAgentCommand(request, reply) {
     status: "forwarded",
     upstream_body: upstreamBody,
   });
+}
+
+async function handleWebSearch(request, reply) {
+  if (!webSearchToken) {
+    return reply.code(503).send({
+      ok: false,
+      status: "tool_auth_not_configured",
+      message: "WEB_SEARCH_TOKEN is not configured on this server.",
+    });
+  }
+
+  const authHeader = request.headers.authorization || "";
+  if (!secureEquals(authHeader, `Bearer ${webSearchToken}`)) {
+    return reply.code(401).send({ ok: false, status: "unauthorized" });
+  }
+
+  const body = request.body || {};
+  const query = body.query || body.search_query || body.searchQuery;
+  const maxResults = body.max_results || body.maxResults || 5;
+
+  const result = await basicWebSearch({ query, maxResults });
+  return reply.code(result.ok ? 200 : 400).send(result);
 }
 
 function isValidTwilioRequest(request) {

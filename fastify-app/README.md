@@ -18,6 +18,12 @@ Health check:
 curl http://localhost:8000/health
 ```
 
+The local app mirrors the Worker endpoints, including:
+
+- `POST /twilio/inbound`
+- `POST /web-search`
+- `POST /agent-command`
+
 ## Expose Locally
 
 Twilio needs a public HTTPS URL. For local experiments:

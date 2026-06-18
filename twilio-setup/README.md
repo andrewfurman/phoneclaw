@@ -59,3 +59,21 @@ https://YOUR_WEBHOOK_DOMAIN/twilio/test-say?token=YOUR_TWILIO_WEBHOOK_TOKEN
 ```
 
 Then switch it back to `/twilio/inbound` for ElevenLabs.
+
+## Caller Allow-List
+
+The webhook can restrict inbound calls to known caller IDs with `ALLOWED_CALLER_NUMBERS`.
+
+Use E.164 format:
+
+```text
++15555550123
+```
+
+For Cloudflare Workers, store the real value as a secret:
+
+```bash
+wrangler secret put ALLOWED_CALLER_NUMBERS
+```
+
+Non-allowlisted callers hear a short outside-coverage message and are not connected to ElevenLabs.

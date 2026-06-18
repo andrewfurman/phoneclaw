@@ -54,6 +54,9 @@ Set Worker secrets with Wrangler:
 wrangler secret put ELEVENLABS_API_KEY
 wrangler secret put COMMAND_BRIDGE_TOKEN
 wrangler secret put TWILIO_WEBHOOK_TOKEN
+wrangler secret put ALLOWED_CALLER_NUMBERS
+wrangler secret put OUTSIDE_COVERAGE_MESSAGE
+wrangler secret put WEB_SEARCH_TOKEN
 ```
 
 Deploy:
