@@ -19,6 +19,10 @@ This log captures the prototype shape without publishing credentials or live pro
 - Added an authenticated ElevenLabs `web_search` webhook tool backed by the Worker.
 - Added basic DuckDuckGo web results, a voice-friendly `answer_text` field, and prototype FIFA World Cup schedule enrichment.
 - Added a read-only GitHub summary endpoint for open issue and pull request questions.
+- Added repo, owner, and organization filters to the GitHub summary endpoint.
+- Added read-only GitHub CLI-style tools for repository folder/tree listing and file content reads.
+- Verified the hosted Worker can read a private organization repo using the configured Worker GitHub token.
+- Verified a live ElevenLabs WebSocket conversation called `github_cli_ls` and `github_cli_cat` successfully against a private repo.
 
 ## Current Prototype
 
@@ -34,6 +38,8 @@ The working path is:
 8. Twilio connects the live call to the ElevenLabs agent.
 9. When needed, the agent can call the Worker's `web_search` tool for current information.
 10. When needed, the agent can call the Worker's `github_summary` tool for read-only GitHub issue and pull request summaries.
+11. When needed, the agent can call the Worker's `github_cli_ls` tool to list repository folders or recursive trees.
+12. When needed, the agent can call the Worker's `github_cli_cat` tool to read a specific repository file.
 
 ## Not Published
 

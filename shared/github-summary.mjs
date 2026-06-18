@@ -6,6 +6,10 @@ export async function githubSummary({
   maxResults = 5,
   githubToken,
   username,
+  repo,
+  owner,
+  organization,
+  org,
   fetchImpl = fetch,
 }) {
   if (!githubToken) {
@@ -21,10 +25,16 @@ export async function githubSummary({
   const normalizedScope = normalizeScope(scope, normalizedType);
   const limit = clampInteger(maxResults, 1, 8);
   const account = username || (await fetchAuthenticatedUsername(githubToken, fetchImpl));
+  const normalizedRepo = repo ? normalizeRepo(repo) : "";
+  const normalizedOwner = owner ? normalizeQualifierValue(owner) : "";
+  const normalizedOrg = normalizeQualifierValue(organization || org || "");
   const query = buildSearchQuery({
     itemType: normalizedType,
     scope: normalizedScope,
     username: account,
+    repo: normalizedRepo,
+    owner: normalizedOwner,
+    organization: normalizedOrg,
   });
 
   const url = new URL(`${GITHUB_API_BASE}/search/issues`);
@@ -55,6 +65,9 @@ export async function githubSummary({
     account,
     item_type: normalizedType,
     scope: normalizedScope,
+    repo: normalizedRepo || null,
+    owner: normalizedOwner || null,
+    organization: normalizedOrg || null,
     total_count: body.total_count || 0,
     returned_count: items.length,
     query,
@@ -65,6 +78,9 @@ export async function githubSummary({
       account,
       itemType: normalizedType,
       scope: normalizedScope,
+      repo: normalizedRepo,
+      owner: normalizedOwner,
+      organization: normalizedOrg,
       totalCount: body.total_count || 0,
       items,
     }),
@@ -93,10 +109,20 @@ function githubHeaders(githubToken) {
   };
 }
 
-function buildSearchQuery({ itemType, scope, username }) {
+function buildSearchQuery({ itemType, scope, username, repo, owner, organization }) {
   const typeQualifier = itemType === "pull_requests" ? "is:pr" : "is:issue";
   const scopeQualifier = scopeQualifierFor(scope, username);
-  return `state:open ${typeQualifier} ${scopeQualifier} archived:false`;
+  const qualifiers = ["state:open", typeQualifier, scopeQualifier, "archived:false"];
+
+  if (repo) {
+    qualifiers.push(`repo:${repo}`);
+  } else if (organization) {
+    qualifiers.push(`org:${organization}`);
+  } else if (owner) {
+    qualifiers.push(`user:${owner}`);
+  }
+
+  return qualifiers.join(" ");
 }
 
 function scopeQualifierFor(scope, username) {
@@ -153,15 +179,31 @@ function repoNameFromApiUrl(value) {
   return match?.[1] || "";
 }
 
-function formatGithubAnswer({ account, itemType, scope, totalCount, items }) {
+function formatGithubAnswer({
+  account,
+  itemType,
+  scope,
+  repo,
+  owner,
+  organization,
+  totalCount,
+  items,
+}) {
   const label = itemType === "pull_requests" ? "open pull requests" : "open issues";
   const scopeLabel = scope.replaceAll("_", " ");
+  const location = repo
+    ? ` in ${repo}`
+    : organization
+      ? ` in the ${organization} organization`
+      : owner
+        ? ` owned by ${owner}`
+        : "";
 
   if (totalCount === 0) {
-    return `GitHub shows no ${label} for ${account} matching ${scopeLabel}.`;
+    return `GitHub shows no ${label}${location} for ${account} matching ${scopeLabel}.`;
   }
 
-  const intro = `GitHub shows ${totalCount} ${label} for ${account} matching ${scopeLabel}. Showing the ${items.length} most recently updated.`;
+  const intro = `GitHub shows ${totalCount} ${label}${location} for ${account} matching ${scopeLabel}. Showing the ${items.length} most recently updated.`;
   const lines = items.map((item, index) => {
     const labels = item.labels.length > 0 ? ` Labels: ${item.labels.join(", ")}.` : "";
     const assignees =
@@ -175,6 +217,30 @@ function formatGithubAnswer({ account, itemType, scope, totalCount, items }) {
 
 function excerpt(value) {
   return String(value).replace(/\s+/g, " ").trim().slice(0, 220);
+}
+
+function normalizeRepo(value) {
+  const normalized = String(value || "").trim().replace(/^https:\/\/github\.com\//, "");
+  const [owner, repo, ...extra] = normalized.split("/");
+  if (!owner || !repo || extra.length > 0) {
+    throw new Error("repo must be in owner/name format, for example octo-org/example-repo.");
+  }
+
+  const fullName = `${owner}/${repo}`;
+  if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(fullName)) {
+    throw new Error("repo contains unsupported characters.");
+  }
+
+  return fullName;
+}
+
+function normalizeQualifierValue(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) return "";
+  if (!/^[A-Za-z0-9_.-]+$/.test(normalized)) {
+    throw new Error("GitHub owner or organization contains unsupported characters.");
+  }
+  return normalized;
 }
 
 function clampInteger(value, min, max) {

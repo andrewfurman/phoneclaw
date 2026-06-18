@@ -2,6 +2,7 @@ import {
   ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
 } from "../shared/telephony-audio-format.mjs";
 import { basicWebSearch } from "../shared/basic-web-search.mjs";
+import { githubCliCat, githubCliLs } from "../shared/github-cli-tools.mjs";
 import { githubSummary } from "../shared/github-summary.mjs";
 import {
   isAllowedCaller,
@@ -52,6 +53,8 @@ export default {
           twilio_outbound: "POST /twilio/outbound",
           web_search: "POST /web-search",
           github_summary: "POST /github-summary",
+          github_cli_ls: "POST /github-cli/ls",
+          github_cli_cat: "POST /github-cli/cat",
           future_claude_tool: "POST /agent-command",
           health: "GET /health",
         },
@@ -91,6 +94,14 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/github-summary") {
       return handleGithubSummary(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/github-cli/ls") {
+      return handleGithubCliLs(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/github-cli/cat") {
+      return handleGithubCliCat(request, env);
     }
 
     return json({ ok: false, error: "not_found" }, 404);
@@ -309,6 +320,70 @@ async function handleWebSearch(request, env) {
 }
 
 async function handleGithubSummary(request, env) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  try {
+    const body = await parseRequestBody(request);
+    const result = await githubSummary({
+      githubToken: env.GITHUB_READ_TOKEN,
+      username: env.GITHUB_USERNAME,
+      itemType: body.item_type || body.itemType || body.type || body.kind,
+      scope: body.scope,
+      maxResults: body.max_results || body.maxResults || 5,
+      repo: body.repo || body.repository,
+      owner: body.owner,
+      organization: body.organization || body.org,
+    });
+
+    return json(result, result.ok ? 200 : 400);
+  } catch (error) {
+    return json(githubToolError(error), 400);
+  }
+}
+
+async function handleGithubCliLs(request, env) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  try {
+    const body = await parseRequestBody(request);
+    const result = await githubCliLs({
+      githubToken: env.GITHUB_READ_TOKEN,
+      repo: body.repo || body.repository,
+      path: body.path || "",
+      ref: body.ref || body.branch || body.sha,
+      recursive: body.recursive,
+      maxEntries: body.max_entries || body.maxEntries,
+    });
+
+    return json(result, result.ok ? 200 : 400);
+  } catch (error) {
+    return json(githubToolError(error), 400);
+  }
+}
+
+async function handleGithubCliCat(request, env) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  try {
+    const body = await parseRequestBody(request);
+    const result = await githubCliCat({
+      githubToken: env.GITHUB_READ_TOKEN,
+      repo: body.repo || body.repository,
+      path: body.path,
+      ref: body.ref || body.branch || body.sha,
+      maxBytes: body.max_bytes || body.maxBytes,
+    });
+
+    return json(result, result.ok ? 200 : 400);
+  } catch (error) {
+    return json(githubToolError(error), 400);
+  }
+}
+
+function validateToolAuth(request, env) {
   const toolToken = env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN;
   if (!toolToken) {
     return json(
@@ -326,16 +401,16 @@ async function handleGithubSummary(request, env) {
     return json({ ok: false, status: "unauthorized" }, 401);
   }
 
-  const body = await parseRequestBody(request);
-  const result = await githubSummary({
-    githubToken: env.GITHUB_READ_TOKEN,
-    username: env.GITHUB_USERNAME,
-    itemType: body.item_type || body.itemType || body.type || body.kind,
-    scope: body.scope,
-    maxResults: body.max_results || body.maxResults || 5,
-  });
+  return null;
+}
 
-  return json(result, result.ok ? 200 : 400);
+function githubToolError(error) {
+  return {
+    ok: false,
+    status: "github_tool_error",
+    message: error?.message || "GitHub tool request failed.",
+    entries: [],
+  };
 }
 
 function isValidTwilioWebhookRequest(request, env) {

@@ -38,6 +38,8 @@ Run checks:
 ```bash
 npm run check
 npm run worker:check
+npm run elevenlabs:github:test
+npm run elevenlabs:github:files:test
 ```
 
 ## Cloudflare Worker
@@ -72,6 +74,16 @@ npm run worker:deploy
 - ElevenLabs setup lives in `elevenlabs-setup/`.
 - The setup log lives in `docs/SETUP_LOG.md`.
 - The long-term hosting recommendation lives in `docs/HOSTING_PLAN.md`.
+
+## GitHub Tools
+
+The ElevenLabs agent has read-only GitHub webhook tools:
+
+- `github_summary` for issue and pull request triage, with optional `repo`, `organization`, and `owner` filters.
+- `github_cli_ls` for GitHub CLI-style repository root, folder, and recursive tree listing.
+- `github_cli_cat` for GitHub CLI-style file content reads.
+
+The hosted Worker uses `GITHUB_READ_TOKEN` from Cloudflare secrets. Keep that token out of the public repo. Prefer a fine-grained read-only token for long-term use; the Worker code only exposes read-only endpoints.
 
 ## Secret Handling
 

@@ -38,6 +38,8 @@ npm run worker:deploy
 - `GET|POST /twilio/test-say`
 - `POST /web-search`
 - `POST /github-summary`
+- `POST /github-cli/ls`
+- `POST /github-cli/cat`
 - `POST /agent-command`
 
 ## Caller Allow-List
@@ -62,6 +64,30 @@ Supported request fields:
 
 - `item_type`: `issues` or `pull_requests`
 - `scope`: `involved`, `assigned`, `authored`, `mentioned`, or `review_requested`
+- `repo`: optional `owner/name` repository filter
+- `organization`: optional organization login filter
+- `owner`: optional owner login filter
 - `max_results`: 1 to 8
 
 The response includes `total_count`, compact `items`, and a voice-friendly `answer_text`.
+
+## GitHub CLI-Style Read Tools
+
+`POST /github-cli/ls` and `POST /github-cli/cat` are authenticated ElevenLabs webhook tools for read-only repository inspection.
+
+`/github-cli/ls` supports:
+
+- `repo`: required `owner/name` repository
+- `path`: optional repository-relative directory path
+- `ref`: optional branch, tag, or commit SHA
+- `recursive`: optional boolean for recursive tree reads
+- `max_entries`: optional response cap
+
+`/github-cli/cat` supports:
+
+- `repo`: required `owner/name` repository
+- `path`: required repository-relative file path
+- `ref`: optional branch, tag, or commit SHA
+- `max_bytes`: optional file content cap
+
+The responses include a `gh_equivalent` field showing the closest GitHub CLI command, but the Worker does not execute shell commands.

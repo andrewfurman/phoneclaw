@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import formbody from "@fastify/formbody";
 import twilio from "twilio";
 import { basicWebSearch } from "../shared/basic-web-search.mjs";
+import { githubCliCat, githubCliLs } from "../shared/github-cli-tools.mjs";
 import { githubSummary } from "../shared/github-summary.mjs";
 import {
   isAllowedCaller,
@@ -46,6 +47,8 @@ app.get("/", async () => ({
     twilio_outbound: "POST /twilio/outbound",
     web_search: "POST /web-search",
     github_summary: "POST /github-summary",
+    github_cli_ls: "POST /github-cli/ls",
+    github_cli_cat: "POST /github-cli/cat",
     future_claude_tool: "POST /agent-command",
     health: "GET /health",
   },
@@ -77,6 +80,12 @@ app.post("/web-search", async (request, reply) => handleWebSearch(request, reply
 
 app.post("/github-summary", async (request, reply) =>
   handleGithubSummary(request, reply)
+);
+
+app.post("/github-cli/ls", async (request, reply) => handleGithubCliLs(request, reply));
+
+app.post("/github-cli/cat", async (request, reply) =>
+  handleGithubCliCat(request, reply)
 );
 
 try {
@@ -298,29 +307,92 @@ async function handleWebSearch(request, reply) {
 }
 
 async function handleGithubSummary(request, reply) {
+  if (!validateToolAuth(request, reply)) return;
+
+  try {
+    const body = request.body || {};
+    const result = await githubSummary({
+      githubToken: githubReadToken,
+      username: process.env.GITHUB_USERNAME,
+      itemType: body.item_type || body.itemType || body.type || body.kind,
+      scope: body.scope,
+      maxResults: body.max_results || body.maxResults || 5,
+      repo: body.repo || body.repository,
+      owner: body.owner,
+      organization: body.organization || body.org,
+    });
+
+    return reply.code(result.ok ? 200 : 400).send(result);
+  } catch (error) {
+    return reply.code(400).send(githubToolError(error));
+  }
+}
+
+async function handleGithubCliLs(request, reply) {
+  if (!validateToolAuth(request, reply)) return;
+
+  try {
+    const body = request.body || {};
+    const result = await githubCliLs({
+      githubToken: githubReadToken,
+      repo: body.repo || body.repository,
+      path: body.path || "",
+      ref: body.ref || body.branch || body.sha,
+      recursive: body.recursive,
+      maxEntries: body.max_entries || body.maxEntries,
+    });
+
+    return reply.code(result.ok ? 200 : 400).send(result);
+  } catch (error) {
+    return reply.code(400).send(githubToolError(error));
+  }
+}
+
+async function handleGithubCliCat(request, reply) {
+  if (!validateToolAuth(request, reply)) return;
+
+  try {
+    const body = request.body || {};
+    const result = await githubCliCat({
+      githubToken: githubReadToken,
+      repo: body.repo || body.repository,
+      path: body.path,
+      ref: body.ref || body.branch || body.sha,
+      maxBytes: body.max_bytes || body.maxBytes,
+    });
+
+    return reply.code(result.ok ? 200 : 400).send(result);
+  } catch (error) {
+    return reply.code(400).send(githubToolError(error));
+  }
+}
+
+function validateToolAuth(request, reply) {
   if (!webSearchToken) {
-    return reply.code(503).send({
+    reply.code(503).send({
       ok: false,
       status: "tool_auth_not_configured",
       message: "WEB_SEARCH_TOKEN is not configured on this server.",
     });
+    return false;
   }
 
   const authHeader = request.headers.authorization || "";
   if (!secureEquals(authHeader, `Bearer ${webSearchToken}`)) {
-    return reply.code(401).send({ ok: false, status: "unauthorized" });
+    reply.code(401).send({ ok: false, status: "unauthorized" });
+    return false;
   }
 
-  const body = request.body || {};
-  const result = await githubSummary({
-    githubToken: githubReadToken,
-    username: process.env.GITHUB_USERNAME,
-    itemType: body.item_type || body.itemType || body.type || body.kind,
-    scope: body.scope,
-    maxResults: body.max_results || body.maxResults || 5,
-  });
+  return true;
+}
 
-  return reply.code(result.ok ? 200 : 400).send(result);
+function githubToolError(error) {
+  return {
+    ok: false,
+    status: "github_tool_error",
+    message: error?.message || "GitHub tool request failed.",
+    entries: [],
+  };
 }
 
 function isValidTwilioRequest(request) {

@@ -1,20 +1,10 @@
 {
-  "exported_at": "2026-06-18T20:03:44.879Z",
+  "exported_at": "2026-06-18T20:42:00.268Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
     "voice": {
-      "voice_id": "wfJ7pHCS3lXZdaz77rIG",
-      "name": "Jessi - Corporate, Direct and Energetic",
-      "category": "professional",
-      "labels": {
-        "descriptive": "excited",
-        "gender": "female",
-        "language": "en",
-        "use_case": "characters_animation",
-        "age": "middle_aged",
-        "accent": "american"
-      }
+      "voice_id": "wfJ7pHCS3lXZdaz77rIG"
     },
     "llm": "gemini-3.5-flash",
     "tools": [
@@ -48,12 +38,58 @@
           "account",
           "item_type",
           "scope",
+          "repo",
+          "organization",
           "total_count",
           "returned_count",
           "query",
           "source_note",
           "answer_text",
           "items"
+        ]
+      },
+      {
+        "tool_id": "tool_7601kve75yp9ftmb85fen5dghtaj",
+        "name": "github_cli_ls",
+        "url": "https://webhooks.aifurman.com/github-cli/ls",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "command",
+          "repo",
+          "path",
+          "ref",
+          "recursive",
+          "total_count",
+          "returned_count",
+          "truncated",
+          "gh_equivalent",
+          "answer_text",
+          "entries"
+        ]
+      },
+      {
+        "tool_id": "tool_9701kve75ytgesm8easyxe24h7tj",
+        "name": "github_cli_cat",
+        "url": "https://webhooks.aifurman.com/github-cli/cat",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "command",
+          "repo",
+          "path",
+          "ref",
+          "name",
+          "sha",
+          "size_bytes",
+          "returned_bytes",
+          "truncated",
+          "encoding",
+          "gh_equivalent",
+          "answer_text",
+          "content"
         ]
       }
     ]
@@ -149,7 +185,7 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub read capability:\n- You have a webhook tool named github_summary.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for a quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- Prefer the tool's answer_text field for spoken answers, then mention the most important item titles and repos.\n- This GitHub tool is read-only. Do not imply you can comment, merge, close, approve, or edit GitHub items unless a separate write tool is connected.",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub read capability:\n- You have webhook tools named github_summary, github_cli_ls, and github_cli_cat.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- These GitHub tools are read-only wrappers inspired by GitHub CLI commands. They can list directories/trees and read file contents, but they cannot comment, merge, close, approve, create, edit, or push anything.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
@@ -157,7 +193,9 @@
           "max_tokens": -1,
           "tool_ids": [
             "tool_0701kve33j7cf14v2vwsmd7pqjma",
-            "tool_3201kve57ppmev0a5acxkwdtyf01"
+            "tool_3201kve57ppmev0a5acxkwdtyf01",
+            "tool_7601kve75yp9ftmb85fen5dghtaj",
+            "tool_9701kve75ytgesm8easyxe24h7tj"
           ],
           "built_in_tools": {
             "end_call": null,
@@ -522,8 +560,8 @@
             {
               "type": "webhook",
               "name": "github_summary",
-              "description": "Returns read-only summaries of open GitHub issues or pull requests visible to Andrew Furman's configured GitHub token. Use this when Andrew asks how many open GitHub issues or pull requests he has, or asks what they are about.",
-              "response_timeout_secs": 12,
+              "description": "Returns read-only summaries of open GitHub issues or pull requests visible to Andrew Furman's configured GitHub token. Supports optional repo, owner, and organization filters.",
+              "response_timeout_secs": 15,
               "disable_interruptions": false,
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
@@ -548,7 +586,7 @@
                   "required": [
                     "item_type"
                   ],
-                  "description": "GitHub issue or pull request summary request.",
+                  "description": "",
                   "properties": {
                     "item_type": {
                       "type": "string",
@@ -581,6 +619,39 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
+                    "repo": {
+                      "type": "string",
+                      "description": "Optional full repository name in owner/name format, for example octo-org/example-repo. Use this when Andrew asks about a specific repo.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "organization": {
+                      "type": "string",
+                      "description": "Optional GitHub organization login, for example octo-org. Use this when Andrew asks about an organization but not a specific repo.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "owner": {
+                      "type": "string",
+                      "description": "Optional GitHub owner login. Use repo when a specific repository is known.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
                     "max_results": {
                       "type": "integer",
                       "description": "Maximum number of recent items to return. Use 5 unless Andrew asks for more or fewer.",
@@ -597,7 +668,7 @@
                 "response_body_schema": {
                   "type": "object",
                   "required": [],
-                  "description": "Read-only GitHub summary response.",
+                  "description": "Read-only GitHub issue or pull request summary response.",
                   "properties": {
                     "ok": {
                       "type": "boolean",
@@ -635,6 +706,28 @@
                     "scope": {
                       "type": "string",
                       "description": "The search scope used.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "repo": {
+                      "type": "string",
+                      "description": "Repository filter, if supplied.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "organization": {
+                      "type": "string",
+                      "description": "Organization filter, if supplied.",
                       "enum": null,
                       "nullable": false,
                       "is_system_provided": false,
@@ -828,6 +921,551 @@
                 "auth_resolved_params": [],
                 "auth_connection": null
               }
+            },
+            {
+              "type": "webhook",
+              "name": "github_cli_ls",
+              "description": "Read-only GitHub CLI-style directory/tree listing. Use it to inspect a repo root, a folder, or a recursive folder tree before choosing exact files to read.",
+              "response_timeout_secs": 15,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/github-cli/ls",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "repo"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "repo": {
+                      "type": "string",
+                      "description": "Full repository name in owner/name format, for example octo-org/example-repo.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Repository-relative folder path. Use an empty string or omit it for the repository root.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "ref": {
+                      "type": "string",
+                      "description": "Optional branch, tag, or commit SHA. Omit this to use the repository default branch.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "recursive": {
+                      "type": "boolean",
+                      "description": "Set true to return a recursive tree for the path; set false or omit for one directory.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_entries": {
+                      "type": "integer",
+                      "description": "Maximum entries to return. Use 100 by default, lower for phone calls.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "GitHub directory or tree listing.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the GitHub listing request succeeded.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "GitHub CLI-style command name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "repo": {
+                      "type": "string",
+                      "description": "Repository full name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Requested path.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "ref": {
+                      "type": "string",
+                      "description": "Requested or resolved ref.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "recursive": {
+                      "type": "boolean",
+                      "description": "Whether the result is recursive.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "total_count": {
+                      "type": "integer",
+                      "description": "Total matching entries.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "returned_count": {
+                      "type": "integer",
+                      "description": "Returned entries.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "Whether the response was truncated.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "gh_equivalent": {
+                      "type": "string",
+                      "description": "Closest GitHub CLI command equivalent.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this for quick answers.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "entries": {
+                      "type": "array",
+                      "description": "Directory or tree entries.",
+                      "items": {
+                        "type": "object",
+                        "required": [],
+                        "description": "One file or directory.",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "description": "Entry type, usually dir or file.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "Entry name.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "path": {
+                            "type": "string",
+                            "description": "Repository-relative path.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "size": {
+                            "type": "integer",
+                            "description": "Size in bytes for files, if available.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "sha": {
+                            "type": "string",
+                            "description": "Git SHA.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "GitHub web URL when available.",
+                            "enum": null,
+                            "nullable": false,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          }
+                        }
+                      },
+                      "dynamic_variable": "",
+                      "constant_value": null,
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "github_cli_cat",
+              "description": "Read-only GitHub CLI-style file reader. Use it after github_cli_ls identifies an exact file path. Returns the file contents.",
+              "response_timeout_secs": 15,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/github-cli/cat",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "repo",
+                    "path"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "repo": {
+                      "type": "string",
+                      "description": "Full repository name in owner/name format, for example octo-org/example-repo.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Repository-relative file path to read.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "ref": {
+                      "type": "string",
+                      "description": "Optional branch, tag, or commit SHA. Omit this to use the repository default branch.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_bytes": {
+                      "type": "integer",
+                      "description": "Maximum file bytes to return. Use 20000 for phone summaries unless Andrew asks for the full file.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "GitHub file content response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the GitHub file request succeeded.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "GitHub CLI-style command name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "repo": {
+                      "type": "string",
+                      "description": "Repository full name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Requested file path.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "ref": {
+                      "type": "string",
+                      "description": "Requested ref.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "File name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "sha": {
+                      "type": "string",
+                      "description": "Git blob SHA.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "description": "Original file size in bytes.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "returned_bytes": {
+                      "type": "integer",
+                      "description": "Returned content size in bytes.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "Whether returned content was truncated.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "encoding": {
+                      "type": "string",
+                      "description": "Returned text encoding.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "gh_equivalent": {
+                      "type": "string",
+                      "description": "Closest GitHub CLI command equivalent.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before quoting file content.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "content": {
+                      "type": "string",
+                      "description": "File contents, possibly truncated according to max_bytes.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
             }
           ]
         }
@@ -835,7 +1473,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1781812964
+      "updated_at_unix_secs": 1781815313
     },
     "platform_settings": {
       "evaluation": {
@@ -1171,7 +1809,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_4101kve58be3e8grxt1xr800tqtq",
+    "version_id": "agtvrsn_4401kve7g1nve7hsjx54n86r5kc4",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -1496,8 +2134,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 1,
-        "avg_latency_secs": 0.39
+        "total_calls": 30,
+        "avg_latency_secs": 0.52
       },
       "response_mocks": null
     },
@@ -1506,8 +2144,8 @@
       "tool_config": {
         "type": "webhook",
         "name": "github_summary",
-        "description": "Returns read-only summaries of open GitHub issues or pull requests visible to Andrew Furman's configured GitHub token. Use this when Andrew asks how many open GitHub issues or pull requests he has, or asks what they are about.",
-        "response_timeout_secs": 12,
+        "description": "Returns read-only summaries of open GitHub issues or pull requests visible to Andrew Furman's configured GitHub token. Supports optional repo, owner, and organization filters.",
+        "response_timeout_secs": 15,
         "disable_interruptions": false,
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
@@ -1532,7 +2170,7 @@
             "required": [
               "item_type"
             ],
-            "description": "GitHub issue or pull request summary request.",
+            "description": "",
             "properties": {
               "item_type": {
                 "type": "string",
@@ -1565,6 +2203,39 @@
                 "constant_value": "",
                 "is_omitted": false
               },
+              "repo": {
+                "type": "string",
+                "description": "Optional full repository name in owner/name format, for example octo-org/example-repo. Use this when Andrew asks about a specific repo.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "organization": {
+                "type": "string",
+                "description": "Optional GitHub organization login, for example octo-org. Use this when Andrew asks about an organization but not a specific repo.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "owner": {
+                "type": "string",
+                "description": "Optional GitHub owner login. Use repo when a specific repository is known.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
               "max_results": {
                 "type": "integer",
                 "description": "Maximum number of recent items to return. Use 5 unless Andrew asks for more or fewer.",
@@ -1581,7 +2252,7 @@
           "response_body_schema": {
             "type": "object",
             "required": [],
-            "description": "Read-only GitHub summary response.",
+            "description": "Read-only GitHub issue or pull request summary response.",
             "properties": {
               "ok": {
                 "type": "boolean",
@@ -1619,6 +2290,28 @@
               "scope": {
                 "type": "string",
                 "description": "The search scope used.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "repo": {
+                "type": "string",
+                "description": "Repository filter, if supplied.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "organization": {
+                "type": "string",
+                "description": "Organization filter, if supplied.",
                 "enum": null,
                 "nullable": false,
                 "is_system_provided": false,
@@ -1814,8 +2507,569 @@
         }
       },
       "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
+        "total_calls": 16,
+        "avg_latency_secs": 0.76
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_7601kve75yp9ftmb85fen5dghtaj",
+      "tool_config": {
+        "type": "webhook",
+        "name": "github_cli_ls",
+        "description": "Read-only GitHub CLI-style directory/tree listing. Use it to inspect a repo root, a folder, or a recursive folder tree before choosing exact files to read.",
+        "response_timeout_secs": 15,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/github-cli/ls",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "repo"
+            ],
+            "description": "",
+            "properties": {
+              "repo": {
+                "type": "string",
+                "description": "Full repository name in owner/name format, for example octo-org/example-repo.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "path": {
+                "type": "string",
+                "description": "Repository-relative folder path. Use an empty string or omit it for the repository root.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "ref": {
+                "type": "string",
+                "description": "Optional branch, tag, or commit SHA. Omit this to use the repository default branch.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "recursive": {
+                "type": "boolean",
+                "description": "Set true to return a recursive tree for the path; set false or omit for one directory.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_entries": {
+                "type": "integer",
+                "description": "Maximum entries to return. Use 100 by default, lower for phone calls.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "GitHub directory or tree listing.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the GitHub listing request succeeded.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "GitHub CLI-style command name.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "repo": {
+                "type": "string",
+                "description": "Repository full name.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "path": {
+                "type": "string",
+                "description": "Requested path.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "ref": {
+                "type": "string",
+                "description": "Requested or resolved ref.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "recursive": {
+                "type": "boolean",
+                "description": "Whether the result is recursive.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "total_count": {
+                "type": "integer",
+                "description": "Total matching entries.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "returned_count": {
+                "type": "integer",
+                "description": "Returned entries.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "truncated": {
+                "type": "boolean",
+                "description": "Whether the response was truncated.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "gh_equivalent": {
+                "type": "string",
+                "description": "Closest GitHub CLI command equivalent.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this for quick answers.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "entries": {
+                "type": "array",
+                "description": "Directory or tree entries.",
+                "items": {
+                  "type": "object",
+                  "required": [],
+                  "description": "One file or directory.",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "description": "Entry type, usually dir or file.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Entry name.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "path": {
+                      "type": "string",
+                      "description": "Repository-relative path.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "size": {
+                      "type": "integer",
+                      "description": "Size in bytes for files, if available.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "sha": {
+                      "type": "string",
+                      "description": "Git SHA.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "url": {
+                      "type": "string",
+                      "description": "GitHub web URL when available.",
+                      "enum": null,
+                      "nullable": false,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "dynamic_variable": "",
+                "constant_value": null,
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 1,
+        "avg_latency_secs": 0.32
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_9701kve75ytgesm8easyxe24h7tj",
+      "tool_config": {
+        "type": "webhook",
+        "name": "github_cli_cat",
+        "description": "Read-only GitHub CLI-style file reader. Use it after github_cli_ls identifies an exact file path. Returns the file contents.",
+        "response_timeout_secs": 15,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/github-cli/cat",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "repo",
+              "path"
+            ],
+            "description": "",
+            "properties": {
+              "repo": {
+                "type": "string",
+                "description": "Full repository name in owner/name format, for example octo-org/example-repo.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "path": {
+                "type": "string",
+                "description": "Repository-relative file path to read.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "ref": {
+                "type": "string",
+                "description": "Optional branch, tag, or commit SHA. Omit this to use the repository default branch.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_bytes": {
+                "type": "integer",
+                "description": "Maximum file bytes to return. Use 20000 for phone summaries unless Andrew asks for the full file.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "GitHub file content response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the GitHub file request succeeded.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "GitHub CLI-style command name.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "repo": {
+                "type": "string",
+                "description": "Repository full name.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "path": {
+                "type": "string",
+                "description": "Requested file path.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "ref": {
+                "type": "string",
+                "description": "Requested ref.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "name": {
+                "type": "string",
+                "description": "File name.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "sha": {
+                "type": "string",
+                "description": "Git blob SHA.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "size_bytes": {
+                "type": "integer",
+                "description": "Original file size in bytes.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "returned_bytes": {
+                "type": "integer",
+                "description": "Returned content size in bytes.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "truncated": {
+                "type": "boolean",
+                "description": "Whether returned content was truncated.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "encoding": {
+                "type": "string",
+                "description": "Returned text encoding.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "gh_equivalent": {
+                "type": "string",
+                "description": "Closest GitHub CLI command equivalent.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before quoting file content.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "content": {
+                "type": "string",
+                "description": "File contents, possibly truncated according to max_bytes.",
+                "enum": null,
+                "nullable": false,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 1,
+        "avg_latency_secs": 0.41
       },
       "response_mocks": null
     }
