@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-19T15:22:08.653Z",
+  "exported_at": "2026-06-19T17:16:34.406Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
@@ -135,11 +135,15 @@
           "raw_json",
           "raw_truncated",
           "stderr",
+          "all_pages",
           "page",
           "page_size",
-          "is_total_count",
-          "possible_total_count",
           "returned_count",
+          "total_count",
+          "pages_scanned",
+          "complete",
+          "exact",
+          "capped",
           "items"
         ]
       },
@@ -305,26 +309,6 @@
           "to",
           "subject"
         ]
-      },
-      {
-        "tool_id": "tool_7001kvg7jqe1ehjsgwhsjb15mn8w",
-        "name": "himalaya_email_count",
-        "url": "https://webhooks.aifurman.com/cli/himalaya/email-count",
-        "method": "POST",
-        "auth": "[redacted]",
-        "response_fields": [
-          "ok",
-          "status",
-          "command",
-          "folder",
-          "query",
-          "total_count",
-          "pages_scanned",
-          "page_size",
-          "exact",
-          "capped",
-          "answer_text"
-        ]
       }
     ]
   },
@@ -419,7 +403,7 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.\n\nCLI capability:\n- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_count, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_count when Andrew asks how many emails are in a mailbox folder. Do not answer total-count questions from himalaya_email_list, because that tool returns one page of results.\n- Use himalaya_email_list to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.\n- Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.\n- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.\n- Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.\n- Do not claim you sent email. The email write tools can archive and save drafts only.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.\n\nCLI capability:\n- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list with all_pages=true when Andrew asks how many emails are in a mailbox folder, asks for all emails, or asks for a complete folder list. Only treat total_count as exact when complete or exact is true.\n- Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.\n- Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.\n- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.\n- Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.\n- Do not claim you sent email. The email write tools can archive and save drafts only.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
@@ -440,8 +424,7 @@
             "tool_0101kvfqhw0kf1zv8p0epwgfqgd2",
             "tool_8401kvfzj7pzevxbxmar7qatky8a",
             "tool_9101kvfzj7vaf10avqsvtccjjgr9",
-            "tool_2901kvfzj7z4fyntag8kx0p4tpjx",
-            "tool_7001kvg7jqe1ehjsgwhsjb15mn8w"
+            "tool_2901kvfzj7z4fyntag8kx0p4tpjx"
           ],
           "built_in_tools": {
             "end_call": null,
@@ -2312,7 +2295,7 @@
             {
               "type": "webhook",
               "name": "himalaya_email_list",
-              "description": "Read-only paginated Himalaya CLI email envelope listing and search. Use this to show recent or matching emails before reading a specific message. Do not use this as a total email count.",
+              "description": "Read-only Himalaya CLI email envelope listing and search. Use paginated mode for recent or matching emails; use all_pages=true for complete folder lists or email-count questions.",
               "response_timeout_secs": 30,
               "disable_interruptions": false,
               "force_pre_tool_speech": false,
@@ -2360,7 +2343,7 @@
                     },
                     "page_size": {
                       "type": "integer",
-                      "description": "Maximum emails to return for this page. Use 5 by default for phone answers.",
+                      "description": "Maximum emails per page. Use 5 for short paginated phone answers; use 50 with all_pages=true.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -2371,6 +2354,26 @@
                     "page": {
                       "type": "integer",
                       "description": "Page number starting at 1. Omit unless Andrew asks for more.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "all_pages": {
+                      "type": "boolean",
+                      "description": "Set true when Andrew asks for all emails in a folder, a complete list, or the total number of emails.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_pages": {
+                      "type": "integer",
+                      "description": "Maximum pages to scan when all_pages=true. Use the default unless Andrew asks for an exhaustive large-folder scan.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -2465,6 +2468,16 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
+                    "all_pages": {
+                      "type": "boolean",
+                      "description": "Whether the request scanned pages until completion or cap.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
                     "page": {
                       "type": "integer",
                       "description": "Returned page number.",
@@ -2485,29 +2498,59 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
-                    "is_total_count": {
-                      "type": "boolean",
-                      "description": "Always false; this tool returns one page, not a total count.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "possible_total_count": {
-                      "type": "integer",
-                      "description": "Possible total count only when page 1 returned fewer items than the page size.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
                     "returned_count": {
                       "type": "integer",
                       "description": "Number of email envelopes returned.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "total_count": {
+                      "type": "integer",
+                      "description": "Exact total only when complete/exact is true. Null when a paginated or capped response is partial.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "pages_scanned": {
+                      "type": "integer",
+                      "description": "Number of Himalaya envelope-list pages scanned.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "complete": {
+                      "type": "boolean",
+                      "description": "Whether the result includes the complete matching list.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "exact": {
+                      "type": "boolean",
+                      "description": "Whether total_count is exact.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "capped": {
+                      "type": "boolean",
+                      "description": "Whether all_pages scanning stopped at max_pages.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -4415,199 +4458,6 @@
                 "auth_resolved_params": [],
                 "auth_connection": null
               }
-            },
-            {
-              "type": "webhook",
-              "name": "himalaya_email_count",
-              "description": "Counts email envelopes in a Himalaya mailbox folder by paginating through envelope list results. Use this when Andrew asks how many emails are in a folder.",
-              "response_timeout_secs": 45,
-              "disable_interruptions": false,
-              "force_pre_tool_speech": false,
-              "pre_tool_speech": "auto",
-              "assignments": [],
-              "tool_call_sound": "typing",
-              "tool_call_sound_behavior": "auto",
-              "tool_error_handling_mode": "auto",
-              "dynamic_variables": {
-                "dynamic_variable_placeholders": {}
-              },
-              "execution_mode": "immediate",
-              "api_schema": {
-                "request_headers": {
-                  "Authorization": "[redacted]"
-                },
-                "url": "https://webhooks.aifurman.com/cli/himalaya/email-count",
-                "method": "POST",
-                "path_params_schema": {},
-                "query_params_schema": null,
-                "request_body_schema": {
-                  "type": "object",
-                  "required": [],
-                  "description": "",
-                  "properties": {
-                    "query": {
-                      "type": "string",
-                      "description": "Optional Himalaya envelope query to count matching messages, for example 'from example.com' or 'subject invoice'.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "folder": {
-                      "type": "string",
-                      "description": "Mailbox folder name. Use INBOX by default.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "page_size": {
-                      "type": "integer",
-                      "description": "Counting page size. Use 50 by default.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "max_pages": {
-                      "type": "integer",
-                      "description": "Maximum pages to scan before returning a lower-bound count. Use the default unless Andrew asks for an exhaustive count.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    }
-                  }
-                },
-                "response_body_schema": {
-                  "type": "object",
-                  "required": [],
-                  "description": "Himalaya email count response.",
-                  "properties": {
-                    "ok": {
-                      "type": "boolean",
-                      "description": "Whether the count succeeded.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "status": {
-                      "type": "string",
-                      "description": "Status string.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "command": {
-                      "type": "string",
-                      "description": "CLI command used.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "folder": {
-                      "type": "string",
-                      "description": "Mailbox folder counted.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "query": {
-                      "type": "string",
-                      "description": "Query counted, if any.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "total_count": {
-                      "type": "integer",
-                      "description": "Counted emails.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "pages_scanned": {
-                      "type": "integer",
-                      "description": "Number of pages scanned.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "page_size": {
-                      "type": "integer",
-                      "description": "Page size used for counting.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "exact": {
-                      "type": "boolean",
-                      "description": "Whether total_count is an exact count.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "capped": {
-                      "type": "boolean",
-                      "description": "Whether counting stopped at max_pages.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "answer_text": {
-                      "type": "string",
-                      "description": "Compact spoken summary. Prefer this when answering by voice.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    }
-                  }
-                },
-                "content_type": "application/json",
-                "auth_resolved_params": [],
-                "auth_connection": null
-              }
             }
           ]
         }
@@ -4615,7 +4465,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1781882514
+      "updated_at_unix_secs": 1781889389
     },
     "platform_settings": {
       "evaluation": {
@@ -4923,10 +4773,11 @@
       },
       "trust_context": "unknown",
       "analysis_llm": "gemini-2.5-flash",
-      "alerting": null,
       "topic_discovery": {
         "enabled": true
       },
+      "alerting": null,
+      "overview_dashboard_template_id": null,
       "safety": {
         "is_blocked_ivc": false,
         "is_blocked_non_ivc": false,
@@ -4951,7 +4802,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_2801kvg7jtr2fnwa81681etg018d",
+    "version_id": "agtvrsn_7701kvge4mqbfyv9f81352qvzjdz",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -5227,7 +5078,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 99,
+        "total_calls": 100,
         "avg_latency_secs": 0.43
       },
       "response_mocks": null
@@ -6832,7 +6683,7 @@
       "tool_config": {
         "type": "webhook",
         "name": "himalaya_email_list",
-        "description": "Read-only paginated Himalaya CLI email envelope listing and search. Use this to show recent or matching emails before reading a specific message. Do not use this as a total email count.",
+        "description": "Read-only Himalaya CLI email envelope listing and search. Use paginated mode for recent or matching emails; use all_pages=true for complete folder lists or email-count questions.",
         "response_timeout_secs": 30,
         "disable_interruptions": false,
         "force_pre_tool_speech": false,
@@ -6880,7 +6731,7 @@
               },
               "page_size": {
                 "type": "integer",
-                "description": "Maximum emails to return for this page. Use 5 by default for phone answers.",
+                "description": "Maximum emails per page. Use 5 for short paginated phone answers; use 50 with all_pages=true.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -6891,6 +6742,26 @@
               "page": {
                 "type": "integer",
                 "description": "Page number starting at 1. Omit unless Andrew asks for more.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "all_pages": {
+                "type": "boolean",
+                "description": "Set true when Andrew asks for all emails in a folder, a complete list, or the total number of emails.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_pages": {
+                "type": "integer",
+                "description": "Maximum pages to scan when all_pages=true. Use the default unless Andrew asks for an exhaustive large-folder scan.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -6985,6 +6856,16 @@
                 "constant_value": "",
                 "is_omitted": false
               },
+              "all_pages": {
+                "type": "boolean",
+                "description": "Whether the request scanned pages until completion or cap.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
               "page": {
                 "type": "integer",
                 "description": "Returned page number.",
@@ -7005,29 +6886,59 @@
                 "constant_value": "",
                 "is_omitted": false
               },
-              "is_total_count": {
-                "type": "boolean",
-                "description": "Always false; this tool returns one page, not a total count.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "possible_total_count": {
-                "type": "integer",
-                "description": "Possible total count only when page 1 returned fewer items than the page size.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
               "returned_count": {
                 "type": "integer",
                 "description": "Number of email envelopes returned.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "total_count": {
+                "type": "integer",
+                "description": "Exact total only when complete/exact is true. Null when a paginated or capped response is partial.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "pages_scanned": {
+                "type": "integer",
+                "description": "Number of Himalaya envelope-list pages scanned.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "complete": {
+                "type": "boolean",
+                "description": "Whether the result includes the complete matching list.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "exact": {
+                "type": "boolean",
+                "description": "Whether total_count is exact.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "capped": {
+                "type": "boolean",
+                "description": "Whether all_pages scanning stopped at max_pages.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -9003,207 +8914,6 @@
       "usage_stats": {
         "total_calls": 1,
         "avg_latency_secs": 35.03
-      },
-      "response_mocks": null
-    },
-    {
-      "id": "tool_7001kvg7jqe1ehjsgwhsjb15mn8w",
-      "tool_config": {
-        "type": "webhook",
-        "name": "himalaya_email_count",
-        "description": "Counts email envelopes in a Himalaya mailbox folder by paginating through envelope list results. Use this when Andrew asks how many emails are in a folder.",
-        "response_timeout_secs": 45,
-        "disable_interruptions": false,
-        "force_pre_tool_speech": false,
-        "pre_tool_speech": "auto",
-        "assignments": [],
-        "tool_call_sound": "typing",
-        "tool_call_sound_behavior": "auto",
-        "tool_error_handling_mode": "auto",
-        "dynamic_variables": {
-          "dynamic_variable_placeholders": {}
-        },
-        "execution_mode": "immediate",
-        "api_schema": {
-          "request_headers": {
-            "Authorization": "[redacted]"
-          },
-          "url": "https://webhooks.aifurman.com/cli/himalaya/email-count",
-          "method": "POST",
-          "path_params_schema": {},
-          "query_params_schema": null,
-          "request_body_schema": {
-            "type": "object",
-            "required": [],
-            "description": "",
-            "properties": {
-              "query": {
-                "type": "string",
-                "description": "Optional Himalaya envelope query to count matching messages, for example 'from example.com' or 'subject invoice'.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "folder": {
-                "type": "string",
-                "description": "Mailbox folder name. Use INBOX by default.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "page_size": {
-                "type": "integer",
-                "description": "Counting page size. Use 50 by default.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "max_pages": {
-                "type": "integer",
-                "description": "Maximum pages to scan before returning a lower-bound count. Use the default unless Andrew asks for an exhaustive count.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              }
-            }
-          },
-          "response_body_schema": {
-            "type": "object",
-            "required": [],
-            "description": "Himalaya email count response.",
-            "properties": {
-              "ok": {
-                "type": "boolean",
-                "description": "Whether the count succeeded.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "status": {
-                "type": "string",
-                "description": "Status string.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "command": {
-                "type": "string",
-                "description": "CLI command used.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "folder": {
-                "type": "string",
-                "description": "Mailbox folder counted.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "query": {
-                "type": "string",
-                "description": "Query counted, if any.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "total_count": {
-                "type": "integer",
-                "description": "Counted emails.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "pages_scanned": {
-                "type": "integer",
-                "description": "Number of pages scanned.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "page_size": {
-                "type": "integer",
-                "description": "Page size used for counting.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "exact": {
-                "type": "boolean",
-                "description": "Whether total_count is an exact count.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "capped": {
-                "type": "boolean",
-                "description": "Whether counting stopped at max_pages.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "answer_text": {
-                "type": "string",
-                "description": "Compact spoken summary. Prefer this when answering by voice.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              }
-            }
-          },
-          "content_type": "application/json",
-          "auth_resolved_params": [],
-          "auth_connection": null
-        }
-      },
-      "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
       },
       "response_mocks": null
     }
