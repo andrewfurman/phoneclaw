@@ -36,7 +36,10 @@ export async function basicWebSearch({
       message: error?.message || "Tavily search failed.",
     }));
     if (tavily.ok) {
-      const sports = await fetchSportsEnrichment(cleanQuery, now, fetchImpl).catch(() => null);
+      const [sports, marketData] = await Promise.all([
+        fetchSportsEnrichment(cleanQuery, now, fetchImpl).catch(() => null),
+        fetchMarketEnrichment(cleanQuery, now, fetchImpl).catch(() => null),
+      ]);
       return {
         ok: true,
         query: cleanQuery,
@@ -47,16 +50,18 @@ export async function basicWebSearch({
           "Web search uses Tavily when selected and configured, with DuckDuckGo available as the no-key fallback.",
         result_count: tavily.results.length,
         sports_events: sports?.events || [],
-        answer_text: formatAnswerText(cleanQuery, searchedQuery, tavily.results, sports),
+        market_data: marketData,
+        answer_text: formatAnswerText(cleanQuery, searchedQuery, tavily.results, sports, marketData),
         results: tavily.results.slice(0, limit),
       };
     }
   }
 
-  const [instantAnswer, htmlResults, sportsEnrichment] = await Promise.allSettled([
+  const [instantAnswer, htmlResults, sportsEnrichment, marketEnrichment] = await Promise.allSettled([
     fetchDuckDuckGoInstantAnswer(searchedQuery, fetchImpl),
     fetchDuckDuckGoHtmlResults(searchedQuery, limit, fetchImpl),
     fetchSportsEnrichment(cleanQuery, now, fetchImpl),
+    fetchMarketEnrichment(cleanQuery, now, fetchImpl),
   ]);
 
   const results = [];
@@ -64,6 +69,8 @@ export async function basicWebSearch({
   const html = htmlResults.status === "fulfilled" ? htmlResults.value : [];
   const sports =
     sportsEnrichment.status === "fulfilled" ? sportsEnrichment.value : null;
+  const marketData =
+    marketEnrichment.status === "fulfilled" ? marketEnrichment.value : null;
 
   if (instant?.answer) {
     results.push({
@@ -89,7 +96,8 @@ export async function basicWebSearch({
       "Basic web search uses DuckDuckGo public endpoints and may be incomplete for live sports schedules or fast-moving news.",
     result_count: results.length,
     sports_events: sports?.events || [],
-    answer_text: formatAnswerText(cleanQuery, searchedQuery, results, sports),
+    market_data: marketData,
+    answer_text: formatAnswerText(cleanQuery, searchedQuery, results, sports, marketData),
     results: results.slice(0, limit),
   };
 }
@@ -229,6 +237,42 @@ async function fetchSportsEnrichment(query, now, fetchImpl) {
   };
 }
 
+async function fetchMarketEnrichment(query, now, fetchImpl) {
+  if (!isWtiCrudeOilQuery(query)) return null;
+
+  const url = "https://www.tradingview.com/symbols/NYMEX-CL1!/";
+  const response = await fetchImpl(url, {
+    headers: {
+      accept: "text/html",
+      "user-agent": "phoneclaw/0.1 market-enrichment",
+    },
+  });
+  if (!response.ok) return null;
+
+  const html = await response.text();
+  const text = normalizeWhitespace(cleanHtml(html));
+  const match = text.match(
+    /current price of Light Crude Oil Futures is\s+([0-9,.]+)\s+USD\s*\/\s*BLL\s+—\s+it has\s+(.+?in the past 24 hours)\./i
+  );
+  if (!match) return null;
+
+  const price = Number.parseFloat(match[1].replace(/,/g, ""));
+  if (!Number.isFinite(price)) return null;
+
+  return {
+    provider: "TradingView public page",
+    instrument: "Light Crude Oil Futures",
+    benchmark: "WTI / West Texas Intermediate",
+    symbol: "NYMEX:CL1!",
+    price,
+    currency: "USD",
+    unit: "barrel",
+    change_text: normalizeWhitespace(match[2]),
+    url,
+    as_of: now.toISOString(),
+  };
+}
+
 function isFifaWorldCupQuery(query) {
   const value = String(query || "").toLowerCase();
   if (!value.includes("world cup")) return false;
@@ -236,6 +280,12 @@ function isFifaWorldCupQuery(query) {
   return /\b(fifa|soccer|football|match|matches|game|games|schedule|score|today|tonight)\b/.test(
     value
   );
+}
+
+function isWtiCrudeOilQuery(query) {
+  const value = String(query || "").toLowerCase();
+  if (/\b(wti|west texas|west texas intermediate|nymex cl|cl1|cl=f)\b/.test(value)) return true;
+  return /\b(oil|crude)\b/.test(value) && /\b(price|down|up|market|futures|barrel)\b/.test(value);
 }
 
 function resolveQueryDate(query, now) {
@@ -308,8 +358,20 @@ function formatEasternTime(value) {
   }).format(new Date(value));
 }
 
-function formatAnswerText(originalQuery, searchedQuery, results, sports) {
+function formatAnswerText(originalQuery, searchedQuery, results, sports, marketData) {
   const sections = [];
+
+  if (marketData) {
+    sections.push(
+      [
+        `${marketData.benchmark} price from ${marketData.provider}: $${marketData.price.toFixed(2)} ${marketData.currency} per ${marketData.unit}.`,
+        marketData.change_text ? `Recent change: it has ${marketData.change_text}.` : "",
+        `Source: ${marketData.url}`,
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+  }
 
   if (sports?.events?.length > 0) {
     sections.push(
@@ -456,9 +518,14 @@ function cleanHtml(value) {
   return decodeHtml(String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
 }
 
+function normalizeWhitespace(value) {
+  return String(value || "").replace(/[\u00a0\u2009]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 function decodeHtml(value) {
   return String(value)
     .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&#39;/g, "'")

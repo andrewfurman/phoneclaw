@@ -23,6 +23,7 @@ const configs = [
   githubIssueCreateToolConfig(),
   githubIssueUpdateToolConfig(),
   himalayaEmailListToolConfig(),
+  himalayaEmailCountToolConfig(),
   himalayaEmailReadToolConfig(),
   himalayaEmailArchiveToolConfig(),
   himalayaDraftCreateToolConfig(),
@@ -133,6 +134,21 @@ function webSearchToolConfig() {
       provider: stringProperty({ description: "Search provider used." }),
       answer_text: stringProperty({
         description: "Compact spoken summary. Prefer this when answering by voice.",
+      }),
+      market_data: objectProperty({
+        description: "Structured market quote when available.",
+        properties: {
+          provider: stringProperty({ description: "Market data source." }),
+          instrument: stringProperty({ description: "Instrument name." }),
+          benchmark: stringProperty({ description: "Benchmark name." }),
+          symbol: stringProperty({ description: "Market symbol." }),
+          price: numberProperty({ description: "Latest parsed price." }),
+          currency: stringProperty({ description: "Quote currency." }),
+          unit: stringProperty({ description: "Quote unit." }),
+          change_text: stringProperty({ description: "Source-provided recent change text." }),
+          url: stringProperty({ description: "Source URL." }),
+          as_of: stringProperty({ description: "Timestamp when the quote was fetched." }),
+        },
       }),
       results: arrayProperty({
         description: "Search results.",
@@ -425,7 +441,7 @@ function himalayaEmailListToolConfig() {
   return webhookTool({
     name: "himalaya_email_list",
     description:
-      "Read-only Himalaya CLI email envelope listing and search. Use this to find recent or matching emails before reading a specific message.",
+      "Read-only paginated Himalaya CLI email envelope listing and search. Use this to show recent or matching emails before reading a specific message. Do not use this as a total email count.",
     url: `${workerBaseUrl}/cli/himalaya/email-list`,
     required: [],
     responseTimeoutSecs: 30,
@@ -440,7 +456,7 @@ function himalayaEmailListToolConfig() {
         description: "Mailbox folder name. Use INBOX by default.",
       }),
       page_size: integerProperty({
-        description: "Maximum emails to return. Use 5 by default for phone answers.",
+        description: "Maximum emails to return for this page. Use 5 by default for phone answers.",
       }),
       page: integerProperty({
         description: "Page number starting at 1. Omit unless Andrew asks for more.",
@@ -449,6 +465,13 @@ function himalayaEmailListToolConfig() {
     responseDescription: "Himalaya email envelope list response.",
     responseProperties: {
       ...cliResponseProperties(),
+      page: integerProperty({ description: "Returned page number." }),
+      page_size: integerProperty({ description: "Requested page size." }),
+      is_total_count: booleanProperty("Always false; this tool returns one page, not a total count."),
+      possible_total_count: integerProperty({
+        description:
+          "Possible total count only when page 1 returned fewer items than the page size.",
+      }),
       returned_count: integerProperty({ description: "Number of email envelopes returned." }),
       items: arrayProperty({
         description: "Email envelopes returned by Himalaya.",
@@ -461,6 +484,51 @@ function himalayaEmailListToolConfig() {
           date: stringProperty({ description: "Email date." }),
           has_attachment: booleanProperty("Whether the email has an attachment."),
         },
+      }),
+    },
+  });
+}
+
+function himalayaEmailCountToolConfig() {
+  return webhookTool({
+    name: "himalaya_email_count",
+    description:
+      "Counts email envelopes in a Himalaya mailbox folder by paginating through envelope list results. Use this when Andrew asks how many emails are in a folder.",
+    url: `${workerBaseUrl}/cli/himalaya/email-count`,
+    required: [],
+    responseTimeoutSecs: 45,
+    forcePreToolSpeech: true,
+    toolCallSound: "typing",
+    requestProperties: {
+      query: stringProperty({
+        description:
+          "Optional Himalaya envelope query to count matching messages, for example 'from example.com' or 'subject invoice'.",
+      }),
+      folder: stringProperty({
+        description: "Mailbox folder name. Use INBOX by default.",
+      }),
+      page_size: integerProperty({
+        description: "Counting page size. Use 50 by default.",
+      }),
+      max_pages: integerProperty({
+        description:
+          "Maximum pages to scan before returning a lower-bound count. Use the default unless Andrew asks for an exhaustive count.",
+      }),
+    },
+    responseDescription: "Himalaya email count response.",
+    responseProperties: {
+      ok: booleanProperty("Whether the count succeeded."),
+      status: stringProperty({ description: "Status string." }),
+      command: stringProperty({ description: "CLI command used." }),
+      folder: stringProperty({ description: "Mailbox folder counted." }),
+      query: stringProperty({ description: "Query counted, if any." }),
+      total_count: integerProperty({ description: "Counted emails." }),
+      pages_scanned: integerProperty({ description: "Number of pages scanned." }),
+      page_size: integerProperty({ description: "Page size used for counting." }),
+      exact: booleanProperty("Whether total_count is an exact count."),
+      capped: booleanProperty("Whether counting stopped at max_pages."),
+      answer_text: stringProperty({
+        description: "Compact spoken summary. Prefer this when answering by voice.",
       }),
     },
   });
@@ -913,6 +981,20 @@ function integerProperty({ description }) {
   };
 }
 
+function numberProperty({ description }) {
+  return {
+    type: "number",
+    description,
+    enum: null,
+    nullable: false,
+    is_system_provided: false,
+    dynamic_variable: "",
+    allowed_values_dynamic_variable: "",
+    constant_value: "",
+    is_omitted: false,
+  };
+}
+
 function booleanProperty(description) {
   return {
     type: "boolean",
@@ -988,8 +1070,9 @@ function promptWithGithubFileTools(currentPrompt) {
 - If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.
 
 CLI capability:
-- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
-- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
+- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_count, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
+- Use himalaya_email_count when Andrew asks how many emails are in a mailbox folder. Do not answer total-count questions from himalaya_email_list, because that tool returns one page of results.
+- Use himalaya_email_list to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
 - Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.
 - Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.
 - Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.

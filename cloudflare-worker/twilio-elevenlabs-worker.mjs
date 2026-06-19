@@ -72,6 +72,7 @@ export default {
           github_issue_create: "POST /github-issues/create",
           github_issue_update: "POST /github-issues/update",
           himalaya_email_list: "POST /cli/himalaya/email-list",
+          himalaya_email_count: "POST /cli/himalaya/email-count",
           himalaya_email_read: "POST /cli/himalaya/email-read",
           himalaya_email_archive: "POST /cli/himalaya/email-archive",
           himalaya_draft_create: "POST /cli/himalaya/draft-create",
@@ -153,6 +154,7 @@ export default {
       request.method === "POST" &&
       [
         "/cli/himalaya/email-list",
+        "/cli/himalaya/email-count",
         "/cli/himalaya/email-read",
         "/cli/himalaya/email-archive",
         "/cli/himalaya/draft-create",

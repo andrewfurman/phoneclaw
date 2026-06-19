@@ -57,6 +57,7 @@ npm run worker:deploy
 - `POST /github-issues/create`
 - `POST /github-issues/update`
 - `POST /cli/himalaya/email-list`
+- `POST /cli/himalaya/email-count`
 - `POST /cli/himalaya/email-read`
 - `POST /cli/himalaya/email-archive`
 - `POST /cli/himalaya/draft-create`
@@ -141,7 +142,7 @@ The `/cli/*` endpoints are authenticated ElevenLabs webhook tools, but the Worke
 
 Supported bridge-backed tools:
 
-- Himalaya: email envelope list/search, preview read, confirmed archive, confirmed new draft, and confirmed reply draft.
+- Himalaya: email envelope list/search, folder count, preview read, confirmed archive, confirmed new draft, and confirmed reply draft.
 - Otter: transcript list, raw JSON fetch, and transcript search.
 - GitHub CLI: common read-only repo, issue, PR, and search commands.
 

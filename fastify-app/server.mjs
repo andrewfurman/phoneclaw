@@ -7,6 +7,7 @@ import {
   himalayaDraftCreate,
   himalayaDraftReply,
   himalayaEmailArchive,
+  himalayaEmailCount,
   himalayaEmailList,
   himalayaEmailRead,
   otterSpeechGet,
@@ -74,6 +75,7 @@ app.get("/", async () => ({
     github_issue_create: "POST /github-issues/create",
     github_issue_update: "POST /github-issues/update",
     himalaya_email_list: "POST /cli/himalaya/email-list",
+    himalaya_email_count: "POST /cli/himalaya/email-count",
     himalaya_email_read: "POST /cli/himalaya/email-read",
     himalaya_email_archive: "POST /cli/himalaya/email-archive",
     himalaya_draft_create: "POST /cli/himalaya/draft-create",
@@ -144,6 +146,10 @@ app.post("/github-issues/update", async (request, reply) =>
 
 app.post("/cli/himalaya/email-list", async (request, reply) =>
   handleHimalayaEmailList(request, reply)
+);
+
+app.post("/cli/himalaya/email-count", async (request, reply) =>
+  handleHimalayaEmailCount(request, reply)
 );
 
 app.post("/cli/himalaya/email-read", async (request, reply) =>
@@ -576,6 +582,22 @@ async function handleHimalayaEmailList(request, reply) {
     account: body.account,
     page: body.page,
     pageSize: body.page_size || body.pageSize || body.max_results || body.maxResults,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleHimalayaEmailCount(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaEmailCount({
+    query: body.query || body.search_query || body.searchQuery,
+    folder: body.folder,
+    account: body.account,
+    pageSize: body.page_size || body.pageSize,
+    maxPages: body.max_pages || body.maxPages,
     maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
   });
 

@@ -6,6 +6,8 @@ const DEFAULT_MAX_BUFFER_BYTES = 1_000_000;
 const DEFAULT_MAX_RAW_BYTES = 200_000;
 const MAX_RAW_BYTES = 750_000;
 const MAX_LIST_RESULTS = 50;
+const DEFAULT_EMAIL_COUNT_PAGE_SIZE = 50;
+const MAX_EMAIL_COUNT_PAGES = 200;
 
 export async function himalayaEmailList({
   query = "",
@@ -15,21 +17,25 @@ export async function himalayaEmailList({
   pageSize = 10,
   maxRawBytes = DEFAULT_MAX_RAW_BYTES,
 } = {}) {
+  const normalizedFolder = normalizeString(folder, "INBOX");
+  const normalizedQuery = normalizeString(query);
+  const normalizedPage = clampInteger(page, 1, 100, 1);
+  const normalizedPageSize = clampInteger(pageSize, 1, MAX_LIST_RESULTS, 10);
   const args = [
     "-o",
     "json",
     "envelope",
     "list",
     "--folder",
-    normalizeString(folder, "INBOX"),
+    normalizedFolder,
     "--page",
-    String(clampInteger(page, 1, 100, 1)),
+    String(normalizedPage),
     "--page-size",
-    String(clampInteger(pageSize, 1, MAX_LIST_RESULTS, 10)),
+    String(normalizedPageSize),
   ];
 
   if (account) args.push("--account", normalizeString(account));
-  if (query) args.push(normalizeString(query));
+  if (normalizedQuery) args.push(normalizedQuery);
 
   const result = await runCli({
     command: process.env.HIMALAYA_BIN || "himalaya",
@@ -44,14 +50,117 @@ export async function himalayaEmailList({
   return {
     ...result,
     command: "himalaya envelope list",
-    folder: normalizeString(folder, "INBOX"),
-    query: normalizeString(query),
+    folder: normalizedFolder,
+    query: normalizedQuery,
+    page: normalizedPage,
+    page_size: normalizedPageSize,
     returned_count: envelopes.length,
+    is_total_count: false,
+    possible_total_count:
+      normalizedPage === 1 && envelopes.length < normalizedPageSize
+        ? envelopes.length
+        : null,
     items: envelopes,
     answer_text: result.ok
-      ? formatEmailListAnswer(envelopes, normalizeString(folder, "INBOX"))
+      ? formatEmailListAnswer(envelopes, normalizedFolder, {
+          page: normalizedPage,
+          pageSize: normalizedPageSize,
+        })
       : result.answer_text,
   };
+}
+
+export async function himalayaEmailCount({
+  query = "",
+  folder = "INBOX",
+  account,
+  pageSize = DEFAULT_EMAIL_COUNT_PAGE_SIZE,
+  maxPages = MAX_EMAIL_COUNT_PAGES,
+  maxRawBytes = 25_000,
+} = {}) {
+  const normalizedFolder = normalizeString(folder, "INBOX");
+  const normalizedQuery = normalizeString(query);
+  const normalizedPageSize = clampInteger(
+    pageSize,
+    1,
+    MAX_LIST_RESULTS,
+    DEFAULT_EMAIL_COUNT_PAGE_SIZE
+  );
+  const normalizedMaxPages = clampInteger(maxPages, 1, MAX_EMAIL_COUNT_PAGES, MAX_EMAIL_COUNT_PAGES);
+  let totalCount = 0;
+  let pagesScanned = 0;
+
+  for (let pageNumber = 1; pageNumber <= normalizedMaxPages; pageNumber += 1) {
+    const args = [
+      "-o",
+      "json",
+      "envelope",
+      "list",
+      "--folder",
+      normalizedFolder,
+      "--page",
+      String(pageNumber),
+      "--page-size",
+      String(normalizedPageSize),
+    ];
+    if (account) args.push("--account", normalizeString(account));
+    if (normalizedQuery) args.push(normalizedQuery);
+
+    const result = await runCli({
+      command: process.env.HIMALAYA_BIN || "himalaya",
+      args,
+      maxRawBytes,
+    });
+
+    if (!result.ok) {
+      if (pageNumber > 1 && isHimalayaPageOutOfBounds(result)) {
+        return emailCountResponse({
+          folder: normalizedFolder,
+          query: normalizedQuery,
+          totalCount,
+          pagesScanned,
+          pageSize: normalizedPageSize,
+          exact: true,
+          capped: false,
+        });
+      }
+      return {
+        ...result,
+        command: "himalaya envelope list",
+        folder: normalizedFolder,
+        query: normalizedQuery,
+        total_count: totalCount,
+        pages_scanned: pagesScanned,
+        answer_text: result.answer_text || "Himalaya could not count that folder.",
+      };
+    }
+
+    const envelopes = Array.isArray(result.parsed_json) ? result.parsed_json : [];
+    totalCount += envelopes.length;
+    pagesScanned = pageNumber;
+
+    if (envelopes.length < normalizedPageSize) {
+      return emailCountResponse({
+        folder: normalizedFolder,
+        query: normalizedQuery,
+        totalCount,
+        pagesScanned,
+        pageSize: normalizedPageSize,
+        exact: true,
+        capped: false,
+      });
+    }
+  }
+
+  return emailCountResponse({
+    folder: normalizedFolder,
+    query: normalizedQuery,
+    totalCount,
+    pagesScanned,
+    pageSize: normalizedPageSize,
+    exact: false,
+    capped: true,
+  });
 }
 
 export async function himalayaEmailRead({
@@ -179,23 +288,18 @@ export async function himalayaDraftCreate({
     );
   }
 
-  const template = await buildHimalayaTemplate({
-    mode: "write",
-    headers: {
-      To: normalizedTo,
-      Cc: normalizeHeaderValue(cc),
-      Bcc: normalizeHeaderValue(bcc),
-      Subject: normalizedSubject,
-    },
-    body: normalizedBody,
-    account,
-    maxRawBytes,
-  });
+  const fromAddress = await getHimalayaFromAddress({ account, maxRawBytes });
+  if (!fromAddress.ok) return fromAddress;
 
-  if (!template.ok) return template;
-
-  const saved = await saveHimalayaTemplate({
-    template: template.raw_json,
+  const saved = await saveRawHimalayaMessage({
+    rawMessage: buildRawEmailMessage({
+      from: fromAddress.from,
+      to: normalizedTo,
+      cc: normalizeHeaderValue(cc),
+      bcc: normalizeHeaderValue(bcc),
+      subject: normalizedSubject,
+      body: normalizedBody,
+    }),
     draftFolder: normalizedDraftFolder,
     account,
     maxRawBytes,
@@ -203,7 +307,7 @@ export async function himalayaDraftCreate({
 
   return {
     ...saved,
-    command: "himalaya template save",
+    command: "himalaya message save",
     action: "draft_created",
     draft_folder: normalizedDraftFolder,
     to: normalizedTo,
@@ -239,20 +343,54 @@ export async function himalayaDraftReply({
     );
   }
 
-  const template = await buildHimalayaTemplate({
+  const original = await himalayaEmailRead({
+    id: messageId,
+    folder: sourceFolder,
+    account,
+    includeHeaders: true,
+    markSeen: false,
+    maxRawBytes,
+  });
+  if (!original.ok) return original;
+
+  const originalHeaders = parseEmailHeaders(original.parsed_json || original.raw_json || "");
+  const replyTemplate = await buildHimalayaTemplate({
     mode: "reply",
     id: messageId,
     folder: sourceFolder,
     replyAll,
-    body: normalizedBody,
     account,
     maxRawBytes,
   });
+  if (!replyTemplate.ok) return replyTemplate;
 
-  if (!template.ok) return template;
+  const replyHeaders = parseEmailHeaders(replyTemplate.raw_json);
+  const replyTo =
+    headerValue(replyHeaders, "to") ||
+    headerValue(originalHeaders, "reply-to") ||
+    headerValue(originalHeaders, "from");
+  const replySubject =
+    headerValue(replyHeaders, "subject") ||
+    ensureReplySubject(headerValue(originalHeaders, "subject"));
 
-  const saved = await saveHimalayaTemplate({
-    template: template.raw_json,
+  if (!replyTo) {
+    return {
+      ok: false,
+      status: "missing_reply_recipient",
+      message: "Could not determine a recipient for the reply draft.",
+      answer_text: "I could not determine a recipient for that reply draft.",
+    };
+  }
+
+  const saved = await saveRawHimalayaMessage({
+    rawMessage: buildRawEmailMessage({
+      from: headerValue(replyHeaders, "from"),
+      to: replyTo,
+      subject: replySubject,
+      body: normalizedBody,
+      inReplyTo: headerValue(replyHeaders, "in-reply-to"),
+      references: headerValue(replyHeaders, "references") || headerValue(replyHeaders, "in-reply-to"),
+    }),
     draftFolder: normalizedDraftFolder,
     account,
     maxRawBytes,
@@ -260,7 +398,7 @@ export async function himalayaDraftReply({
 
   return {
     ...saved,
-    command: "himalaya template save",
+    command: "himalaya message save",
     action: "reply_draft_created",
     id: messageId,
     source_folder: sourceFolder,
@@ -667,6 +805,136 @@ async function saveHimalayaTemplate({
   });
 }
 
+async function getHimalayaFromAddress({ account, maxRawBytes }) {
+  const configured = normalizeHeaderValue(process.env.HIMALAYA_FROM_EMAIL);
+  if (configured) {
+    return {
+      ok: true,
+      from: configured,
+    };
+  }
+
+  const template = await buildHimalayaTemplate({
+    mode: "write",
+    account,
+    maxRawBytes,
+  });
+  if (!template.ok) return template;
+
+  const headers = parseEmailHeaders(template.raw_json);
+  const from = headerValue(headers, "from");
+  if (!from) {
+    return {
+      ok: false,
+      status: "missing_from_address",
+      message: "Could not determine the configured Himalaya From address.",
+      answer_text: "I could not determine the configured email From address.",
+    };
+  }
+
+  return {
+    ok: true,
+    from,
+  };
+}
+
+async function saveRawHimalayaMessage({
+  rawMessage,
+  draftFolder,
+  account,
+  maxRawBytes,
+}) {
+  if (!rawMessage) {
+    return {
+      ok: false,
+      status: "empty_message",
+      message: "No raw email message was generated to save.",
+      answer_text: "No email draft content was generated to save.",
+    };
+  }
+
+  const args = [
+    "-o",
+    "json",
+    "message",
+    "save",
+    "--folder",
+    normalizeString(draftFolder, "[Gmail]/Drafts"),
+  ];
+  if (account) args.push("--account", normalizeString(account));
+  args.push(rawMessage);
+
+  return runCli({
+    command: process.env.HIMALAYA_BIN || "himalaya",
+    args,
+    timeoutMs: 20_000,
+    maxRawBytes,
+  });
+}
+
+function buildRawEmailMessage({
+  from,
+  to,
+  cc,
+  bcc,
+  subject,
+  body,
+  inReplyTo,
+  references,
+}) {
+  const headers = [
+    ["From", normalizeHeaderValue(from)],
+    ["To", normalizeHeaderValue(to)],
+    ["Cc", normalizeHeaderValue(cc)],
+    ["Bcc", normalizeHeaderValue(bcc)],
+    ["Subject", normalizeHeaderValue(subject)],
+    ["In-Reply-To", normalizeHeaderValue(inReplyTo)],
+    ["References", normalizeHeaderValue(references)],
+    ["MIME-Version", "1.0"],
+    ["Content-Type", "text/plain; charset=UTF-8"],
+    ["Content-Transfer-Encoding", "8bit"],
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`);
+
+  return `${headers.join("\r\n")}\r\n\r\n${normalizeEmailBody(body)}\r\n`;
+}
+
+function parseEmailHeaders(value) {
+  const text = String(value || "");
+  const headerText = text.split(/\r?\n\r?\n/, 1)[0] || "";
+  const headers = {};
+  let currentKey = "";
+
+  for (const line of headerText.split(/\r?\n/)) {
+    if (/^\s/.test(line) && currentKey) {
+      headers[currentKey] = `${headers[currentKey]} ${line.trim()}`.trim();
+      continue;
+    }
+
+    const match = line.match(/^([^:]+):\s*(.*)$/);
+    if (!match) continue;
+    currentKey = match[1].trim().toLowerCase();
+    headers[currentKey] = match[2].trim();
+  }
+
+  return headers;
+}
+
+function headerValue(headers, key) {
+  return normalizeHeaderValue(headers?.[String(key).toLowerCase()]);
+}
+
+function ensureReplySubject(subject) {
+  const normalized = normalizeHeaderValue(subject);
+  if (!normalized) return "Re:";
+  return /^re:/i.test(normalized) ? normalized : `Re: ${normalized}`;
+}
+
+function normalizeEmailBody(value) {
+  return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
+}
+
 function compactEnvelope(envelope) {
   return {
     id: envelope.id ?? "",
@@ -706,9 +974,44 @@ function summarizeAddressList(value) {
     .join(", ");
 }
 
-function formatEmailListAnswer(envelopes, folder) {
+function emailCountResponse({
+  folder,
+  query,
+  totalCount,
+  pagesScanned,
+  pageSize,
+  exact,
+  capped,
+}) {
+  const qualifier = query ? ` matching "${query}"` : "";
+  const exactText = exact ? "" : "at least ";
+  const cappedText = capped
+    ? ` I stopped after ${pagesScanned} pages of ${pageSize}, so this is a lower bound.`
+    : "";
+
+  return {
+    ok: true,
+    status: "ok",
+    command: "himalaya envelope list",
+    folder,
+    query,
+    total_count: totalCount,
+    pages_scanned: pagesScanned,
+    page_size: pageSize,
+    exact,
+    capped,
+    answer_text: `Himalaya counted ${exactText}${totalCount} emails in ${folder}${qualifier}.${cappedText}`,
+  };
+}
+
+function isHimalayaPageOutOfBounds(result) {
+  const text = `${result.message || ""}\n${result.stderr || ""}`.toLowerCase();
+  return text.includes("out of bound") || text.includes("out of range");
+}
+
+function formatEmailListAnswer(envelopes, folder, { page, pageSize } = {}) {
   if (envelopes.length === 0) {
-    return `Himalaya found no matching emails in ${folder}.`;
+    return `Himalaya found no matching emails on page ${page || 1} of ${folder}.`;
   }
 
   const lines = envelopes.slice(0, 5).map((item, index) => {
@@ -716,9 +1019,13 @@ function formatEmailListAnswer(envelopes, folder) {
     const sender = item.from ? ` from ${item.from}` : "";
     return `${index + 1}. ${subject}${sender}, dated ${item.date || "unknown date"}.`;
   });
-  return [`Himalaya returned ${envelopes.length} email envelopes from ${folder}.`, ...lines].join(
-    "\n"
-  );
+  return [
+    `Himalaya returned ${envelopes.length} email envelopes from page ${page || 1} of ${folder}; this is a paginated list, not the total inbox count.`,
+    pageSize ? `Page size: ${pageSize}. Use himalaya_email_count when Andrew asks how many emails are in a folder.` : "",
+    ...lines,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function formatOtterListAnswer(speeches) {
