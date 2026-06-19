@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-19T17:22:49.708Z",
+  "exported_at": "2026-06-19T18:17:12.409Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
@@ -516,7 +516,7 @@
                     },
                     "max_results": {
                       "type": "integer",
-                      "description": "Maximum results to return. Use 3 by default for fast voice responses.",
+                      "description": "Maximum results to return. Use 5 by default; use up to 8 only for deeper comparisons.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -4497,7 +4497,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1781889765
+      "updated_at_unix_secs": 1781893030
     },
     "platform_settings": {
       "evaluation": {
@@ -4834,7 +4834,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_2401kvgeg41ffjd8nmefy7bw5ba9",
+    "version_id": "agtvrsn_0001kvghks3we7mtmvt8gh4gnpvt",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -4886,7 +4886,7 @@
               },
               "max_results": {
                 "type": "integer",
-                "description": "Maximum results to return. Use 3 by default for fast voice responses.",
+                "description": "Maximum results to return. Use 5 by default; use up to 8 only for deeper comparisons.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -5110,8 +5110,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 100,
-        "avg_latency_secs": 0.43
+        "total_calls": 102,
+        "avg_latency_secs": 0.44
       },
       "response_mocks": null
     },
@@ -7090,8 +7090,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 7,
-        "avg_latency_secs": 1.1
+        "total_calls": 8,
+        "avg_latency_secs": 1.17
       },
       "response_mocks": null
     },
