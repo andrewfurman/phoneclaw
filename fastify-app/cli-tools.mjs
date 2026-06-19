@@ -98,6 +98,179 @@ export async function himalayaEmailRead({
   };
 }
 
+export async function himalayaEmailArchive({
+  id,
+  folder = "INBOX",
+  archiveFolder = process.env.HIMALAYA_ARCHIVE_FOLDER || "[Gmail]/All Mail",
+  account,
+  confirmed = false,
+  maxRawBytes = DEFAULT_MAX_RAW_BYTES,
+} = {}) {
+  const messageId = normalizeString(id);
+  const sourceFolder = normalizeString(folder, "INBOX");
+  const targetFolder = normalizeString(archiveFolder, "[Gmail]/All Mail");
+
+  if (!messageId) {
+    return missingField("id", "A Himalaya envelope id is required.");
+  }
+
+  if (!toBoolean(confirmed)) {
+    return confirmationRequired(
+      `Confirm that Andrew wants to archive email envelope ${messageId} from ${sourceFolder} to ${targetFolder}.`
+    );
+  }
+
+  const args = [
+    "-o",
+    "json",
+    "message",
+    "move",
+    "--folder",
+    sourceFolder,
+  ];
+  if (account) args.push("--account", normalizeString(account));
+  args.push(targetFolder, messageId);
+
+  const result = await runCli({
+    command: process.env.HIMALAYA_BIN || "himalaya",
+    args,
+    maxRawBytes,
+  });
+
+  return {
+    ...result,
+    command: "himalaya message move",
+    action: "archived",
+    id: messageId,
+    source_folder: sourceFolder,
+    target_folder: targetFolder,
+    answer_text: result.ok
+      ? `Archived email envelope ${messageId}.`
+      : result.answer_text,
+  };
+}
+
+export async function himalayaDraftCreate({
+  to,
+  cc,
+  bcc,
+  subject,
+  body,
+  draftFolder = process.env.HIMALAYA_DRAFTS_FOLDER || "[Gmail]/Drafts",
+  account,
+  confirmed = false,
+  maxRawBytes = DEFAULT_MAX_RAW_BYTES,
+} = {}) {
+  const normalizedTo = normalizeHeaderValue(to);
+  const normalizedSubject = normalizeHeaderValue(subject);
+  const normalizedBody = normalizeString(body);
+  const normalizedDraftFolder = normalizeString(draftFolder, "[Gmail]/Drafts");
+
+  if (!normalizedTo) {
+    return missingField("to", "At least one recipient is required for a draft.");
+  }
+  if (!normalizedSubject) {
+    return missingField("subject", "A subject is required for a draft.");
+  }
+
+  if (!toBoolean(confirmed)) {
+    return confirmationRequired(
+      `Confirm that Andrew wants to save a draft to ${normalizedTo} with subject "${normalizedSubject}".`
+    );
+  }
+
+  const template = await buildHimalayaTemplate({
+    mode: "write",
+    headers: {
+      To: normalizedTo,
+      Cc: normalizeHeaderValue(cc),
+      Bcc: normalizeHeaderValue(bcc),
+      Subject: normalizedSubject,
+    },
+    body: normalizedBody,
+    account,
+    maxRawBytes,
+  });
+
+  if (!template.ok) return template;
+
+  const saved = await saveHimalayaTemplate({
+    template: template.raw_json,
+    draftFolder: normalizedDraftFolder,
+    account,
+    maxRawBytes,
+  });
+
+  return {
+    ...saved,
+    command: "himalaya template save",
+    action: "draft_created",
+    draft_folder: normalizedDraftFolder,
+    to: normalizedTo,
+    subject: normalizedSubject,
+    answer_text: saved.ok
+      ? `Saved a draft email to ${normalizedTo} with subject "${normalizedSubject}".`
+      : saved.answer_text,
+  };
+}
+
+export async function himalayaDraftReply({
+  id,
+  folder = "INBOX",
+  body,
+  replyAll = false,
+  draftFolder = process.env.HIMALAYA_DRAFTS_FOLDER || "[Gmail]/Drafts",
+  account,
+  confirmed = false,
+  maxRawBytes = DEFAULT_MAX_RAW_BYTES,
+} = {}) {
+  const messageId = normalizeString(id);
+  const sourceFolder = normalizeString(folder, "INBOX");
+  const normalizedDraftFolder = normalizeString(draftFolder, "[Gmail]/Drafts");
+  const normalizedBody = normalizeString(body);
+
+  if (!messageId) {
+    return missingField("id", "A Himalaya envelope id is required.");
+  }
+
+  if (!toBoolean(confirmed)) {
+    return confirmationRequired(
+      `Confirm that Andrew wants to save a reply draft for email envelope ${messageId}.`
+    );
+  }
+
+  const template = await buildHimalayaTemplate({
+    mode: "reply",
+    id: messageId,
+    folder: sourceFolder,
+    replyAll,
+    body: normalizedBody,
+    account,
+    maxRawBytes,
+  });
+
+  if (!template.ok) return template;
+
+  const saved = await saveHimalayaTemplate({
+    template: template.raw_json,
+    draftFolder: normalizedDraftFolder,
+    account,
+    maxRawBytes,
+  });
+
+  return {
+    ...saved,
+    command: "himalaya template save",
+    action: "reply_draft_created",
+    id: messageId,
+    source_folder: sourceFolder,
+    draft_folder: normalizedDraftFolder,
+    answer_text: saved.ok
+      ? `Saved a reply draft for email envelope ${messageId}.`
+      : saved.answer_text,
+  };
+}
+
 export async function otterSpeechesList({
   source = "owned",
   days,
@@ -419,6 +592,81 @@ function runCli({ command, args, timeoutMs = DEFAULT_TIMEOUT_MS, maxRawBytes }) 
   });
 }
 
+async function buildHimalayaTemplate({
+  mode,
+  id,
+  folder,
+  replyAll = false,
+  headers = {},
+  body = "",
+  account,
+  maxRawBytes,
+}) {
+  const args = ["template", mode];
+  if (mode === "reply") {
+    args.push("--folder", normalizeString(folder, "INBOX"));
+    if (toBoolean(replyAll)) args.push("--all");
+  }
+  for (const [key, value] of Object.entries(headers)) {
+    if (!value) continue;
+    args.push("--header", `${key}:${value}`);
+  }
+  if (account) args.push("--account", normalizeString(account));
+  if (mode === "reply") args.push(normalizeString(id));
+  if (body) args.push(body);
+
+  const result = await runCli({
+    command: process.env.HIMALAYA_BIN || "himalaya",
+    args,
+    maxRawBytes,
+  });
+
+  if (!result.ok) {
+    return {
+      ...result,
+      command: `himalaya template ${mode}`,
+    };
+  }
+
+  return {
+    ...result,
+    command: `himalaya template ${mode}`,
+    answer_text: "Generated an email draft template.",
+  };
+}
+
+async function saveHimalayaTemplate({
+  template,
+  draftFolder,
+  account,
+  maxRawBytes,
+}) {
+  if (!template) {
+    return {
+      ok: false,
+      status: "empty_template",
+      message: "Himalaya did not return a template to save.",
+      answer_text: "Himalaya did not return a template to save.",
+    };
+  }
+
+  const args = [
+    "template",
+    "save",
+    "--folder",
+    normalizeString(draftFolder, "[Gmail]/Drafts"),
+  ];
+  if (account) args.push("--account", normalizeString(account));
+  args.push(template);
+
+  return runCli({
+    command: process.env.HIMALAYA_BIN || "himalaya",
+    args,
+    timeoutMs: 35_000,
+    maxRawBytes,
+  });
+}
+
 function compactEnvelope(envelope) {
   return {
     id: envelope.id ?? "",
@@ -509,6 +757,15 @@ function missingField(field, message) {
   };
 }
 
+function confirmationRequired(message) {
+  return {
+    ok: false,
+    status: "confirmation_required",
+    message,
+    answer_text: message,
+  };
+}
+
 function parseMaybeJson(value) {
   if (!value) return null;
   try {
@@ -542,6 +799,10 @@ function redact(value) {
 function normalizeString(value, fallback = "") {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+}
+
+function normalizeHeaderValue(value) {
+  return normalizeString(value).replace(/[\r\n]+/g, " ").trim();
 }
 
 function normalizeEnum(value, allowed, fallback) {

@@ -99,11 +99,14 @@ The hosted Worker uses `GITHUB_READ_TOKEN` for reads and `GITHUB_WRITE_TOKEN` fo
 
 ## CLI Bridge Tools
 
-The ElevenLabs agent also has focused read-only wrappers for local CLIs:
+The ElevenLabs agent also has focused wrappers for local CLIs:
 
 - `himalaya_email_list` and `himalaya_email_read`
+- `himalaya_email_archive`, `himalaya_draft_create`, and `himalaya_draft_reply`
 - `otter_speeches_list`, `otter_speech_get`, and `otter_speech_search`
 - `github_cli_common`
+
+Email write tools require explicit confirmation. They can archive email and save drafts; they cannot send email.
 
 Cloudflare Workers cannot run those binaries directly. The Worker proxies `/cli/*` requests to a private Fastify bridge configured with `CLI_BRIDGE_URL` and `CLI_BRIDGE_TOKEN`. See `docs/CLI_BRIDGE_SECURITY.md`.
 

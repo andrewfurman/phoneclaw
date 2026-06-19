@@ -41,6 +41,8 @@ export default {
         ),
         command_bridge_configured: Boolean(env.CLAUDE_BRIDGE_URL),
         web_search_configured: Boolean(env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN),
+        web_search_provider:
+          env.WEB_SEARCH_PROVIDER || (env.TAVILY_API_KEY ? "auto" : "duckduckgo"),
         cli_bridge_configured: Boolean(env.CLI_BRIDGE_URL && env.CLI_BRIDGE_TOKEN),
         github_read_configured: Boolean(env.GITHUB_READ_TOKEN),
         github_write_configured: Boolean(env.GITHUB_WRITE_TOKEN),
@@ -71,6 +73,9 @@ export default {
           github_issue_update: "POST /github-issues/update",
           himalaya_email_list: "POST /cli/himalaya/email-list",
           himalaya_email_read: "POST /cli/himalaya/email-read",
+          himalaya_email_archive: "POST /cli/himalaya/email-archive",
+          himalaya_draft_create: "POST /cli/himalaya/draft-create",
+          himalaya_draft_reply: "POST /cli/himalaya/draft-reply",
           otter_speeches_list: "POST /cli/otter/speeches-list",
           otter_speech_get: "POST /cli/otter/speech-get",
           otter_speech_search: "POST /cli/otter/speech-search",
@@ -149,6 +154,9 @@ export default {
       [
         "/cli/himalaya/email-list",
         "/cli/himalaya/email-read",
+        "/cli/himalaya/email-archive",
+        "/cli/himalaya/draft-create",
+        "/cli/himalaya/draft-reply",
         "/cli/otter/speeches-list",
         "/cli/otter/speech-get",
         "/cli/otter/speech-search",
@@ -424,7 +432,13 @@ async function handleWebSearch(request, env) {
   const query = body.query || body.search_query || body.searchQuery;
   const maxResults = body.max_results || body.maxResults || 5;
 
-  const result = await basicWebSearch({ query, maxResults });
+  const result = await basicWebSearch({
+    query,
+    maxResults,
+    provider: env.WEB_SEARCH_PROVIDER,
+    tavilyApiKey: env.TAVILY_API_KEY,
+    tavilySearchDepth: env.TAVILY_SEARCH_DEPTH,
+  });
   return json(result, result.ok ? 200 : 400);
 }
 

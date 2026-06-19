@@ -56,6 +56,8 @@ CLI_BRIDGE_TOKEN=replace-me
 HIMALAYA_BIN=/home/phoneclaw/.cargo/bin/himalaya
 OTTER_BIN=/home/phoneclaw/.cargo/bin/otter
 GH_BIN=/usr/bin/gh
+HIMALAYA_ARCHIVE_FOLDER="[Gmail]/All Mail"
+HIMALAYA_DRAFTS_FOLDER="[Gmail]/Drafts"
 ENV
 fi
 chown root:phoneclaw /etc/phoneclaw/bridge.env

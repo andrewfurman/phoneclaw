@@ -21,6 +21,8 @@ wrangler secret put TWILIO_WEBHOOK_TOKEN
 wrangler secret put ALLOWED_CALLER_NUMBERS
 wrangler secret put OUTSIDE_COVERAGE_MESSAGE
 wrangler secret put WEB_SEARCH_TOKEN
+# Optional Tavily search backend.
+wrangler secret put TAVILY_API_KEY
 wrangler secret put CLI_BRIDGE_URL
 wrangler secret put CLI_BRIDGE_TOKEN
 wrangler secret put GITHUB_READ_TOKEN
@@ -56,6 +58,9 @@ npm run worker:deploy
 - `POST /github-issues/update`
 - `POST /cli/himalaya/email-list`
 - `POST /cli/himalaya/email-read`
+- `POST /cli/himalaya/email-archive`
+- `POST /cli/himalaya/draft-create`
+- `POST /cli/himalaya/draft-reply`
 - `POST /cli/otter/speeches-list`
 - `POST /cli/otter/speech-get`
 - `POST /cli/otter/speech-search`
@@ -70,11 +75,13 @@ When an inbound caller is not allow-listed, the Worker returns a short TwiML mes
 
 ## Web Search Tool
 
-`POST /web-search` is a basic authenticated webhook tool for ElevenLabs. It uses DuckDuckGo public endpoints and returns compact search results plus an `answer_text` field for voice responses.
+`POST /web-search` is a basic authenticated webhook tool for ElevenLabs. It returns compact search results plus an `answer_text` field for voice responses.
+
+By default it uses DuckDuckGo public endpoints. To use Tavily, set `WEB_SEARCH_PROVIDER=tavily` or `WEB_SEARCH_PROVIDER=auto`, then store `TAVILY_API_KEY` as a Worker secret. `TAVILY_SEARCH_DEPTH` can be set to `basic`, `fast`, or `advanced`.
 
 When the query clearly asks for FIFA World Cup soccer schedules or scores, the tool also adds a small structured `sports_events` enrichment from ESPN's public scoreboard endpoint. Treat that as a prototype convenience, not a long-term sports-data contract.
 
-For production-quality search, replace this with a paid search API such as Tavily, Exa, Brave Search, Bing, or Google Programmable Search.
+For other production-quality search backends, add another provider behind the same response shape.
 
 ## GitHub Summary Tool
 
@@ -134,8 +141,10 @@ The `/cli/*` endpoints are authenticated ElevenLabs webhook tools, but the Worke
 
 Supported bridge-backed tools:
 
-- Himalaya: email envelope list/search and preview read.
+- Himalaya: email envelope list/search, preview read, confirmed archive, confirmed new draft, and confirmed reply draft.
 - Otter: transcript list, raw JSON fetch, and transcript search.
 - GitHub CLI: common read-only repo, issue, PR, and search commands.
+
+The Himalaya write tools require `confirmed=true` and cannot send email.
 
 If `CLI_BRIDGE_URL` or `CLI_BRIDGE_TOKEN` is unset, these endpoints return `cli_bridge_not_configured`. See `docs/CLI_BRIDGE_SECURITY.md` before deploying a bridge with real email/Otter/GitHub credentials.

@@ -4,6 +4,9 @@ import formbody from "@fastify/formbody";
 import twilio from "twilio";
 import {
   githubCliCommon,
+  himalayaDraftCreate,
+  himalayaDraftReply,
+  himalayaEmailArchive,
   himalayaEmailList,
   himalayaEmailRead,
   otterSpeechGet,
@@ -72,6 +75,9 @@ app.get("/", async () => ({
     github_issue_update: "POST /github-issues/update",
     himalaya_email_list: "POST /cli/himalaya/email-list",
     himalaya_email_read: "POST /cli/himalaya/email-read",
+    himalaya_email_archive: "POST /cli/himalaya/email-archive",
+    himalaya_draft_create: "POST /cli/himalaya/draft-create",
+    himalaya_draft_reply: "POST /cli/himalaya/draft-reply",
     otter_speeches_list: "POST /cli/otter/speeches-list",
     otter_speech_get: "POST /cli/otter/speech-get",
     otter_speech_search: "POST /cli/otter/speech-search",
@@ -142,6 +148,18 @@ app.post("/cli/himalaya/email-list", async (request, reply) =>
 
 app.post("/cli/himalaya/email-read", async (request, reply) =>
   handleHimalayaEmailRead(request, reply)
+);
+
+app.post("/cli/himalaya/email-archive", async (request, reply) =>
+  handleHimalayaEmailArchive(request, reply)
+);
+
+app.post("/cli/himalaya/draft-create", async (request, reply) =>
+  handleHimalayaDraftCreate(request, reply)
+);
+
+app.post("/cli/himalaya/draft-reply", async (request, reply) =>
+  handleHimalayaDraftReply(request, reply)
 );
 
 app.post("/cli/otter/speeches-list", async (request, reply) =>
@@ -427,7 +445,13 @@ async function handleWebSearch(request, reply) {
   const query = body.query || body.search_query || body.searchQuery;
   const maxResults = body.max_results || body.maxResults || 5;
 
-  const result = await basicWebSearch({ query, maxResults });
+  const result = await basicWebSearch({
+    query,
+    maxResults,
+    provider: process.env.WEB_SEARCH_PROVIDER,
+    tavilyApiKey: process.env.TAVILY_API_KEY,
+    tavilySearchDepth: process.env.TAVILY_SEARCH_DEPTH,
+  });
   return reply.code(result.ok ? 200 : 400).send(result);
 }
 
@@ -572,6 +596,65 @@ async function handleHimalayaEmailRead(request, reply) {
   });
 
   return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleHimalayaEmailArchive(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaEmailArchive({
+    id: body.id || body.envelope_id || body.envelopeId,
+    folder: body.folder,
+    archiveFolder: body.archive_folder || body.archiveFolder,
+    account: body.account,
+    confirmed: body.confirmed,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply
+    .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+    .send(result);
+}
+
+async function handleHimalayaDraftCreate(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaDraftCreate({
+    to: body.to,
+    cc: body.cc,
+    bcc: body.bcc,
+    subject: body.subject,
+    body: body.body || body.message,
+    draftFolder: body.draft_folder || body.draftFolder,
+    account: body.account,
+    confirmed: body.confirmed,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply
+    .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+    .send(result);
+}
+
+async function handleHimalayaDraftReply(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaDraftReply({
+    id: body.id || body.envelope_id || body.envelopeId,
+    folder: body.folder,
+    body: body.body || body.message,
+    replyAll: body.reply_all ?? body.replyAll,
+    draftFolder: body.draft_folder || body.draftFolder,
+    account: body.account,
+    confirmed: body.confirmed,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply
+    .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+    .send(result);
 }
 
 async function handleOtterSpeechesList(request, reply) {

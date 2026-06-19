@@ -1,6 +1,14 @@
-const SEARCH_PROVIDER = "DuckDuckGo";
+const DUCKDUCKGO_PROVIDER = "DuckDuckGo";
+const TAVILY_PROVIDER = "Tavily";
 
-export async function basicWebSearch({ query, maxResults = 5, fetchImpl = fetch }) {
+export async function basicWebSearch({
+  query,
+  maxResults = 5,
+  provider,
+  tavilyApiKey,
+  tavilySearchDepth,
+  fetchImpl = fetch,
+}) {
   const cleanQuery = String(query || "").trim();
   if (!cleanQuery) {
     return {
@@ -14,6 +22,37 @@ export async function basicWebSearch({ query, maxResults = 5, fetchImpl = fetch 
   const limit = clampInteger(maxResults, 1, 8);
   const now = new Date();
   const searchedQuery = addRelativeDateContext(cleanQuery, now);
+
+  if (shouldUseTavily({ provider, tavilyApiKey })) {
+    const tavily = await fetchTavilySearch({
+      query: searchedQuery,
+      maxResults: limit,
+      tavilyApiKey,
+      tavilySearchDepth,
+      fetchImpl,
+    }).catch((error) => ({
+      ok: false,
+      status: "tavily_failed",
+      message: error?.message || "Tavily search failed.",
+    }));
+    if (tavily.ok) {
+      const sports = await fetchSportsEnrichment(cleanQuery, now, fetchImpl).catch(() => null);
+      return {
+        ok: true,
+        query: cleanQuery,
+        searched_query: searchedQuery,
+        provider: TAVILY_PROVIDER,
+        as_of: now.toISOString(),
+        source_note:
+          "Web search uses Tavily when selected and configured, with DuckDuckGo available as the no-key fallback.",
+        result_count: tavily.results.length,
+        sports_events: sports?.events || [],
+        answer_text: formatAnswerText(cleanQuery, searchedQuery, tavily.results, sports),
+        results: tavily.results.slice(0, limit),
+      };
+    }
+  }
+
   const [instantAnswer, htmlResults, sportsEnrichment] = await Promise.allSettled([
     fetchDuckDuckGoInstantAnswer(searchedQuery, fetchImpl),
     fetchDuckDuckGoHtmlResults(searchedQuery, limit, fetchImpl),
@@ -44,7 +83,7 @@ export async function basicWebSearch({ query, maxResults = 5, fetchImpl = fetch 
     ok: true,
     query: cleanQuery,
     searched_query: searchedQuery,
-    provider: SEARCH_PROVIDER,
+    provider: DUCKDUCKGO_PROVIDER,
     as_of: now.toISOString(),
     source_note:
       "Basic web search uses DuckDuckGo public endpoints and may be incomplete for live sports schedules or fast-moving news.",
@@ -52,6 +91,94 @@ export async function basicWebSearch({ query, maxResults = 5, fetchImpl = fetch 
     sports_events: sports?.events || [],
     answer_text: formatAnswerText(cleanQuery, searchedQuery, results, sports),
     results: results.slice(0, limit),
+  };
+}
+
+function shouldUseTavily({ provider, tavilyApiKey }) {
+  const configuredKey =
+    tavilyApiKey ||
+    (typeof process === "undefined" ? "" : process.env.TAVILY_API_KEY);
+  const configuredProvider =
+    provider ||
+    (typeof process === "undefined" ? "" : process.env.WEB_SEARCH_PROVIDER) ||
+    (configuredKey ? "auto" : "");
+  const normalizedProvider = String(configuredProvider || "").toLowerCase();
+  return Boolean(configuredKey) && ["tavily", "auto"].includes(normalizedProvider);
+}
+
+async function fetchTavilySearch({
+  query,
+  maxResults,
+  tavilyApiKey,
+  tavilySearchDepth,
+  fetchImpl,
+}) {
+  const apiKey =
+    tavilyApiKey ||
+    (typeof process === "undefined" ? "" : process.env.TAVILY_API_KEY);
+  if (!apiKey) {
+    return {
+      ok: false,
+      status: "tavily_not_configured",
+      message: "TAVILY_API_KEY is not configured.",
+    };
+  }
+
+  const response = await fetchImpl("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+      "user-agent": "phoneclaw/0.1 web-search",
+    },
+    body: JSON.stringify({
+      query,
+      search_depth:
+        tavilySearchDepth ||
+        (typeof process === "undefined" ? "" : process.env.TAVILY_SEARCH_DEPTH) ||
+        "basic",
+      max_results: maxResults,
+      include_answer: true,
+      include_raw_content: false,
+    }),
+  });
+
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    return {
+      ok: false,
+      status: "tavily_search_failed",
+      tavily_status: response.status,
+      message: body.error || body.message || "Tavily search failed.",
+      results: [],
+    };
+  }
+
+  const results = (body.results || [])
+    .map((result) => ({
+      title: result.title || result.url || "Search result",
+      url: result.url || "",
+      snippet: result.content || result.snippet || "",
+      source: TAVILY_PROVIDER,
+      score: result.score ?? null,
+    }))
+    .filter((result) => result.url || result.snippet);
+
+  if (body.answer) {
+    results.unshift({
+      title: "Tavily answer",
+      url: "",
+      snippet: body.answer,
+      source: TAVILY_PROVIDER,
+      score: null,
+    });
+  }
+
+  return {
+    ok: true,
+    provider: TAVILY_PROVIDER,
+    results: results.slice(0, maxResults),
   };
 }
 

@@ -10,6 +10,7 @@
     "twilio": "twilio",
     "elevenlabs:audio:check": "node --env-file-if-exists=.env scripts/check-elevenlabs-audio-format.mjs",
     "elevenlabs:audio:fix": "node --env-file-if-exists=.env scripts/check-elevenlabs-audio-format.mjs --fix",
+    "audio:diagnose": "node --env-file-if-exists=.env scripts/diagnose-audio-path.mjs",
     "elevenlabs:agent:export": "node --env-file-if-exists=.env scripts/export-elevenlabs-agent-config.mjs",
     "elevenlabs:github:configure": "node --env-file-if-exists=.env scripts/configure-elevenlabs-github-tools.mjs",
     "elevenlabs:tools:configure": "node --env-file-if-exists=.env scripts/configure-elevenlabs-github-tools.mjs",

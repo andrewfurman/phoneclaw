@@ -16,6 +16,7 @@ if (!toolToken) {
 }
 
 const configs = [
+  webSearchToolConfig(),
   githubSummaryToolConfig(),
   githubCliLsToolConfig(),
   githubCliCatToolConfig(),
@@ -23,6 +24,9 @@ const configs = [
   githubIssueUpdateToolConfig(),
   himalayaEmailListToolConfig(),
   himalayaEmailReadToolConfig(),
+  himalayaEmailArchiveToolConfig(),
+  himalayaDraftCreateToolConfig(),
+  himalayaDraftReplyToolConfig(),
   otterSpeechesListToolConfig(),
   otterSpeechGetToolConfig(),
   otterSpeechSearchToolConfig(),
@@ -104,6 +108,45 @@ async function findToolByName(name) {
   return (body.tools || []).find((tool) => tool.tool_config?.name === name) || null;
 }
 
+function webSearchToolConfig() {
+  return webhookTool({
+    name: "web_search",
+    description:
+      "Search the web for current events, recent facts, schedules, sports, products, documentation, companies, or anything that may have changed.",
+    url: `${workerBaseUrl}/web-search`,
+    required: ["query"],
+    responseTimeoutSecs: 20,
+    forcePreToolSpeech: true,
+    requestProperties: {
+      query: stringProperty({
+        description: "Focused web search query. Keep it concise.",
+      }),
+      max_results: integerProperty({
+        description: "Maximum results to return. Use 5 by default.",
+      }),
+    },
+    responseDescription: "Web search response.",
+    responseProperties: {
+      ok: booleanProperty("Whether the search request succeeded."),
+      query: stringProperty({ description: "Original query." }),
+      provider: stringProperty({ description: "Search provider used." }),
+      answer_text: stringProperty({
+        description: "Compact spoken summary. Prefer this when answering by voice.",
+      }),
+      results: arrayProperty({
+        description: "Search results.",
+        itemDescription: "One web search result.",
+        properties: {
+          title: stringProperty({ description: "Result title." }),
+          url: stringProperty({ description: "Result URL." }),
+          snippet: stringProperty({ description: "Short snippet or content summary." }),
+          source: stringProperty({ description: "Source provider or domain." }),
+        },
+      }),
+    },
+  });
+}
+
 function githubSummaryToolConfig() {
   return webhookTool({
     name: "github_summary",
@@ -111,6 +154,7 @@ function githubSummaryToolConfig() {
       "Returns read-only summaries of open GitHub issues or pull requests visible to Andrew Furman's configured GitHub token. Supports optional repo, owner, and organization filters.",
     url: `${workerBaseUrl}/github-summary`,
     required: ["item_type"],
+    forcePreToolSpeech: true,
     requestProperties: {
       item_type: stringProperty({
         description:
@@ -189,6 +233,7 @@ function githubCliLsToolConfig() {
       "Read-only GitHub CLI-style directory/tree listing. Use it to inspect a repo root, a folder, or a recursive folder tree before choosing exact files to read.",
     url: `${workerBaseUrl}/github-cli/ls`,
     required: ["repo"],
+    forcePreToolSpeech: true,
     requestProperties: {
       repo: stringProperty({
         description:
@@ -242,6 +287,7 @@ function githubCliCatToolConfig() {
       "Read-only GitHub CLI-style file reader. Use it after github_cli_ls identifies an exact file path. Returns the file contents.",
     url: `${workerBaseUrl}/github-cli/cat`,
     required: ["repo", "path"],
+    forcePreToolSpeech: true,
     requestProperties: {
       repo: stringProperty({
         description:
@@ -292,6 +338,7 @@ function githubIssueCreateToolConfig() {
       "Creates a GitHub issue after Andrew explicitly confirms the exact repository, title, and body. This is a write action.",
     url: `${workerBaseUrl}/github-issues/create`,
     required: ["repo", "title", "confirmed"],
+    forcePreToolSpeech: true,
     requestProperties: {
       repo: stringProperty({
         description:
@@ -327,6 +374,7 @@ function githubIssueUpdateToolConfig() {
       "Updates an existing GitHub issue after Andrew explicitly confirms the exact repository, issue number, and change. This is a write action.",
     url: `${workerBaseUrl}/github-issues/update`,
     required: ["repo", "issue_number", "confirmed"],
+    forcePreToolSpeech: true,
     requestProperties: {
       repo: stringProperty({
         description:
@@ -375,6 +423,7 @@ function himalayaEmailListToolConfig() {
     url: `${workerBaseUrl}/cli/himalaya/email-list`,
     required: [],
     responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
     requestProperties: {
       query: stringProperty({
         description:
@@ -418,6 +467,7 @@ function himalayaEmailReadToolConfig() {
     url: `${workerBaseUrl}/cli/himalaya/email-read`,
     required: ["id"],
     responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
     requestProperties: {
       id: stringProperty({
         description: "Himalaya envelope id returned by himalaya_email_list.",
@@ -438,6 +488,100 @@ function himalayaEmailReadToolConfig() {
   });
 }
 
+function himalayaEmailArchiveToolConfig() {
+  return webhookTool({
+    name: "himalaya_email_archive",
+    description:
+      "Archives an email by moving a Himalaya envelope from the source folder to the archive folder. This is a write action and requires Andrew's explicit confirmation.",
+    url: `${workerBaseUrl}/cli/himalaya/email-archive`,
+    required: ["id", "confirmed"],
+    responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
+    requestProperties: {
+      id: stringProperty({
+        description: "Himalaya envelope id returned by himalaya_email_list.",
+      }),
+      folder: stringProperty({
+        description: "Source mailbox folder. Use INBOX by default.",
+      }),
+      archive_folder: stringProperty({
+        description:
+          "Target archive folder. Use [Gmail]/All Mail by default unless Andrew specifies another folder.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact email archive action."
+      ),
+    },
+    responseDescription: "Himalaya email archive response.",
+    responseProperties: emailWriteResponseProperties(),
+  });
+}
+
+function himalayaDraftCreateToolConfig() {
+  return webhookTool({
+    name: "himalaya_draft_create",
+    description:
+      "Creates a saved Gmail/Himalaya draft for a new email. This does not send email and requires Andrew's explicit confirmation.",
+    url: `${workerBaseUrl}/cli/himalaya/draft-create`,
+    required: ["to", "subject", "confirmed"],
+    responseTimeoutSecs: 35,
+    forcePreToolSpeech: true,
+    requestProperties: {
+      to: stringProperty({
+        description: "Recipient email address or comma-separated recipients.",
+      }),
+      cc: stringProperty({ description: "Optional CC recipients." }),
+      bcc: stringProperty({ description: "Optional BCC recipients." }),
+      subject: stringProperty({
+        description: "Draft subject. Confirm this exact subject before use.",
+      }),
+      body: stringProperty({
+        description: "Draft body. Confirm the key content before use.",
+      }),
+      draft_folder: stringProperty({
+        description: "Draft folder. Use [Gmail]/Drafts by default.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact draft creation."
+      ),
+    },
+    responseDescription: "Himalaya draft creation response.",
+    responseProperties: emailWriteResponseProperties(),
+  });
+}
+
+function himalayaDraftReplyToolConfig() {
+  return webhookTool({
+    name: "himalaya_draft_reply",
+    description:
+      "Creates a saved Gmail/Himalaya reply draft for an existing email envelope. This does not send email and requires Andrew's explicit confirmation.",
+    url: `${workerBaseUrl}/cli/himalaya/draft-reply`,
+    required: ["id", "confirmed"],
+    responseTimeoutSecs: 35,
+    forcePreToolSpeech: true,
+    requestProperties: {
+      id: stringProperty({
+        description: "Himalaya envelope id returned by himalaya_email_list.",
+      }),
+      folder: stringProperty({
+        description: "Source mailbox folder. Use INBOX by default.",
+      }),
+      body: stringProperty({
+        description: "Reply draft body. Confirm the key content before use.",
+      }),
+      reply_all: booleanProperty("Set true only when Andrew asks to reply all."),
+      draft_folder: stringProperty({
+        description: "Draft folder. Use [Gmail]/Drafts by default.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact reply draft creation."
+      ),
+    },
+    responseDescription: "Himalaya reply draft creation response.",
+    responseProperties: emailWriteResponseProperties(),
+  });
+}
+
 function otterSpeechesListToolConfig() {
   return webhookTool({
     name: "otter_speeches_list",
@@ -446,6 +590,7 @@ function otterSpeechesListToolConfig() {
     url: `${workerBaseUrl}/cli/otter/speeches-list`,
     required: [],
     responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
     requestProperties: {
       source: stringProperty({
         description: "Transcript source filter. Use owned by default.",
@@ -479,6 +624,7 @@ function otterSpeechGetToolConfig() {
     url: `${workerBaseUrl}/cli/otter/speech-get`,
     required: ["speech_id"],
     responseTimeoutSecs: 45,
+    forcePreToolSpeech: true,
     requestProperties: {
       speech_id: stringProperty({
         description:
@@ -509,6 +655,7 @@ function otterSpeechSearchToolConfig() {
     url: `${workerBaseUrl}/cli/otter/speech-search`,
     required: ["speech_id", "query"],
     responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
     requestProperties: {
       speech_id: stringProperty({
         description: "Otter otid returned by otter_speeches_list.",
@@ -533,6 +680,7 @@ function githubCliCommonToolConfig() {
     url: `${workerBaseUrl}/cli/github/common`,
     required: ["action"],
     responseTimeoutSecs: 30,
+    forcePreToolSpeech: true,
     requestProperties: {
       action: stringProperty({
         description:
@@ -583,6 +731,7 @@ function webhookTool({
   responseDescription,
   responseProperties,
   responseTimeoutSecs = 15,
+  forcePreToolSpeech = false,
 }) {
   return {
     type: "webhook",
@@ -590,7 +739,7 @@ function webhookTool({
     description,
     response_timeout_secs: responseTimeoutSecs,
     disable_interruptions: false,
-    force_pre_tool_speech: false,
+    force_pre_tool_speech: forcePreToolSpeech,
     pre_tool_speech: "auto",
     assignments: [],
     tool_call_sound: null,
@@ -668,6 +817,21 @@ function githubIssueWriteResponseProperties() {
         excerpt: stringProperty({ description: "Short body excerpt." }),
       },
     }),
+  };
+}
+
+function emailWriteResponseProperties() {
+  return {
+    ...cliResponseProperties(),
+    action: stringProperty({
+      description: "Action performed, such as archived, draft_created, or reply_draft_created.",
+    }),
+    id: stringProperty({ description: "Himalaya envelope id when applicable." }),
+    source_folder: stringProperty({ description: "Source folder when applicable." }),
+    target_folder: stringProperty({ description: "Target folder when applicable." }),
+    draft_folder: stringProperty({ description: "Draft folder when applicable." }),
+    to: stringProperty({ description: "Draft recipient when applicable." }),
+    subject: stringProperty({ description: "Draft subject when applicable." }),
   };
 }
 
@@ -808,8 +972,12 @@ function promptWithGithubFileTools(currentPrompt) {
 - If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.
 
 CLI capability:
-- You also have focused read-only CLI wrapper tools named himalaya_email_list, himalaya_email_read, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
-- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. Do not claim you sent, archived, deleted, or marked email read; these tools are read-only.
+- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
+- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
+- Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.
+- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.
+- Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.
+- Do not claim you sent email. The email write tools can archive and save drafts only.
 - Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.
 - Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.
 - These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.

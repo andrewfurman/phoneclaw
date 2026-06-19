@@ -32,13 +32,16 @@ The local app mirrors the Worker endpoints, including:
 - `POST /github-issues/update`
 - `POST /cli/himalaya/email-list`
 - `POST /cli/himalaya/email-read`
+- `POST /cli/himalaya/email-archive`
+- `POST /cli/himalaya/draft-create`
+- `POST /cli/himalaya/draft-reply`
 - `POST /cli/otter/speeches-list`
 - `POST /cli/otter/speech-get`
 - `POST /cli/otter/speech-search`
 - `POST /cli/github/common`
 - `POST /agent-command`
 
-The `/cli/*` endpoints execute local read-only CLI wrappers and should run on a private bridge host in production. See `docs/CLI_BRIDGE_SECURITY.md`.
+The `/cli/*` endpoints execute focused local CLI wrappers and should run on a private bridge host in production. Email write endpoints are confirmation-gated and cannot send email. See `docs/CLI_BRIDGE_SECURITY.md`.
 
 ## Expose Locally
 
