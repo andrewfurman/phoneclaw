@@ -83,6 +83,7 @@ npm run worker:deploy
 - ElevenLabs setup lives in `elevenlabs-setup/`.
 - The setup log lives in `docs/SETUP_LOG.md`.
 - The long-term hosting recommendation lives in `docs/HOSTING_PLAN.md`.
+- The bare-metal EC2 bridge guide lives in `docs/EC2_BARE_METAL_BRIDGE.md`.
 
 ## GitHub Tools
 
