@@ -25,6 +25,8 @@ This log captures the prototype shape without publishing credentials or live pro
 - Verified a live ElevenLabs WebSocket conversation called `github_cli_ls` and `github_cli_cat` successfully against a private repo.
 - Added Twilio Media Streams and call status callback endpoints.
 - Added KV-backed Twilio event logging so future call disconnects can be inspected after the call.
+- Added confirmed GitHub issue create/update webhook tools backed by a separate write token.
+- Increased the ElevenLabs phone conversation maximum duration from 10 minutes to 30 minutes after confirming a call ended at the prior limit.
 
 ## Current Prototype
 
@@ -44,6 +46,7 @@ The working path is:
 12. When needed, the agent can call the Worker's `github_cli_cat` tool to read a specific repository file.
 13. Twilio stream and call status callbacks post diagnostic events back to the Worker.
 14. The Worker stores recent Twilio diagnostic events in KV for troubleshooting.
+15. When explicitly confirmed, the agent can create and update GitHub issues through issue-only write tools.
 
 ## Not Published
 

@@ -60,6 +60,7 @@ wrangler secret put ALLOWED_CALLER_NUMBERS
 wrangler secret put OUTSIDE_COVERAGE_MESSAGE
 wrangler secret put WEB_SEARCH_TOKEN
 wrangler secret put GITHUB_READ_TOKEN
+wrangler secret put GITHUB_WRITE_TOKEN
 ```
 
 Create and bind a KV namespace for Twilio stream/call diagnostic callbacks:
@@ -88,8 +89,10 @@ The ElevenLabs agent has read-only GitHub webhook tools:
 - `github_summary` for issue and pull request triage, with optional `repo`, `organization`, and `owner` filters.
 - `github_cli_ls` for GitHub CLI-style repository root, folder, and recursive tree listing.
 - `github_cli_cat` for GitHub CLI-style file content reads.
+- `github_issue_create` for confirmed GitHub issue creation.
+- `github_issue_update` for confirmed GitHub issue updates.
 
-The hosted Worker uses `GITHUB_READ_TOKEN` from Cloudflare secrets. Keep that token out of the public repo. Prefer a fine-grained read-only token for long-term use; the Worker code only exposes read-only endpoints.
+The hosted Worker uses `GITHUB_READ_TOKEN` for reads and `GITHUB_WRITE_TOKEN` for issue writes. Keep both tokens out of the public repo. Prefer fine-grained tokens with the narrowest repo permissions possible.
 
 ## Twilio Diagnostics
 

@@ -22,6 +22,7 @@ wrangler secret put ALLOWED_CALLER_NUMBERS
 wrangler secret put OUTSIDE_COVERAGE_MESSAGE
 wrangler secret put WEB_SEARCH_TOKEN
 wrangler secret put GITHUB_READ_TOKEN
+wrangler secret put GITHUB_WRITE_TOKEN
 ```
 
 Create a KV namespace for Twilio stream/call event diagnostics, then add the returned ID to local `wrangler.toml`:
@@ -49,6 +50,8 @@ npm run worker:deploy
 - `POST /github-summary`
 - `POST /github-cli/ls`
 - `POST /github-cli/cat`
+- `POST /github-issues/create`
+- `POST /github-issues/update`
 - `POST /agent-command`
 
 ## Caller Allow-List
@@ -108,3 +111,11 @@ When `TWILIO_EVENT_LOGS` is bound, recent events are stored in KV and can be rea
 - `max_bytes`: optional file content cap
 
 The responses include a `gh_equivalent` field showing the closest GitHub CLI command, but the Worker does not execute shell commands.
+
+## GitHub Issue Write Tools
+
+`POST /github-issues/create` and `POST /github-issues/update` are authenticated ElevenLabs webhook tools for issue-only writes.
+
+Both require `confirmed=true`, which the agent prompt reserves for after Andrew has verbally confirmed the exact change. Store the write-capable token as `GITHUB_WRITE_TOKEN`, preferably using a fine-grained token scoped only to selected repositories and issue permissions.
+
+The write tools can create and update issues. They cannot merge, approve, push code, or edit repository files.

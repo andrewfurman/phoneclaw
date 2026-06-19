@@ -19,6 +19,8 @@ const configs = [
   githubSummaryToolConfig(),
   githubCliLsToolConfig(),
   githubCliCatToolConfig(),
+  githubIssueCreateToolConfig(),
+  githubIssueUpdateToolConfig(),
 ];
 
 const tools = [];
@@ -277,6 +279,88 @@ function githubCliCatToolConfig() {
   });
 }
 
+function githubIssueCreateToolConfig() {
+  return webhookTool({
+    name: "github_issue_create",
+    description:
+      "Creates a GitHub issue after Andrew explicitly confirms the exact repository, title, and body. This is a write action.",
+    url: `${workerBaseUrl}/github-issues/create`,
+    required: ["repo", "title", "confirmed"],
+    requestProperties: {
+      repo: stringProperty({
+        description:
+          "Full repository name in owner/name format, for example octo-org/example-repo.",
+      }),
+      title: stringProperty({
+        description: "Issue title. Confirm this exact title with Andrew before use.",
+      }),
+      body: stringProperty({
+        description: "Issue body in Markdown. Confirm the key content with Andrew before use.",
+      }),
+      labels: stringProperty({
+        description:
+          "Optional comma-separated GitHub labels. Only use labels Andrew asks for.",
+      }),
+      assignees: stringProperty({
+        description:
+          "Optional comma-separated GitHub usernames to assign. Only use assignees Andrew asks for.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact issue creation."
+      ),
+    },
+    responseDescription: "GitHub issue creation response.",
+    responseProperties: githubIssueWriteResponseProperties(),
+  });
+}
+
+function githubIssueUpdateToolConfig() {
+  return webhookTool({
+    name: "github_issue_update",
+    description:
+      "Updates an existing GitHub issue after Andrew explicitly confirms the exact repository, issue number, and change. This is a write action.",
+    url: `${workerBaseUrl}/github-issues/update`,
+    required: ["repo", "issue_number", "confirmed"],
+    requestProperties: {
+      repo: stringProperty({
+        description:
+          "Full repository name in owner/name format, for example octo-org/example-repo.",
+      }),
+      issue_number: integerProperty({
+        description: "Issue number to update.",
+      }),
+      title: stringProperty({
+        description: "Optional replacement issue title. Confirm before use.",
+      }),
+      body: stringProperty({
+        description: "Optional replacement issue body in Markdown. Confirm before use.",
+      }),
+      state: stringProperty({
+        description: "Optional issue state. Use open or closed only when Andrew asks.",
+        values: ["open", "closed"],
+      }),
+      state_reason: stringProperty({
+        description:
+          "Optional close reason. Use completed or not_planned only when closing an issue.",
+        values: ["completed", "not_planned"],
+      }),
+      labels: stringProperty({
+        description:
+          "Optional comma-separated replacement GitHub labels. Only use labels Andrew asks for.",
+      }),
+      assignees: stringProperty({
+        description:
+          "Optional comma-separated replacement GitHub usernames. Only use assignees Andrew asks for.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact issue update."
+      ),
+    },
+    responseDescription: "GitHub issue update response.",
+    responseProperties: githubIssueWriteResponseProperties(),
+  });
+}
+
 function webhookTool({
   name,
   description,
@@ -340,6 +424,39 @@ function githubEntryProperties() {
   };
 }
 
+function githubIssueWriteResponseProperties() {
+  return {
+    ok: booleanProperty("Whether the GitHub write succeeded."),
+    action: stringProperty({ description: "Action performed: created or updated." }),
+    status: stringProperty({ description: "Error or confirmation status when not ok." }),
+    message: stringProperty({ description: "Error or confirmation message when present." }),
+    repo: stringProperty({ description: "Repository full name." }),
+    answer_text: stringProperty({
+      description: "Compact spoken summary. Prefer this after successful writes.",
+    }),
+    issue: objectProperty({
+      description: "Created or updated GitHub issue.",
+      properties: {
+        type: stringProperty({ description: "Item type." }),
+        repo: stringProperty({ description: "Repository full name." }),
+        number: integerProperty({ description: "Issue number." }),
+        title: stringProperty({ description: "Issue title." }),
+        state: stringProperty({ description: "Issue state." }),
+        state_reason: stringProperty({ description: "Issue state reason." }),
+        url: stringProperty({ description: "GitHub web URL." }),
+        author: stringProperty({ description: "GitHub login of the author." }),
+        labels: stringArrayProperty("Issue labels."),
+        assignees: stringArrayProperty("Issue assignee GitHub logins."),
+        comments: integerProperty({ description: "Number of comments." }),
+        created_at: stringProperty({ description: "Creation timestamp." }),
+        updated_at: stringProperty({ description: "Last update timestamp." }),
+        closed_at: stringProperty({ description: "Closed timestamp, if closed." }),
+        excerpt: stringProperty({ description: "Short body excerpt." }),
+      },
+    }),
+  };
+}
+
 function stringProperty({ description, values = null }) {
   return {
     type: "string",
@@ -398,19 +515,54 @@ function arrayProperty({ description, itemDescription, properties }) {
   };
 }
 
+function stringArrayProperty(description) {
+  return {
+    type: "array",
+    description,
+    items: {
+      type: "string",
+      description: "Array item.",
+      enum: null,
+      nullable: false,
+      is_system_provided: false,
+      dynamic_variable: "",
+      allowed_values_dynamic_variable: "",
+      constant_value: "",
+      is_omitted: false,
+    },
+    dynamic_variable: "",
+    constant_value: null,
+    is_omitted: false,
+  };
+}
+
+function objectProperty({ description, properties }) {
+  return {
+    type: "object",
+    required: [],
+    description,
+    properties,
+  };
+}
+
 function promptWithGithubFileTools(currentPrompt) {
-  const section = `GitHub read capability:
-- You have webhook tools named github_summary, github_cli_ls, and github_cli_cat.
+  const section = `GitHub capability:
+- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.
 - Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.
 - Use item_type="issues" for issue questions and item_type="pull_requests" for pull request questions.
 - Use scope="involved" by default. Use scope="assigned", "authored", "mentioned", or "review_requested" only when Andrew asks for that narrower view.
 - When Andrew names a specific repository, pass repo in owner/name format, for example repo="octo-org/example-repo". When he names only an organization, pass organization, for example organization="octo-org".
 - Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path="" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.
 - Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.
-- These GitHub tools are read-only wrappers inspired by GitHub CLI commands. They can list directories/trees and read file contents, but they cannot comment, merge, close, approve, create, edit, or push anything.
+- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.
+- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.
+- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.
 - If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.`;
-  const marker = "\n\nGitHub read capability:";
-  const index = currentPrompt.indexOf(marker);
+  const readMarker = "\n\nGitHub read capability:";
+  const capabilityMarker = "\n\nGitHub capability:";
+  const readIndex = currentPrompt.indexOf(readMarker);
+  const capabilityIndex = currentPrompt.indexOf(capabilityMarker);
+  const index = capabilityIndex >= 0 ? capabilityIndex : readIndex;
   if (index >= 0) {
     return `${currentPrompt.slice(0, index)}\n\n${section}`;
   }

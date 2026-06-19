@@ -3,6 +3,7 @@ import {
 } from "../shared/telephony-audio-format.mjs";
 import { basicWebSearch } from "../shared/basic-web-search.mjs";
 import { githubCliCat, githubCliLs } from "../shared/github-cli-tools.mjs";
+import { githubIssueCreate, githubIssueUpdate } from "../shared/github-issues.mjs";
 import { githubSummary } from "../shared/github-summary.mjs";
 import {
   isAllowedCaller,
@@ -41,6 +42,7 @@ export default {
         command_bridge_configured: Boolean(env.CLAUDE_BRIDGE_URL),
         web_search_configured: Boolean(env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN),
         github_read_configured: Boolean(env.GITHUB_READ_TOKEN),
+        github_write_configured: Boolean(env.GITHUB_WRITE_TOKEN),
         expected_elevenlabs_audio_format:
           env.ELEVENLABS_TELEPHONY_AUDIO_FORMAT || ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
         allowed_caller_numbers_configured: parseAllowedCallerNumbers(
@@ -64,6 +66,8 @@ export default {
           github_summary: "POST /github-summary",
           github_cli_ls: "POST /github-cli/ls",
           github_cli_cat: "POST /github-cli/cat",
+          github_issue_create: "POST /github-issues/create",
+          github_issue_update: "POST /github-issues/update",
           future_claude_tool: "POST /agent-command",
           health: "GET /health",
         },
@@ -123,6 +127,14 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/github-cli/cat") {
       return handleGithubCliCat(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/github-issues/create") {
+      return handleGithubIssueCreate(request, env);
+    }
+
+    if (request.method === "POST" && url.pathname === "/github-issues/update") {
+      return handleGithubIssueUpdate(request, env);
     }
 
     return json({ ok: false, error: "not_found" }, 404);
@@ -454,6 +466,54 @@ async function handleGithubCliCat(request, env) {
     });
 
     return json(result, result.ok ? 200 : 400);
+  } catch (error) {
+    return json(githubToolError(error), 400);
+  }
+}
+
+async function handleGithubIssueCreate(request, env) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  try {
+    const body = await parseRequestBody(request);
+    const result = await githubIssueCreate({
+      githubToken: env.GITHUB_WRITE_TOKEN,
+      repo: body.repo || body.repository,
+      title: body.title,
+      body: body.body,
+      labels: body.labels,
+      assignees: body.assignees,
+      confirmed: body.confirmed,
+    });
+
+    return json(result, result.ok || result.status === "confirmation_required" ? 200 : 400);
+  } catch (error) {
+    return json(githubToolError(error), 400);
+  }
+}
+
+async function handleGithubIssueUpdate(request, env) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  try {
+    const body = await parseRequestBody(request);
+    const result = await githubIssueUpdate({
+      githubToken: env.GITHUB_WRITE_TOKEN,
+      repo: body.repo || body.repository,
+      number: body.number,
+      issueNumber: body.issue_number || body.issueNumber,
+      title: body.title,
+      body: body.body,
+      state: body.state,
+      stateReason: body.state_reason || body.stateReason,
+      labels: body.labels,
+      assignees: body.assignees,
+      confirmed: body.confirmed,
+    });
+
+    return json(result, result.ok || result.status === "confirmation_required" ? 200 : 400);
   } catch (error) {
     return json(githubToolError(error), 400);
   }

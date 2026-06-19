@@ -4,6 +4,7 @@ import formbody from "@fastify/formbody";
 import twilio from "twilio";
 import { basicWebSearch } from "../shared/basic-web-search.mjs";
 import { githubCliCat, githubCliLs } from "../shared/github-cli-tools.mjs";
+import { githubIssueCreate, githubIssueUpdate } from "../shared/github-issues.mjs";
 import { githubSummary } from "../shared/github-summary.mjs";
 import {
   isAllowedCaller,
@@ -27,6 +28,7 @@ const elevenLabsAgentId = process.env.ELEVENLABS_AGENT_ID;
 const commandBridgeToken = process.env.COMMAND_BRIDGE_TOKEN;
 const webSearchToken = process.env.WEB_SEARCH_TOKEN || commandBridgeToken;
 const githubReadToken = process.env.GITHUB_READ_TOKEN;
+const githubWriteToken = process.env.GITHUB_WRITE_TOKEN;
 const claudeBridgeUrl = process.env.CLAUDE_BRIDGE_URL;
 const claudeBridgeToken = process.env.CLAUDE_BRIDGE_TOKEN;
 const twilioAuthToken = process.env.TWILIO_AUTH_TOKEN;
@@ -57,6 +59,8 @@ app.get("/", async () => ({
     github_summary: "POST /github-summary",
     github_cli_ls: "POST /github-cli/ls",
     github_cli_cat: "POST /github-cli/cat",
+    github_issue_create: "POST /github-issues/create",
+    github_issue_update: "POST /github-issues/update",
     future_claude_tool: "POST /agent-command",
     health: "GET /health",
   },
@@ -68,6 +72,7 @@ app.get("/health", async () => ({
   command_bridge_configured: Boolean(claudeBridgeUrl),
   web_search_configured: Boolean(webSearchToken),
   github_read_configured: Boolean(githubReadToken),
+  github_write_configured: Boolean(githubWriteToken),
   expected_elevenlabs_audio_format: ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
   allowed_caller_numbers_configured:
     parseAllowedCallerNumbers(process.env.ALLOWED_CALLER_NUMBERS).length > 0,
@@ -105,6 +110,14 @@ app.post("/github-cli/ls", async (request, reply) => handleGithubCliLs(request, 
 
 app.post("/github-cli/cat", async (request, reply) =>
   handleGithubCliCat(request, reply)
+);
+
+app.post("/github-issues/create", async (request, reply) =>
+  handleGithubIssueCreate(request, reply)
+);
+
+app.post("/github-issues/update", async (request, reply) =>
+  handleGithubIssueUpdate(request, reply)
 );
 
 try {
@@ -434,6 +447,56 @@ async function handleGithubCliCat(request, reply) {
     });
 
     return reply.code(result.ok ? 200 : 400).send(result);
+  } catch (error) {
+    return reply.code(400).send(githubToolError(error));
+  }
+}
+
+async function handleGithubIssueCreate(request, reply) {
+  if (!validateToolAuth(request, reply)) return;
+
+  try {
+    const body = request.body || {};
+    const result = await githubIssueCreate({
+      githubToken: githubWriteToken,
+      repo: body.repo || body.repository,
+      title: body.title,
+      body: body.body,
+      labels: body.labels,
+      assignees: body.assignees,
+      confirmed: body.confirmed,
+    });
+
+    return reply
+      .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+      .send(result);
+  } catch (error) {
+    return reply.code(400).send(githubToolError(error));
+  }
+}
+
+async function handleGithubIssueUpdate(request, reply) {
+  if (!validateToolAuth(request, reply)) return;
+
+  try {
+    const body = request.body || {};
+    const result = await githubIssueUpdate({
+      githubToken: githubWriteToken,
+      repo: body.repo || body.repository,
+      number: body.number,
+      issueNumber: body.issue_number || body.issueNumber,
+      title: body.title,
+      body: body.body,
+      state: body.state,
+      stateReason: body.state_reason || body.stateReason,
+      labels: body.labels,
+      assignees: body.assignees,
+      confirmed: body.confirmed,
+    });
+
+    return reply
+      .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+      .send(result);
   } catch (error) {
     return reply.code(400).send(githubToolError(error));
   }

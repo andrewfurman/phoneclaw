@@ -82,6 +82,17 @@ These tools return a `gh_equivalent` field such as `gh api repos/OWNER/REPO/cont
 
 Use a fine-grained read-only GitHub token where possible. The token should live only in local `.env` or Cloudflare Worker secrets and should not be committed.
 
+## GitHub Issue Write Tools
+
+`Andrew Assistant Agent` has issue-only write tools:
+
+- `github_issue_create` creates a new issue.
+- `github_issue_update` updates an existing issue's title, body, state, labels, or assignees.
+
+Both tools require `confirmed=true`. The agent prompt instructs the model to use that only after Andrew explicitly confirms the exact repository and issue change by voice.
+
+Use a separate `GITHUB_WRITE_TOKEN` with the narrowest possible repository and issue permissions.
+
 Attach or refresh the live ElevenLabs tool definitions with:
 
 ```bash

@@ -28,6 +28,8 @@ The local app mirrors the Worker endpoints, including:
 - `POST /github-summary`
 - `POST /github-cli/ls`
 - `POST /github-cli/cat`
+- `POST /github-issues/create`
+- `POST /github-issues/update`
 - `POST /agent-command`
 
 ## Expose Locally
