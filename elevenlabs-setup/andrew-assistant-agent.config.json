@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-19T10:41:52.880Z",
+  "exported_at": "2026-06-19T13:04:27.074Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
@@ -18,13 +18,8 @@
           "ok",
           "query",
           "provider",
-          "source_note",
-          "results",
-          "searched_query",
-          "as_of",
-          "result_count",
           "answer_text",
-          "sports_events"
+          "results"
         ]
       },
       {
@@ -233,6 +228,78 @@
           "action",
           "gh_equivalent"
         ]
+      },
+      {
+        "tool_id": "tool_8401kvfzj7pzevxbxmar7qatky8a",
+        "name": "himalaya_email_archive",
+        "url": "https://webhooks.aifurman.com/cli/himalaya/email-archive",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "action",
+          "id",
+          "source_folder",
+          "target_folder",
+          "draft_folder",
+          "to",
+          "subject"
+        ]
+      },
+      {
+        "tool_id": "tool_9101kvfzj7vaf10avqsvtccjjgr9",
+        "name": "himalaya_draft_create",
+        "url": "https://webhooks.aifurman.com/cli/himalaya/draft-create",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "action",
+          "id",
+          "source_folder",
+          "target_folder",
+          "draft_folder",
+          "to",
+          "subject"
+        ]
+      },
+      {
+        "tool_id": "tool_2901kvfzj7z4fyntag8kx0p4tpjx",
+        "name": "himalaya_draft_reply",
+        "url": "https://webhooks.aifurman.com/cli/himalaya/draft-reply",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "action",
+          "id",
+          "source_folder",
+          "target_folder",
+          "draft_folder",
+          "to",
+          "subject"
+        ]
       }
     ]
   },
@@ -327,7 +394,7 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.\n\nCLI capability:\n- You also have focused read-only CLI wrapper tools named himalaya_email_list, himalaya_email_read, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. Do not claim you sent, archived, deleted, or marked email read; these tools are read-only.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.\n\nCLI capability:\n- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.\n- Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.\n- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.\n- Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.\n- Do not claim you sent email. The email write tools can archive and save drafts only.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
@@ -345,7 +412,10 @@
             "tool_1101kvfqhvmkebqs4r5fbr8nf70g",
             "tool_5401kvfqhvrpewv9303pgtf3qhpt",
             "tool_6301kvfqhvwmehk87ba931z325w0",
-            "tool_0101kvfqhw0kf1zv8p0epwgfqgd2"
+            "tool_0101kvfqhw0kf1zv8p0epwgfqgd2",
+            "tool_8401kvfzj7pzevxbxmar7qatky8a",
+            "tool_9101kvfzj7vaf10avqsvtccjjgr9",
+            "tool_2901kvfzj7z4fyntag8kx0p4tpjx"
           ],
           "built_in_tools": {
             "end_call": null,
@@ -395,13 +465,13 @@
             {
               "type": "webhook",
               "name": "web_search",
-              "description": "Searches the public web for current or external information and returns concise results. For FIFA World Cup schedule/score questions, it may also return structured ESPN scoreboard events. Use this for current events, today/recent facts, sports schedules, companies, products, docs, or anything that may have changed.",
-              "response_timeout_secs": 12,
+              "description": "Search the web for current events, recent facts, schedules, sports, products, documentation, companies, or anything that may have changed.",
+              "response_timeout_secs": 20,
               "disable_interruptions": false,
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -425,7 +495,7 @@
                   "properties": {
                     "query": {
                       "type": "string",
-                      "description": "A concise web search query. Include dates, locations, or names when useful.",
+                      "description": "Focused web search query. Keep it concise.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -435,7 +505,7 @@
                     },
                     "max_results": {
                       "type": "integer",
-                      "description": "Maximum number of results to return. Use 3 unless Andrew asks for more.",
+                      "description": "Maximum results to return. Use 5 by default.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -448,7 +518,7 @@
                 "response_body_schema": {
                   "type": "object",
                   "required": [],
-                  "description": "Search response containing compact web results.",
+                  "description": "Web search response.",
                   "properties": {
                     "ok": {
                       "type": "boolean",
@@ -462,7 +532,7 @@
                     },
                     "query": {
                       "type": "string",
-                      "description": "The query that was searched.",
+                      "description": "Original query.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -472,7 +542,7 @@
                     },
                     "provider": {
                       "type": "string",
-                      "description": "The search provider used.",
+                      "description": "Search provider used.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -480,9 +550,9 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
-                    "source_note": {
+                    "answer_text": {
                       "type": "string",
-                      "description": "Limitations or notes about the search source.",
+                      "description": "Compact spoken summary. Prefer this when answering by voice.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -492,11 +562,11 @@
                     },
                     "results": {
                       "type": "array",
-                      "description": "Search results to summarize for Andrew.",
+                      "description": "Search results.",
                       "items": {
                         "type": "object",
                         "required": [],
-                        "description": "One search result.",
+                        "description": "One web search result.",
                         "properties": {
                           "title": {
                             "type": "string",
@@ -520,71 +590,7 @@
                           },
                           "snippet": {
                             "type": "string",
-                            "description": "Short excerpt or summary from the result.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          }
-                        }
-                      },
-                      "dynamic_variable": "",
-                      "constant_value": null,
-                      "is_omitted": false
-                    },
-                    "searched_query": {
-                      "type": "string",
-                      "description": "The actual query sent to the search provider, including date context when useful.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "as_of": {
-                      "type": "string",
-                      "description": "ISO timestamp for when the search was run.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "result_count": {
-                      "type": "integer",
-                      "description": "Number of web results returned.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "answer_text": {
-                      "type": "string",
-                      "description": "A compact plain-text summary of the most useful search and schedule results. Prefer this when answering by voice.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "sports_events": {
-                      "type": "array",
-                      "description": "Structured sports schedule or score events when the query matches a supported sports source.",
-                      "items": {
-                        "type": "object",
-                        "required": [],
-                        "description": "One sports event.",
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "description": "Full event name.",
+                            "description": "Short snippet or content summary.",
                             "enum": null,
                             "is_system_provided": false,
                             "dynamic_variable": "",
@@ -592,79 +598,9 @@
                             "constant_value": "",
                             "is_omitted": false
                           },
-                          "short_name": {
+                          "source": {
                             "type": "string",
-                            "description": "Short event name.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "start_time_utc": {
-                            "type": "string",
-                            "description": "Event start time in UTC.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "start_time_eastern": {
-                            "type": "string",
-                            "description": "Event start time in Eastern time.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "status": {
-                            "type": "string",
-                            "description": "Current event status.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "venue": {
-                            "type": "string",
-                            "description": "Venue name.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "home_team": {
-                            "type": "string",
-                            "description": "Home team name.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "away_team": {
-                            "type": "string",
-                            "description": "Away team name.",
-                            "enum": null,
-                            "is_system_provided": false,
-                            "dynamic_variable": "",
-                            "allowed_values_dynamic_variable": "",
-                            "constant_value": "",
-                            "is_omitted": false
-                          },
-                          "score": {
-                            "type": "string",
-                            "description": "Current or final score when available.",
+                            "description": "Source provider or domain.",
                             "enum": null,
                             "is_system_provided": false,
                             "dynamic_variable": "",
@@ -694,7 +630,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -1032,7 +968,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -1311,7 +1247,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -1537,7 +1473,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -1875,7 +1811,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -2249,7 +2185,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -2496,7 +2432,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -2661,7 +2597,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -2932,7 +2868,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -3184,7 +3120,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -3340,7 +3276,7 @@
               "force_pre_tool_speech": false,
               "pre_tool_speech": "auto",
               "assignments": [],
-              "tool_call_sound": null,
+              "tool_call_sound": "typing",
               "tool_call_sound_behavior": "auto",
               "tool_error_handling_mode": "auto",
               "dynamic_variables": {
@@ -3547,6 +3483,765 @@
                 "auth_resolved_params": [],
                 "auth_connection": null
               }
+            },
+            {
+              "type": "webhook",
+              "name": "himalaya_email_archive",
+              "description": "Archives an email by moving a Himalaya envelope from the source folder to the archive folder. This is a write action and requires Andrew's explicit confirmation.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": "typing",
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/himalaya/email-archive",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "confirmed"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id returned by himalaya_email_list.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "folder": {
+                      "type": "string",
+                      "description": "Source mailbox folder. Use INBOX by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "archive_folder": {
+                      "type": "string",
+                      "description": "Target archive folder. Use [Gmail]/All Mail by default unless Andrew specifies another folder.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "confirmed": {
+                      "type": "boolean",
+                      "description": "Must be true only after Andrew verbally confirms the exact email archive action.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Himalaya email archive response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "action": {
+                      "type": "string",
+                      "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "source_folder": {
+                      "type": "string",
+                      "description": "Source folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "target_folder": {
+                      "type": "string",
+                      "description": "Target folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "draft_folder": {
+                      "type": "string",
+                      "description": "Draft folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "Draft recipient when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "himalaya_draft_create",
+              "description": "Creates a saved Gmail/Himalaya draft for a new email. This does not send email and requires Andrew's explicit confirmation.",
+              "response_timeout_secs": 35,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": "typing",
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/himalaya/draft-create",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "to",
+                    "subject",
+                    "confirmed"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "to": {
+                      "type": "string",
+                      "description": "Recipient email address or comma-separated recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "cc": {
+                      "type": "string",
+                      "description": "Optional CC recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "bcc": {
+                      "type": "string",
+                      "description": "Optional BCC recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject. Confirm this exact subject before use.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Draft body. Confirm the key content before use.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "draft_folder": {
+                      "type": "string",
+                      "description": "Draft folder. Use [Gmail]/Drafts by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "confirmed": {
+                      "type": "boolean",
+                      "description": "Must be true only after Andrew verbally confirms the exact draft creation.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Himalaya draft creation response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "action": {
+                      "type": "string",
+                      "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "source_folder": {
+                      "type": "string",
+                      "description": "Source folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "target_folder": {
+                      "type": "string",
+                      "description": "Target folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "draft_folder": {
+                      "type": "string",
+                      "description": "Draft folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "Draft recipient when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "himalaya_draft_reply",
+              "description": "Creates a saved Gmail/Himalaya reply draft for an existing email envelope. This does not send email and requires Andrew's explicit confirmation.",
+              "response_timeout_secs": 35,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": "typing",
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/himalaya/draft-reply",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "confirmed"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id returned by himalaya_email_list.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "folder": {
+                      "type": "string",
+                      "description": "Source mailbox folder. Use INBOX by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "body": {
+                      "type": "string",
+                      "description": "Reply draft body. Confirm the key content before use.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "reply_all": {
+                      "type": "boolean",
+                      "description": "Set true only when Andrew asks to reply all.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "draft_folder": {
+                      "type": "string",
+                      "description": "Draft folder. Use [Gmail]/Drafts by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "confirmed": {
+                      "type": "boolean",
+                      "description": "Must be true only after Andrew verbally confirms the exact reply draft creation.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Himalaya reply draft creation response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "action": {
+                      "type": "string",
+                      "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "source_folder": {
+                      "type": "string",
+                      "description": "Source folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "target_folder": {
+                      "type": "string",
+                      "description": "Target folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "draft_folder": {
+                      "type": "string",
+                      "description": "Draft folder when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "Draft recipient when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Draft subject when applicable.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
             }
           ]
         }
@@ -3554,7 +4249,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1781865708
+      "updated_at_unix_secs": 1781874256
     },
     "platform_settings": {
       "evaluation": {
@@ -3890,7 +4585,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_8701kvfqhzdkfv0bmp6ws5hmqgsn",
+    "version_id": "agtvrsn_4001kvfzptqbf74tc09ek20112q0",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -3902,13 +4597,13 @@
       "tool_config": {
         "type": "webhook",
         "name": "web_search",
-        "description": "Searches the public web for current or external information and returns concise results. For FIFA World Cup schedule/score questions, it may also return structured ESPN scoreboard events. Use this for current events, today/recent facts, sports schedules, companies, products, docs, or anything that may have changed.",
-        "response_timeout_secs": 12,
+        "description": "Search the web for current events, recent facts, schedules, sports, products, documentation, companies, or anything that may have changed.",
+        "response_timeout_secs": 20,
         "disable_interruptions": false,
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -3932,7 +4627,7 @@
             "properties": {
               "query": {
                 "type": "string",
-                "description": "A concise web search query. Include dates, locations, or names when useful.",
+                "description": "Focused web search query. Keep it concise.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -3942,7 +4637,7 @@
               },
               "max_results": {
                 "type": "integer",
-                "description": "Maximum number of results to return. Use 3 unless Andrew asks for more.",
+                "description": "Maximum results to return. Use 5 by default.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -3955,7 +4650,7 @@
           "response_body_schema": {
             "type": "object",
             "required": [],
-            "description": "Search response containing compact web results.",
+            "description": "Web search response.",
             "properties": {
               "ok": {
                 "type": "boolean",
@@ -3969,7 +4664,7 @@
               },
               "query": {
                 "type": "string",
-                "description": "The query that was searched.",
+                "description": "Original query.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -3979,7 +4674,7 @@
               },
               "provider": {
                 "type": "string",
-                "description": "The search provider used.",
+                "description": "Search provider used.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -3987,9 +4682,9 @@
                 "constant_value": "",
                 "is_omitted": false
               },
-              "source_note": {
+              "answer_text": {
                 "type": "string",
-                "description": "Limitations or notes about the search source.",
+                "description": "Compact spoken summary. Prefer this when answering by voice.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -3999,11 +4694,11 @@
               },
               "results": {
                 "type": "array",
-                "description": "Search results to summarize for Andrew.",
+                "description": "Search results.",
                 "items": {
                   "type": "object",
                   "required": [],
-                  "description": "One search result.",
+                  "description": "One web search result.",
                   "properties": {
                     "title": {
                       "type": "string",
@@ -4027,71 +4722,7 @@
                     },
                     "snippet": {
                       "type": "string",
-                      "description": "Short excerpt or summary from the result.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    }
-                  }
-                },
-                "dynamic_variable": "",
-                "constant_value": null,
-                "is_omitted": false
-              },
-              "searched_query": {
-                "type": "string",
-                "description": "The actual query sent to the search provider, including date context when useful.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "as_of": {
-                "type": "string",
-                "description": "ISO timestamp for when the search was run.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "result_count": {
-                "type": "integer",
-                "description": "Number of web results returned.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "answer_text": {
-                "type": "string",
-                "description": "A compact plain-text summary of the most useful search and schedule results. Prefer this when answering by voice.",
-                "enum": null,
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-              },
-              "sports_events": {
-                "type": "array",
-                "description": "Structured sports schedule or score events when the query matches a supported sports source.",
-                "items": {
-                  "type": "object",
-                  "required": [],
-                  "description": "One sports event.",
-                  "properties": {
-                    "name": {
-                      "type": "string",
-                      "description": "Full event name.",
+                      "description": "Short snippet or content summary.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -4099,79 +4730,9 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
-                    "short_name": {
+                    "source": {
                       "type": "string",
-                      "description": "Short event name.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "start_time_utc": {
-                      "type": "string",
-                      "description": "Event start time in UTC.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "start_time_eastern": {
-                      "type": "string",
-                      "description": "Event start time in Eastern time.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "status": {
-                      "type": "string",
-                      "description": "Current event status.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "venue": {
-                      "type": "string",
-                      "description": "Venue name.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "home_team": {
-                      "type": "string",
-                      "description": "Home team name.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "away_team": {
-                      "type": "string",
-                      "description": "Away team name.",
-                      "enum": null,
-                      "is_system_provided": false,
-                      "dynamic_variable": "",
-                      "allowed_values_dynamic_variable": "",
-                      "constant_value": "",
-                      "is_omitted": false
-                    },
-                    "score": {
-                      "type": "string",
-                      "description": "Current or final score when available.",
+                      "description": "Source provider or domain.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -4193,8 +4754,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 91,
-        "avg_latency_secs": 0.41
+        "total_calls": 96,
+        "avg_latency_secs": 0.43
       },
       "response_mocks": null
     },
@@ -4209,7 +4770,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -4539,7 +5100,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 25,
+        "total_calls": 28,
         "avg_latency_secs": 0.78
       },
       "response_mocks": null
@@ -4555,7 +5116,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -4826,7 +5387,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 6,
+        "total_calls": 7,
         "avg_latency_secs": 0.37
       },
       "response_mocks": null
@@ -4842,7 +5403,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -5060,8 +5621,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 5,
-        "avg_latency_secs": 0.34
+        "total_calls": 6,
+        "avg_latency_secs": 0.33
       },
       "response_mocks": null
     },
@@ -5076,7 +5637,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -5406,7 +5967,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 1,
+        "total_calls": 3,
         "avg_latency_secs": 0.48
       },
       "response_mocks": null
@@ -5422,7 +5983,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -5804,7 +6365,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -6043,8 +6604,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
+        "total_calls": 5,
+        "avg_latency_secs": 1
       },
       "response_mocks": null
     },
@@ -6059,7 +6620,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -6216,8 +6777,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
+        "total_calls": 3,
+        "avg_latency_secs": 1.23
       },
       "response_mocks": null
     },
@@ -6232,7 +6793,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -6495,8 +7056,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
+        "total_calls": 4,
+        "avg_latency_secs": 0.82
       },
       "response_mocks": null
     },
@@ -6511,7 +7072,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -6771,7 +7332,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -6935,7 +7496,7 @@
         "force_pre_tool_speech": false,
         "pre_tool_speech": "auto",
         "assignments": [],
-        "tool_call_sound": null,
+        "tool_call_sound": "typing",
         "tool_call_sound_behavior": "auto",
         "tool_error_handling_mode": "auto",
         "dynamic_variables": {
@@ -7129,6 +7690,789 @@
               "gh_equivalent": {
                 "type": "string",
                 "description": "Closest shell command equivalent.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_8401kvfzj7pzevxbxmar7qatky8a",
+      "tool_config": {
+        "type": "webhook",
+        "name": "himalaya_email_archive",
+        "description": "Archives an email by moving a Himalaya envelope from the source folder to the archive folder. This is a write action and requires Andrew's explicit confirmation.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": "typing",
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/himalaya/email-archive",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "id",
+              "confirmed"
+            ],
+            "description": "",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id returned by himalaya_email_list.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "folder": {
+                "type": "string",
+                "description": "Source mailbox folder. Use INBOX by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "archive_folder": {
+                "type": "string",
+                "description": "Target archive folder. Use [Gmail]/All Mail by default unless Andrew specifies another folder.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "confirmed": {
+                "type": "boolean",
+                "description": "Must be true only after Andrew verbally confirms the exact email archive action.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Himalaya email archive response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "action": {
+                "type": "string",
+                "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "source_folder": {
+                "type": "string",
+                "description": "Source folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "target_folder": {
+                "type": "string",
+                "description": "Target folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "draft_folder": {
+                "type": "string",
+                "description": "Draft folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "to": {
+                "type": "string",
+                "description": "Draft recipient when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Draft subject when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_9101kvfzj7vaf10avqsvtccjjgr9",
+      "tool_config": {
+        "type": "webhook",
+        "name": "himalaya_draft_create",
+        "description": "Creates a saved Gmail/Himalaya draft for a new email. This does not send email and requires Andrew's explicit confirmation.",
+        "response_timeout_secs": 35,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": "typing",
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/himalaya/draft-create",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "to",
+              "subject",
+              "confirmed"
+            ],
+            "description": "",
+            "properties": {
+              "to": {
+                "type": "string",
+                "description": "Recipient email address or comma-separated recipients.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "cc": {
+                "type": "string",
+                "description": "Optional CC recipients.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "bcc": {
+                "type": "string",
+                "description": "Optional BCC recipients.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Draft subject. Confirm this exact subject before use.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "body": {
+                "type": "string",
+                "description": "Draft body. Confirm the key content before use.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "draft_folder": {
+                "type": "string",
+                "description": "Draft folder. Use [Gmail]/Drafts by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "confirmed": {
+                "type": "boolean",
+                "description": "Must be true only after Andrew verbally confirms the exact draft creation.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Himalaya draft creation response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "action": {
+                "type": "string",
+                "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "source_folder": {
+                "type": "string",
+                "description": "Source folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "target_folder": {
+                "type": "string",
+                "description": "Target folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "draft_folder": {
+                "type": "string",
+                "description": "Draft folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "to": {
+                "type": "string",
+                "description": "Draft recipient when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Draft subject when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_2901kvfzj7z4fyntag8kx0p4tpjx",
+      "tool_config": {
+        "type": "webhook",
+        "name": "himalaya_draft_reply",
+        "description": "Creates a saved Gmail/Himalaya reply draft for an existing email envelope. This does not send email and requires Andrew's explicit confirmation.",
+        "response_timeout_secs": 35,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": "typing",
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/himalaya/draft-reply",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "id",
+              "confirmed"
+            ],
+            "description": "",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id returned by himalaya_email_list.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "folder": {
+                "type": "string",
+                "description": "Source mailbox folder. Use INBOX by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "body": {
+                "type": "string",
+                "description": "Reply draft body. Confirm the key content before use.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "reply_all": {
+                "type": "boolean",
+                "description": "Set true only when Andrew asks to reply all.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "draft_folder": {
+                "type": "string",
+                "description": "Draft folder. Use [Gmail]/Drafts by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "confirmed": {
+                "type": "boolean",
+                "description": "Must be true only after Andrew verbally confirms the exact reply draft creation.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Himalaya reply draft creation response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "action": {
+                "type": "string",
+                "description": "Action performed, such as archived, draft_created, or reply_draft_created.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "source_folder": {
+                "type": "string",
+                "description": "Source folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "target_folder": {
+                "type": "string",
+                "description": "Target folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "draft_folder": {
+                "type": "string",
+                "description": "Draft folder when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "to": {
+                "type": "string",
+                "description": "Draft recipient when applicable.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "subject": {
+                "type": "string",
+                "description": "Draft subject when applicable.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",

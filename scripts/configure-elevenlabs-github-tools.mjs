@@ -117,6 +117,7 @@ function webSearchToolConfig() {
     required: ["query"],
     responseTimeoutSecs: 20,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       query: stringProperty({
         description: "Focused web search query. Keep it concise.",
@@ -155,6 +156,7 @@ function githubSummaryToolConfig() {
     url: `${workerBaseUrl}/github-summary`,
     required: ["item_type"],
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       item_type: stringProperty({
         description:
@@ -234,6 +236,7 @@ function githubCliLsToolConfig() {
     url: `${workerBaseUrl}/github-cli/ls`,
     required: ["repo"],
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       repo: stringProperty({
         description:
@@ -288,6 +291,7 @@ function githubCliCatToolConfig() {
     url: `${workerBaseUrl}/github-cli/cat`,
     required: ["repo", "path"],
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       repo: stringProperty({
         description:
@@ -339,6 +343,7 @@ function githubIssueCreateToolConfig() {
     url: `${workerBaseUrl}/github-issues/create`,
     required: ["repo", "title", "confirmed"],
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       repo: stringProperty({
         description:
@@ -375,6 +380,7 @@ function githubIssueUpdateToolConfig() {
     url: `${workerBaseUrl}/github-issues/update`,
     required: ["repo", "issue_number", "confirmed"],
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       repo: stringProperty({
         description:
@@ -424,6 +430,7 @@ function himalayaEmailListToolConfig() {
     required: [],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       query: stringProperty({
         description:
@@ -468,6 +475,7 @@ function himalayaEmailReadToolConfig() {
     required: ["id"],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       id: stringProperty({
         description: "Himalaya envelope id returned by himalaya_email_list.",
@@ -497,6 +505,7 @@ function himalayaEmailArchiveToolConfig() {
     required: ["id", "confirmed"],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       id: stringProperty({
         description: "Himalaya envelope id returned by himalaya_email_list.",
@@ -526,6 +535,7 @@ function himalayaDraftCreateToolConfig() {
     required: ["to", "subject", "confirmed"],
     responseTimeoutSecs: 35,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       to: stringProperty({
         description: "Recipient email address or comma-separated recipients.",
@@ -559,6 +569,7 @@ function himalayaDraftReplyToolConfig() {
     required: ["id", "confirmed"],
     responseTimeoutSecs: 35,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       id: stringProperty({
         description: "Himalaya envelope id returned by himalaya_email_list.",
@@ -591,6 +602,7 @@ function otterSpeechesListToolConfig() {
     required: [],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       source: stringProperty({
         description: "Transcript source filter. Use owned by default.",
@@ -625,6 +637,7 @@ function otterSpeechGetToolConfig() {
     required: ["speech_id"],
     responseTimeoutSecs: 45,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       speech_id: stringProperty({
         description:
@@ -656,6 +669,7 @@ function otterSpeechSearchToolConfig() {
     required: ["speech_id", "query"],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       speech_id: stringProperty({
         description: "Otter otid returned by otter_speeches_list.",
@@ -681,6 +695,7 @@ function githubCliCommonToolConfig() {
     required: ["action"],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
+    toolCallSound: "typing",
     requestProperties: {
       action: stringProperty({
         description:
@@ -732,6 +747,7 @@ function webhookTool({
   responseProperties,
   responseTimeoutSecs = 15,
   forcePreToolSpeech = false,
+  toolCallSound = null,
 }) {
   return {
     type: "webhook",
@@ -742,7 +758,7 @@ function webhookTool({
     force_pre_tool_speech: forcePreToolSpeech,
     pre_tool_speech: "auto",
     assignments: [],
-    tool_call_sound: null,
+    tool_call_sound: toolCallSound,
     tool_call_sound_behavior: "auto",
     tool_error_handling_mode: "auto",
     dynamic_variables: {
