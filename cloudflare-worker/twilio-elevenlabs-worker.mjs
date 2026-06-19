@@ -41,6 +41,7 @@ export default {
         ),
         command_bridge_configured: Boolean(env.CLAUDE_BRIDGE_URL),
         web_search_configured: Boolean(env.WEB_SEARCH_TOKEN || env.COMMAND_BRIDGE_TOKEN),
+        cli_bridge_configured: Boolean(env.CLI_BRIDGE_URL && env.CLI_BRIDGE_TOKEN),
         github_read_configured: Boolean(env.GITHUB_READ_TOKEN),
         github_write_configured: Boolean(env.GITHUB_WRITE_TOKEN),
         expected_elevenlabs_audio_format:
@@ -68,6 +69,12 @@ export default {
           github_cli_cat: "POST /github-cli/cat",
           github_issue_create: "POST /github-issues/create",
           github_issue_update: "POST /github-issues/update",
+          himalaya_email_list: "POST /cli/himalaya/email-list",
+          himalaya_email_read: "POST /cli/himalaya/email-read",
+          otter_speeches_list: "POST /cli/otter/speeches-list",
+          otter_speech_get: "POST /cli/otter/speech-get",
+          otter_speech_search: "POST /cli/otter/speech-search",
+          github_cli_common: "POST /cli/github/common",
           future_claude_tool: "POST /agent-command",
           health: "GET /health",
         },
@@ -135,6 +142,20 @@ export default {
 
     if (request.method === "POST" && url.pathname === "/github-issues/update") {
       return handleGithubIssueUpdate(request, env);
+    }
+
+    if (
+      request.method === "POST" &&
+      [
+        "/cli/himalaya/email-list",
+        "/cli/himalaya/email-read",
+        "/cli/otter/speeches-list",
+        "/cli/otter/speech-get",
+        "/cli/otter/speech-search",
+        "/cli/github/common",
+      ].includes(url.pathname)
+    ) {
+      return handleCliBridgeProxy(request, env, url.pathname);
     }
 
     return json({ ok: false, error: "not_found" }, 404);
@@ -517,6 +538,44 @@ async function handleGithubIssueUpdate(request, env) {
   } catch (error) {
     return json(githubToolError(error), 400);
   }
+}
+
+async function handleCliBridgeProxy(request, env, pathname) {
+  const auth = validateToolAuth(request, env);
+  if (auth) return auth;
+
+  if (!env.CLI_BRIDGE_URL || !env.CLI_BRIDGE_TOKEN) {
+    return json(
+      {
+        ok: false,
+        status: "cli_bridge_not_configured",
+        message:
+          "The public Worker is ready, but CLI_BRIDGE_URL and CLI_BRIDGE_TOKEN must point to a private Fastify CLI bridge before Himalaya, Otter, or local gh commands can run.",
+      },
+      200
+    );
+  }
+
+  const baseUrl = env.CLI_BRIDGE_URL.endsWith("/")
+    ? env.CLI_BRIDGE_URL
+    : `${env.CLI_BRIDGE_URL}/`;
+  const upstreamUrl = new URL(pathname.replace(/^\//, ""), baseUrl);
+  const bodyText = await request.text();
+
+  const upstreamResponse = await fetch(upstreamUrl.toString(), {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${env.CLI_BRIDGE_TOKEN}`,
+    },
+    body: bodyText || "{}",
+  });
+  const responseText = await upstreamResponse.text();
+
+  return new Response(responseText, {
+    status: upstreamResponse.status,
+    headers: JSON_HEADERS,
+  });
 }
 
 function validateToolAuth(request, env) {

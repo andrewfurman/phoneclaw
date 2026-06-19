@@ -59,6 +59,8 @@ wrangler secret put TWILIO_WEBHOOK_TOKEN
 wrangler secret put ALLOWED_CALLER_NUMBERS
 wrangler secret put OUTSIDE_COVERAGE_MESSAGE
 wrangler secret put WEB_SEARCH_TOKEN
+wrangler secret put CLI_BRIDGE_URL
+wrangler secret put CLI_BRIDGE_TOKEN
 wrangler secret put GITHUB_READ_TOKEN
 wrangler secret put GITHUB_WRITE_TOKEN
 ```
@@ -93,6 +95,16 @@ The ElevenLabs agent has read-only GitHub webhook tools:
 - `github_issue_update` for confirmed GitHub issue updates.
 
 The hosted Worker uses `GITHUB_READ_TOKEN` for reads and `GITHUB_WRITE_TOKEN` for issue writes. Keep both tokens out of the public repo. Prefer fine-grained tokens with the narrowest repo permissions possible.
+
+## CLI Bridge Tools
+
+The ElevenLabs agent also has focused read-only wrappers for local CLIs:
+
+- `himalaya_email_list` and `himalaya_email_read`
+- `otter_speeches_list`, `otter_speech_get`, and `otter_speech_search`
+- `github_cli_common`
+
+Cloudflare Workers cannot run those binaries directly. The Worker proxies `/cli/*` requests to a private Fastify bridge configured with `CLI_BRIDGE_URL` and `CLI_BRIDGE_TOKEN`. See `docs/CLI_BRIDGE_SECURITY.md`.
 
 ## Twilio Diagnostics
 

@@ -23,3 +23,5 @@ ELEVENLABS_API_BASE = "https://api.elevenlabs.io"
 ELEVENLABS_TELEPHONY_AUDIO_FORMAT = "ulaw_8000"
 TWILIO_PHONE_NUMBER = "+15555550123"
 TWILIO_EVENT_LOG_TTL_SECONDS = "604800"
+# Keep real values in Worker secrets or uncommitted wrangler.toml.
+# CLI_BRIDGE_URL = "https://private-cli-bridge.example.com"

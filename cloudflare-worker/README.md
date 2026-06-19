@@ -21,6 +21,8 @@ wrangler secret put TWILIO_WEBHOOK_TOKEN
 wrangler secret put ALLOWED_CALLER_NUMBERS
 wrangler secret put OUTSIDE_COVERAGE_MESSAGE
 wrangler secret put WEB_SEARCH_TOKEN
+wrangler secret put CLI_BRIDGE_URL
+wrangler secret put CLI_BRIDGE_TOKEN
 wrangler secret put GITHUB_READ_TOKEN
 wrangler secret put GITHUB_WRITE_TOKEN
 ```
@@ -52,6 +54,12 @@ npm run worker:deploy
 - `POST /github-cli/cat`
 - `POST /github-issues/create`
 - `POST /github-issues/update`
+- `POST /cli/himalaya/email-list`
+- `POST /cli/himalaya/email-read`
+- `POST /cli/otter/speeches-list`
+- `POST /cli/otter/speech-get`
+- `POST /cli/otter/speech-search`
+- `POST /cli/github/common`
 - `POST /agent-command`
 
 ## Caller Allow-List
@@ -119,3 +127,15 @@ The responses include a `gh_equivalent` field showing the closest GitHub CLI com
 Both require `confirmed=true`, which the agent prompt reserves for after Andrew has verbally confirmed the exact change. Store the write-capable token as `GITHUB_WRITE_TOKEN`, preferably using a fine-grained token scoped only to selected repositories and issue permissions.
 
 The write tools can create and update issues. They cannot merge, approve, push code, or edit repository files.
+
+## CLI Bridge Tools
+
+The `/cli/*` endpoints are authenticated ElevenLabs webhook tools, but the Worker does not run local binaries. It validates the public tool bearer token and proxies those requests to `CLI_BRIDGE_URL` using `CLI_BRIDGE_TOKEN`.
+
+Supported bridge-backed tools:
+
+- Himalaya: email envelope list/search and preview read.
+- Otter: transcript list, raw JSON fetch, and transcript search.
+- GitHub CLI: common read-only repo, issue, PR, and search commands.
+
+If `CLI_BRIDGE_URL` or `CLI_BRIDGE_TOKEN` is unset, these endpoints return `cli_bridge_not_configured`. See `docs/CLI_BRIDGE_SECURITY.md` before deploying a bridge with real email/Otter/GitHub credentials.

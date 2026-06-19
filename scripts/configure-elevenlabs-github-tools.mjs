@@ -21,6 +21,12 @@ const configs = [
   githubCliCatToolConfig(),
   githubIssueCreateToolConfig(),
   githubIssueUpdateToolConfig(),
+  himalayaEmailListToolConfig(),
+  himalayaEmailReadToolConfig(),
+  otterSpeechesListToolConfig(),
+  otterSpeechGetToolConfig(),
+  otterSpeechSearchToolConfig(),
+  githubCliCommonToolConfig(),
 ];
 
 const tools = [];
@@ -53,7 +59,7 @@ const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`,
   body: JSON.stringify({
     conversation_config: conversationConfig,
     version_description:
-      "Add read-only GitHub repo filter, tree listing, and file content tools",
+      "Add focused read-only CLI wrapper tools for Himalaya, Otter, and GitHub",
   }),
 });
 
@@ -361,6 +367,213 @@ function githubIssueUpdateToolConfig() {
   });
 }
 
+function himalayaEmailListToolConfig() {
+  return webhookTool({
+    name: "himalaya_email_list",
+    description:
+      "Read-only Himalaya CLI email envelope listing and search. Use this to find recent or matching emails before reading a specific message.",
+    url: `${workerBaseUrl}/cli/himalaya/email-list`,
+    required: [],
+    responseTimeoutSecs: 30,
+    requestProperties: {
+      query: stringProperty({
+        description:
+          "Optional Himalaya envelope query, for example 'from example.com', 'subject invoice', or 'order by date desc'.",
+      }),
+      folder: stringProperty({
+        description: "Mailbox folder name. Use INBOX by default.",
+      }),
+      page_size: integerProperty({
+        description: "Maximum emails to return. Use 5 by default for phone answers.",
+      }),
+      page: integerProperty({
+        description: "Page number starting at 1. Omit unless Andrew asks for more.",
+      }),
+    },
+    responseDescription: "Himalaya email envelope list response.",
+    responseProperties: {
+      ...cliResponseProperties(),
+      returned_count: integerProperty({ description: "Number of email envelopes returned." }),
+      items: arrayProperty({
+        description: "Email envelopes returned by Himalaya.",
+        itemDescription: "One email envelope.",
+        properties: {
+          id: stringProperty({ description: "Himalaya envelope id for reading." }),
+          subject: stringProperty({ description: "Email subject." }),
+          from: stringProperty({ description: "Email sender." }),
+          to: stringProperty({ description: "Email recipients." }),
+          date: stringProperty({ description: "Email date." }),
+          has_attachment: booleanProperty("Whether the email has an attachment."),
+        },
+      }),
+    },
+  });
+}
+
+function himalayaEmailReadToolConfig() {
+  return webhookTool({
+    name: "himalaya_email_read",
+    description:
+      "Read-only Himalaya CLI email reader. Use this after himalaya_email_list gives an exact envelope id. It previews by default so it does not mark mail as read.",
+    url: `${workerBaseUrl}/cli/himalaya/email-read`,
+    required: ["id"],
+    responseTimeoutSecs: 30,
+    requestProperties: {
+      id: stringProperty({
+        description: "Himalaya envelope id returned by himalaya_email_list.",
+      }),
+      folder: stringProperty({
+        description: "Mailbox folder name. Use the same folder used for the list call.",
+      }),
+      include_headers: booleanProperty(
+        "Set true to include message headers. Keep true unless Andrew asks for body only."
+      ),
+      max_raw_bytes: integerProperty({
+        description:
+          "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+      }),
+    },
+    responseDescription: "Himalaya email message response.",
+    responseProperties: cliResponseProperties(),
+  });
+}
+
+function otterSpeechesListToolConfig() {
+  return webhookTool({
+    name: "otter_speeches_list",
+    description:
+      "Read-only Otter AI CLI transcript listing. Use this to find recent owned/shared/all Otter transcripts. The otid field is the id to pass to Otter get/search.",
+    url: `${workerBaseUrl}/cli/otter/speeches-list`,
+    required: [],
+    responseTimeoutSecs: 30,
+    requestProperties: {
+      source: stringProperty({
+        description: "Transcript source filter. Use owned by default.",
+        values: ["owned", "shared", "all"],
+      }),
+      days: integerProperty({
+        description: "Optional lookback window in days.",
+      }),
+      page_size: integerProperty({
+        description: "Maximum transcripts to return. Use 5 by default for phone answers.",
+      }),
+    },
+    responseDescription: "Otter transcript list response.",
+    responseProperties: {
+      ...cliResponseProperties(),
+      returned_count: integerProperty({ description: "Number of transcripts returned." }),
+      items: arrayProperty({
+        description: "Otter transcripts.",
+        itemDescription: "One Otter transcript.",
+        properties: otterSpeechProperties(),
+      }),
+    },
+  });
+}
+
+function otterSpeechGetToolConfig() {
+  return webhookTool({
+    name: "otter_speech_get",
+    description:
+      "Read-only Otter AI CLI transcript fetcher. Gets raw transcript JSON from Otter. Use the otid returned by otter_speeches_list as speech_id.",
+    url: `${workerBaseUrl}/cli/otter/speech-get`,
+    required: ["speech_id"],
+    responseTimeoutSecs: 45,
+    requestProperties: {
+      speech_id: stringProperty({
+        description:
+          "Otter otid returned by otter_speeches_list. Do not use speech_id if an otid is available.",
+      }),
+      max_raw_bytes: integerProperty({
+        description:
+          "Maximum raw JSON bytes to return. Use 500000 for raw transcript JSON unless Andrew asks for less.",
+      }),
+    },
+    responseDescription: "Otter raw transcript JSON response.",
+    responseProperties: {
+      ...cliResponseProperties(),
+      speech_id: stringProperty({ description: "Requested Otter otid." }),
+      speech: objectProperty({
+        description: "Compact Otter transcript metadata.",
+        properties: otterSpeechProperties(),
+      }),
+    },
+  });
+}
+
+function otterSpeechSearchToolConfig() {
+  return webhookTool({
+    name: "otter_speech_search",
+    description:
+      "Read-only Otter AI CLI transcript search. Use it to search within one Otter transcript after otter_speeches_list identifies the otid.",
+    url: `${workerBaseUrl}/cli/otter/speech-search`,
+    required: ["speech_id", "query"],
+    responseTimeoutSecs: 30,
+    requestProperties: {
+      speech_id: stringProperty({
+        description: "Otter otid returned by otter_speeches_list.",
+      }),
+      query: stringProperty({
+        description: "Search terms to find within the Otter transcript.",
+      }),
+      size: integerProperty({
+        description: "Maximum search hits. Use 20 by default.",
+      }),
+    },
+    responseDescription: "Otter transcript search response.",
+    responseProperties: cliResponseProperties(),
+  });
+}
+
+function githubCliCommonToolConfig() {
+  return webhookTool({
+    name: "github_cli_common",
+    description:
+      "Read-only wrapper around common GitHub CLI commands for repo, issue, PR, and GitHub search lookups. Use existing github_cli_ls and github_cli_cat for repository files.",
+    url: `${workerBaseUrl}/cli/github/common`,
+    required: ["action"],
+    responseTimeoutSecs: 30,
+    requestProperties: {
+      action: stringProperty({
+        description:
+          "The GitHub CLI action to run: repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, or search_prs.",
+        values: [
+          "repo_view",
+          "issue_list",
+          "issue_view",
+          "pr_list",
+          "pr_view",
+          "search_issues",
+          "search_prs",
+        ],
+      }),
+      repo: stringProperty({
+        description:
+          "Full repository name in owner/name format. Required for repo_view, issue_list, issue_view, pr_list, and pr_view.",
+      }),
+      number: integerProperty({
+        description: "Issue or pull request number for issue_view or pr_view.",
+      }),
+      state: stringProperty({
+        description: "Issue or pull request state for list actions.",
+        values: ["open", "closed", "all"],
+      }),
+      query: stringProperty({
+        description: "GitHub search query for search_issues or search_prs.",
+      }),
+      limit: integerProperty({
+        description: "Maximum results for list/search actions. Use 5 by default.",
+      }),
+    },
+    responseDescription: "GitHub CLI response.",
+    responseProperties: {
+      ...cliResponseProperties(),
+      action: stringProperty({ description: "Action performed." }),
+      gh_equivalent: stringProperty({ description: "Closest shell command equivalent." }),
+    },
+  });
+}
+
 function webhookTool({
   name,
   description,
@@ -369,12 +582,13 @@ function webhookTool({
   requestProperties,
   responseDescription,
   responseProperties,
+  responseTimeoutSecs = 15,
 }) {
   return {
     type: "webhook",
     name,
     description,
-    response_timeout_secs: 15,
+    response_timeout_secs: responseTimeoutSecs,
     disable_interruptions: false,
     force_pre_tool_speech: false,
     pre_tool_speech: "auto",
@@ -454,6 +668,40 @@ function githubIssueWriteResponseProperties() {
         excerpt: stringProperty({ description: "Short body excerpt." }),
       },
     }),
+  };
+}
+
+function cliResponseProperties() {
+  return {
+    ok: booleanProperty("Whether the CLI command succeeded."),
+    status: stringProperty({
+      description: "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+    }),
+    message: stringProperty({ description: "Error or status message." }),
+    command: stringProperty({ description: "CLI command family that ran." }),
+    answer_text: stringProperty({
+      description: "Compact spoken summary. Prefer this before using raw JSON.",
+    }),
+    raw_json: stringProperty({
+      description:
+        "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+    }),
+    raw_truncated: booleanProperty("Whether raw_json was truncated."),
+    stderr: stringProperty({ description: "CLI stderr, if any." }),
+  };
+}
+
+function otterSpeechProperties() {
+  return {
+    otid: stringProperty({ description: "Otter otid. Use this for get/search." }),
+    speech_id: stringProperty({ description: "Otter speech id when present." }),
+    title: stringProperty({ description: "Transcript title." }),
+    created_at: integerProperty({ description: "Creation timestamp when present." }),
+    modified_time: integerProperty({ description: "Modified timestamp when present." }),
+    start_time: integerProperty({ description: "Start timestamp when present." }),
+    duration: integerProperty({ description: "Duration when present." }),
+    owner_name: stringProperty({ description: "Owner name when present." }),
+    summary_status: stringProperty({ description: "Otter summary status when present." }),
   };
 }
 
@@ -557,7 +805,15 @@ function promptWithGithubFileTools(currentPrompt) {
 - Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.
 - Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.
 - The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.
-- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.`;
+- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.
+
+CLI capability:
+- You also have focused read-only CLI wrapper tools named himalaya_email_list, himalaya_email_read, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
+- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. Do not claim you sent, archived, deleted, or marked email read; these tools are read-only.
+- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.
+- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.
+- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.
+- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.`;
   const readMarker = "\n\nGitHub read capability:";
   const capabilityMarker = "\n\nGitHub capability:";
   const readIndex = currentPrompt.indexOf(readMarker);

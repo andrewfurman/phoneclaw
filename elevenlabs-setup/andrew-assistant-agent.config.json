@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-19T10:16:28.497Z",
+  "exported_at": "2026-06-19T10:41:52.880Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
@@ -123,6 +123,116 @@
           "answer_text",
           "issue"
         ]
+      },
+      {
+        "tool_id": "tool_3701kvfqhvccfsfa5nv896qky26h",
+        "name": "himalaya_email_list",
+        "url": "https://webhooks.aifurman.com/cli/himalaya/email-list",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "returned_count",
+          "items"
+        ]
+      },
+      {
+        "tool_id": "tool_6201kvfqhvgdeebb28sz7nd6dwhn",
+        "name": "himalaya_email_read",
+        "url": "https://webhooks.aifurman.com/cli/himalaya/email-read",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr"
+        ]
+      },
+      {
+        "tool_id": "tool_1101kvfqhvmkebqs4r5fbr8nf70g",
+        "name": "otter_speeches_list",
+        "url": "https://webhooks.aifurman.com/cli/otter/speeches-list",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "returned_count",
+          "items"
+        ]
+      },
+      {
+        "tool_id": "tool_5401kvfqhvrpewv9303pgtf3qhpt",
+        "name": "otter_speech_get",
+        "url": "https://webhooks.aifurman.com/cli/otter/speech-get",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "speech_id",
+          "speech"
+        ]
+      },
+      {
+        "tool_id": "tool_6301kvfqhvwmehk87ba931z325w0",
+        "name": "otter_speech_search",
+        "url": "https://webhooks.aifurman.com/cli/otter/speech-search",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr"
+        ]
+      },
+      {
+        "tool_id": "tool_0101kvfqhw0kf1zv8p0epwgfqgd2",
+        "name": "github_cli_common",
+        "url": "https://webhooks.aifurman.com/cli/github/common",
+        "method": "POST",
+        "auth": "[redacted]",
+        "response_fields": [
+          "ok",
+          "status",
+          "message",
+          "command",
+          "answer_text",
+          "raw_json",
+          "raw_truncated",
+          "stderr",
+          "action",
+          "gh_equivalent"
+        ]
       }
     ]
   },
@@ -217,7 +327,7 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Use concise queries. For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the configured token may not have access to that repo, org approval, or Contents read permission.\n\nCLI capability:\n- You also have focused read-only CLI wrapper tools named himalaya_email_list, himalaya_email_read, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list to search or list email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. Do not claim you sent, archived, deleted, or marked email read; these tools are read-only.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
@@ -229,7 +339,13 @@
             "tool_7601kve75yp9ftmb85fen5dghtaj",
             "tool_9701kve75ytgesm8easyxe24h7tj",
             "tool_8901kvfp2jggfwpv527tz7yjmsb0",
-            "tool_8001kvfp2jrseq58d51ytwj7f3k4"
+            "tool_8001kvfp2jrseq58d51ytwj7f3k4",
+            "tool_3701kvfqhvccfsfa5nv896qky26h",
+            "tool_6201kvfqhvgdeebb28sz7nd6dwhn",
+            "tool_1101kvfqhvmkebqs4r5fbr8nf70g",
+            "tool_5401kvfqhvrpewv9303pgtf3qhpt",
+            "tool_6301kvfqhvwmehk87ba931z325w0",
+            "tool_0101kvfqhw0kf1zv8p0epwgfqgd2"
           ],
           "built_in_tools": {
             "end_call": null,
@@ -2123,6 +2239,1314 @@
                 "auth_resolved_params": [],
                 "auth_connection": null
               }
+            },
+            {
+              "type": "webhook",
+              "name": "himalaya_email_list",
+              "description": "Read-only Himalaya CLI email envelope listing and search. Use this to find recent or matching emails before reading a specific message.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/himalaya/email-list",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "",
+                  "properties": {
+                    "query": {
+                      "type": "string",
+                      "description": "Optional Himalaya envelope query, for example 'from example.com', 'subject invoice', or 'order by date desc'.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "folder": {
+                      "type": "string",
+                      "description": "Mailbox folder name. Use INBOX by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "description": "Maximum emails to return. Use 5 by default for phone answers.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "page": {
+                      "type": "integer",
+                      "description": "Page number starting at 1. Omit unless Andrew asks for more.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Himalaya email envelope list response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "returned_count": {
+                      "type": "integer",
+                      "description": "Number of email envelopes returned.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "items": {
+                      "type": "array",
+                      "description": "Email envelopes returned by Himalaya.",
+                      "items": {
+                        "type": "object",
+                        "required": [],
+                        "description": "One email envelope.",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Himalaya envelope id for reading.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "subject": {
+                            "type": "string",
+                            "description": "Email subject.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "from": {
+                            "type": "string",
+                            "description": "Email sender.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "to": {
+                            "type": "string",
+                            "description": "Email recipients.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "date": {
+                            "type": "string",
+                            "description": "Email date.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "has_attachment": {
+                            "type": "boolean",
+                            "description": "Whether the email has an attachment.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          }
+                        }
+                      },
+                      "dynamic_variable": "",
+                      "constant_value": null,
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "himalaya_email_read",
+              "description": "Read-only Himalaya CLI email reader. Use this after himalaya_email_list gives an exact envelope id. It previews by default so it does not mark mail as read.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/himalaya/email-read",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "id"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id returned by himalaya_email_list.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "folder": {
+                      "type": "string",
+                      "description": "Mailbox folder name. Use the same folder used for the list call.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "include_headers": {
+                      "type": "boolean",
+                      "description": "Set true to include message headers. Keep true unless Andrew asks for body only.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_raw_bytes": {
+                      "type": "integer",
+                      "description": "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Himalaya email message response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "otter_speeches_list",
+              "description": "Read-only Otter AI CLI transcript listing. Use this to find recent owned/shared/all Otter transcripts. The otid field is the id to pass to Otter get/search.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/otter/speeches-list",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "",
+                  "properties": {
+                    "source": {
+                      "type": "string",
+                      "description": "Transcript source filter. Use owned by default.",
+                      "enum": [
+                        "owned",
+                        "shared",
+                        "all"
+                      ],
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "days": {
+                      "type": "integer",
+                      "description": "Optional lookback window in days.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "description": "Maximum transcripts to return. Use 5 by default for phone answers.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Otter transcript list response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "returned_count": {
+                      "type": "integer",
+                      "description": "Number of transcripts returned.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "items": {
+                      "type": "array",
+                      "description": "Otter transcripts.",
+                      "items": {
+                        "type": "object",
+                        "required": [],
+                        "description": "One Otter transcript.",
+                        "properties": {
+                          "otid": {
+                            "type": "string",
+                            "description": "Otter otid. Use this for get/search.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "speech_id": {
+                            "type": "string",
+                            "description": "Otter speech id when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "title": {
+                            "type": "string",
+                            "description": "Transcript title.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "created_at": {
+                            "type": "integer",
+                            "description": "Creation timestamp when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "modified_time": {
+                            "type": "integer",
+                            "description": "Modified timestamp when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "start_time": {
+                            "type": "integer",
+                            "description": "Start timestamp when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "duration": {
+                            "type": "integer",
+                            "description": "Duration when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "owner_name": {
+                            "type": "string",
+                            "description": "Owner name when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          },
+                          "summary_status": {
+                            "type": "string",
+                            "description": "Otter summary status when present.",
+                            "enum": null,
+                            "is_system_provided": false,
+                            "dynamic_variable": "",
+                            "allowed_values_dynamic_variable": "",
+                            "constant_value": "",
+                            "is_omitted": false
+                          }
+                        }
+                      },
+                      "dynamic_variable": "",
+                      "constant_value": null,
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "otter_speech_get",
+              "description": "Read-only Otter AI CLI transcript fetcher. Gets raw transcript JSON from Otter. Use the otid returned by otter_speeches_list as speech_id.",
+              "response_timeout_secs": 45,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/otter/speech-get",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "speech_id"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "speech_id": {
+                      "type": "string",
+                      "description": "Otter otid returned by otter_speeches_list. Do not use speech_id if an otid is available.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_raw_bytes": {
+                      "type": "integer",
+                      "description": "Maximum raw JSON bytes to return. Use 500000 for raw transcript JSON unless Andrew asks for less.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Otter raw transcript JSON response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "speech_id": {
+                      "type": "string",
+                      "description": "Requested Otter otid.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "speech": {
+                      "type": "object",
+                      "required": [],
+                      "description": "Compact Otter transcript metadata.",
+                      "properties": {
+                        "otid": {
+                          "type": "string",
+                          "description": "Otter otid. Use this for get/search.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "speech_id": {
+                          "type": "string",
+                          "description": "Otter speech id when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "title": {
+                          "type": "string",
+                          "description": "Transcript title.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "created_at": {
+                          "type": "integer",
+                          "description": "Creation timestamp when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "modified_time": {
+                          "type": "integer",
+                          "description": "Modified timestamp when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "start_time": {
+                          "type": "integer",
+                          "description": "Start timestamp when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "duration": {
+                          "type": "integer",
+                          "description": "Duration when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "owner_name": {
+                          "type": "string",
+                          "description": "Owner name when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "summary_status": {
+                          "type": "string",
+                          "description": "Otter summary status when present.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        }
+                      }
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "otter_speech_search",
+              "description": "Read-only Otter AI CLI transcript search. Use it to search within one Otter transcript after otter_speeches_list identifies the otid.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/otter/speech-search",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "speech_id",
+                    "query"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "speech_id": {
+                      "type": "string",
+                      "description": "Otter otid returned by otter_speeches_list.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "query": {
+                      "type": "string",
+                      "description": "Search terms to find within the Otter transcript.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "size": {
+                      "type": "integer",
+                      "description": "Maximum search hits. Use 20 by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "Otter transcript search response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
+            },
+            {
+              "type": "webhook",
+              "name": "github_cli_common",
+              "description": "Read-only wrapper around common GitHub CLI commands for repo, issue, PR, and GitHub search lookups. Use existing github_cli_ls and github_cli_cat for repository files.",
+              "response_timeout_secs": 30,
+              "disable_interruptions": false,
+              "force_pre_tool_speech": false,
+              "pre_tool_speech": "auto",
+              "assignments": [],
+              "tool_call_sound": null,
+              "tool_call_sound_behavior": "auto",
+              "tool_error_handling_mode": "auto",
+              "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+              },
+              "execution_mode": "immediate",
+              "api_schema": {
+                "request_headers": {
+                  "Authorization": "[redacted]"
+                },
+                "url": "https://webhooks.aifurman.com/cli/github/common",
+                "method": "POST",
+                "path_params_schema": {},
+                "query_params_schema": null,
+                "request_body_schema": {
+                  "type": "object",
+                  "required": [
+                    "action"
+                  ],
+                  "description": "",
+                  "properties": {
+                    "action": {
+                      "type": "string",
+                      "description": "The GitHub CLI action to run: repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, or search_prs.",
+                      "enum": [
+                        "repo_view",
+                        "issue_list",
+                        "issue_view",
+                        "pr_list",
+                        "pr_view",
+                        "search_issues",
+                        "search_prs"
+                      ],
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "repo": {
+                      "type": "string",
+                      "description": "Full repository name in owner/name format. Required for repo_view, issue_list, issue_view, pr_list, and pr_view.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "number": {
+                      "type": "integer",
+                      "description": "Issue or pull request number for issue_view or pr_view.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "state": {
+                      "type": "string",
+                      "description": "Issue or pull request state for list actions.",
+                      "enum": [
+                        "open",
+                        "closed",
+                        "all"
+                      ],
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "query": {
+                      "type": "string",
+                      "description": "GitHub search query for search_issues or search_prs.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Maximum results for list/search actions. Use 5 by default.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "response_body_schema": {
+                  "type": "object",
+                  "required": [],
+                  "description": "GitHub CLI response.",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "description": "Whether the CLI command succeeded.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "status": {
+                      "type": "string",
+                      "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Error or status message.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "command": {
+                      "type": "string",
+                      "description": "CLI command family that ran.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "answer_text": {
+                      "type": "string",
+                      "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_json": {
+                      "type": "string",
+                      "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "raw_truncated": {
+                      "type": "boolean",
+                      "description": "Whether raw_json was truncated.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "stderr": {
+                      "type": "string",
+                      "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "action": {
+                      "type": "string",
+                      "description": "Action performed.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "gh_equivalent": {
+                      "type": "string",
+                      "description": "Closest shell command equivalent.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "content_type": "application/json",
+                "auth_resolved_params": [],
+                "auth_connection": null
+              }
             }
           ]
         }
@@ -2130,7 +3554,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1781864182
+      "updated_at_unix_secs": 1781865708
     },
     "platform_settings": {
       "evaluation": {
@@ -2466,7 +3890,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_0401kvfp3cw5eqst7w5y24zm88qe",
+    "version_id": "agtvrsn_8701kvfqhzdkfv0bmp6ws5hmqgsn",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -2769,8 +4193,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 88,
-        "avg_latency_secs": 0.42
+        "total_calls": 91,
+        "avg_latency_secs": 0.41
       },
       "response_mocks": null
     },
@@ -3115,7 +4539,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 22,
+        "total_calls": 25,
         "avg_latency_secs": 0.78
       },
       "response_mocks": null
@@ -3402,7 +4826,7 @@
         }
       },
       "usage_stats": {
-        "total_calls": 5,
+        "total_calls": 6,
         "avg_latency_secs": 0.37
       },
       "response_mocks": null
@@ -3636,8 +5060,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 4,
-        "avg_latency_secs": 0.36
+        "total_calls": 5,
+        "avg_latency_secs": 0.34
       },
       "response_mocks": null
     },
@@ -3982,8 +5406,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 0,
-        "avg_latency_secs": 0
+        "total_calls": 1,
+        "avg_latency_secs": 0.48
       },
       "response_mocks": null
     },
@@ -4355,6 +5779,1362 @@
                     "is_omitted": false
                   }
                 }
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_3701kvfqhvccfsfa5nv896qky26h",
+      "tool_config": {
+        "type": "webhook",
+        "name": "himalaya_email_list",
+        "description": "Read-only Himalaya CLI email envelope listing and search. Use this to find recent or matching emails before reading a specific message.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/himalaya/email-list",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "Optional Himalaya envelope query, for example 'from example.com', 'subject invoice', or 'order by date desc'.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "folder": {
+                "type": "string",
+                "description": "Mailbox folder name. Use INBOX by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "page_size": {
+                "type": "integer",
+                "description": "Maximum emails to return. Use 5 by default for phone answers.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "page": {
+                "type": "integer",
+                "description": "Page number starting at 1. Omit unless Andrew asks for more.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Himalaya email envelope list response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "returned_count": {
+                "type": "integer",
+                "description": "Number of email envelopes returned.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "items": {
+                "type": "array",
+                "description": "Email envelopes returned by Himalaya.",
+                "items": {
+                  "type": "object",
+                  "required": [],
+                  "description": "One email envelope.",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id for reading.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Email subject.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Email sender.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "Email recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "Email date.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "has_attachment": {
+                      "type": "boolean",
+                      "description": "Whether the email has an attachment.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "dynamic_variable": "",
+                "constant_value": null,
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_6201kvfqhvgdeebb28sz7nd6dwhn",
+      "tool_config": {
+        "type": "webhook",
+        "name": "himalaya_email_read",
+        "description": "Read-only Himalaya CLI email reader. Use this after himalaya_email_list gives an exact envelope id. It previews by default so it does not mark mail as read.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/himalaya/email-read",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "id"
+            ],
+            "description": "",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id returned by himalaya_email_list.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "folder": {
+                "type": "string",
+                "description": "Mailbox folder name. Use the same folder used for the list call.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "include_headers": {
+                "type": "boolean",
+                "description": "Set true to include message headers. Keep true unless Andrew asks for body only.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_raw_bytes": {
+                "type": "integer",
+                "description": "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Himalaya email message response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_1101kvfqhvmkebqs4r5fbr8nf70g",
+      "tool_config": {
+        "type": "webhook",
+        "name": "otter_speeches_list",
+        "description": "Read-only Otter AI CLI transcript listing. Use this to find recent owned/shared/all Otter transcripts. The otid field is the id to pass to Otter get/search.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/otter/speeches-list",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "",
+            "properties": {
+              "source": {
+                "type": "string",
+                "description": "Transcript source filter. Use owned by default.",
+                "enum": [
+                  "owned",
+                  "shared",
+                  "all"
+                ],
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "days": {
+                "type": "integer",
+                "description": "Optional lookback window in days.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "page_size": {
+                "type": "integer",
+                "description": "Maximum transcripts to return. Use 5 by default for phone answers.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Otter transcript list response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "returned_count": {
+                "type": "integer",
+                "description": "Number of transcripts returned.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "items": {
+                "type": "array",
+                "description": "Otter transcripts.",
+                "items": {
+                  "type": "object",
+                  "required": [],
+                  "description": "One Otter transcript.",
+                  "properties": {
+                    "otid": {
+                      "type": "string",
+                      "description": "Otter otid. Use this for get/search.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "speech_id": {
+                      "type": "string",
+                      "description": "Otter speech id when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "Transcript title.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "created_at": {
+                      "type": "integer",
+                      "description": "Creation timestamp when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "modified_time": {
+                      "type": "integer",
+                      "description": "Modified timestamp when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "start_time": {
+                      "type": "integer",
+                      "description": "Start timestamp when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "duration": {
+                      "type": "integer",
+                      "description": "Duration when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "owner_name": {
+                      "type": "string",
+                      "description": "Owner name when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "summary_status": {
+                      "type": "string",
+                      "description": "Otter summary status when present.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    }
+                  }
+                },
+                "dynamic_variable": "",
+                "constant_value": null,
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_5401kvfqhvrpewv9303pgtf3qhpt",
+      "tool_config": {
+        "type": "webhook",
+        "name": "otter_speech_get",
+        "description": "Read-only Otter AI CLI transcript fetcher. Gets raw transcript JSON from Otter. Use the otid returned by otter_speeches_list as speech_id.",
+        "response_timeout_secs": 45,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/otter/speech-get",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "speech_id"
+            ],
+            "description": "",
+            "properties": {
+              "speech_id": {
+                "type": "string",
+                "description": "Otter otid returned by otter_speeches_list. Do not use speech_id if an otid is available.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_raw_bytes": {
+                "type": "integer",
+                "description": "Maximum raw JSON bytes to return. Use 500000 for raw transcript JSON unless Andrew asks for less.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Otter raw transcript JSON response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "speech_id": {
+                "type": "string",
+                "description": "Requested Otter otid.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "speech": {
+                "type": "object",
+                "required": [],
+                "description": "Compact Otter transcript metadata.",
+                "properties": {
+                  "otid": {
+                    "type": "string",
+                    "description": "Otter otid. Use this for get/search.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "speech_id": {
+                    "type": "string",
+                    "description": "Otter speech id when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "Transcript title.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "created_at": {
+                    "type": "integer",
+                    "description": "Creation timestamp when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "modified_time": {
+                    "type": "integer",
+                    "description": "Modified timestamp when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "start_time": {
+                    "type": "integer",
+                    "description": "Start timestamp when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "description": "Duration when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "owner_name": {
+                    "type": "string",
+                    "description": "Owner name when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "summary_status": {
+                    "type": "string",
+                    "description": "Otter summary status when present.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  }
+                }
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_6301kvfqhvwmehk87ba931z325w0",
+      "tool_config": {
+        "type": "webhook",
+        "name": "otter_speech_search",
+        "description": "Read-only Otter AI CLI transcript search. Use it to search within one Otter transcript after otter_speeches_list identifies the otid.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/otter/speech-search",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "speech_id",
+              "query"
+            ],
+            "description": "",
+            "properties": {
+              "speech_id": {
+                "type": "string",
+                "description": "Otter otid returned by otter_speeches_list.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "query": {
+                "type": "string",
+                "description": "Search terms to find within the Otter transcript.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "size": {
+                "type": "integer",
+                "description": "Maximum search hits. Use 20 by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "Otter transcript search response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "content_type": "application/json",
+          "auth_resolved_params": [],
+          "auth_connection": null
+        }
+      },
+      "usage_stats": {
+        "total_calls": 0,
+        "avg_latency_secs": 0
+      },
+      "response_mocks": null
+    },
+    {
+      "id": "tool_0101kvfqhw0kf1zv8p0epwgfqgd2",
+      "tool_config": {
+        "type": "webhook",
+        "name": "github_cli_common",
+        "description": "Read-only wrapper around common GitHub CLI commands for repo, issue, PR, and GitHub search lookups. Use existing github_cli_ls and github_cli_cat for repository files.",
+        "response_timeout_secs": 30,
+        "disable_interruptions": false,
+        "force_pre_tool_speech": false,
+        "pre_tool_speech": "auto",
+        "assignments": [],
+        "tool_call_sound": null,
+        "tool_call_sound_behavior": "auto",
+        "tool_error_handling_mode": "auto",
+        "dynamic_variables": {
+          "dynamic_variable_placeholders": {}
+        },
+        "execution_mode": "immediate",
+        "api_schema": {
+          "request_headers": {
+            "Authorization": "[redacted]"
+          },
+          "url": "https://webhooks.aifurman.com/cli/github/common",
+          "method": "POST",
+          "path_params_schema": {},
+          "query_params_schema": null,
+          "request_body_schema": {
+            "type": "object",
+            "required": [
+              "action"
+            ],
+            "description": "",
+            "properties": {
+              "action": {
+                "type": "string",
+                "description": "The GitHub CLI action to run: repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, or search_prs.",
+                "enum": [
+                  "repo_view",
+                  "issue_list",
+                  "issue_view",
+                  "pr_list",
+                  "pr_view",
+                  "search_issues",
+                  "search_prs"
+                ],
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "repo": {
+                "type": "string",
+                "description": "Full repository name in owner/name format. Required for repo_view, issue_list, issue_view, pr_list, and pr_view.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "number": {
+                "type": "integer",
+                "description": "Issue or pull request number for issue_view or pr_view.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "state": {
+                "type": "string",
+                "description": "Issue or pull request state for list actions.",
+                "enum": [
+                  "open",
+                  "closed",
+                  "all"
+                ],
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "query": {
+                "type": "string",
+                "description": "GitHub search query for search_issues or search_prs.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "limit": {
+                "type": "integer",
+                "description": "Maximum results for list/search actions. Use 5 by default.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              }
+            }
+          },
+          "response_body_schema": {
+            "type": "object",
+            "required": [],
+            "description": "GitHub CLI response.",
+            "properties": {
+              "ok": {
+                "type": "boolean",
+                "description": "Whether the CLI command succeeded.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "status": {
+                "type": "string",
+                "description": "Status code such as ok, cli_failed, cli_timeout, or cli_bridge_not_configured.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message": {
+                "type": "string",
+                "description": "Error or status message.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "command": {
+                "type": "string",
+                "description": "CLI command family that ran.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "answer_text": {
+                "type": "string",
+                "description": "Compact spoken summary. Prefer this before using raw JSON.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_json": {
+                "type": "string",
+                "description": "Raw CLI stdout, usually JSON. This may be truncated according to max_raw_bytes.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "raw_truncated": {
+                "type": "boolean",
+                "description": "Whether raw_json was truncated.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "stderr": {
+                "type": "string",
+                "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "action": {
+                "type": "string",
+                "description": "Action performed.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "gh_equivalent": {
+                "type": "string",
+                "description": "Closest shell command equivalent.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
               }
             }
           },

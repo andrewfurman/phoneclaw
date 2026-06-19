@@ -2,6 +2,14 @@ import { timingSafeEqual } from "node:crypto";
 import Fastify from "fastify";
 import formbody from "@fastify/formbody";
 import twilio from "twilio";
+import {
+  githubCliCommon,
+  himalayaEmailList,
+  himalayaEmailRead,
+  otterSpeechGet,
+  otterSpeechSearch,
+  otterSpeechesList,
+} from "./cli-tools.mjs";
 import { basicWebSearch } from "../shared/basic-web-search.mjs";
 import { githubCliCat, githubCliLs } from "../shared/github-cli-tools.mjs";
 import { githubIssueCreate, githubIssueUpdate } from "../shared/github-issues.mjs";
@@ -27,6 +35,7 @@ const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
 const elevenLabsAgentId = process.env.ELEVENLABS_AGENT_ID;
 const commandBridgeToken = process.env.COMMAND_BRIDGE_TOKEN;
 const webSearchToken = process.env.WEB_SEARCH_TOKEN || commandBridgeToken;
+const cliBridgeToken = process.env.CLI_BRIDGE_TOKEN;
 const githubReadToken = process.env.GITHUB_READ_TOKEN;
 const githubWriteToken = process.env.GITHUB_WRITE_TOKEN;
 const claudeBridgeUrl = process.env.CLAUDE_BRIDGE_URL;
@@ -61,6 +70,12 @@ app.get("/", async () => ({
     github_cli_cat: "POST /github-cli/cat",
     github_issue_create: "POST /github-issues/create",
     github_issue_update: "POST /github-issues/update",
+    himalaya_email_list: "POST /cli/himalaya/email-list",
+    himalaya_email_read: "POST /cli/himalaya/email-read",
+    otter_speeches_list: "POST /cli/otter/speeches-list",
+    otter_speech_get: "POST /cli/otter/speech-get",
+    otter_speech_search: "POST /cli/otter/speech-search",
+    github_cli_common: "POST /cli/github/common",
     future_claude_tool: "POST /agent-command",
     health: "GET /health",
   },
@@ -71,6 +86,7 @@ app.get("/health", async () => ({
   elevenlabs_agent_configured: Boolean(elevenLabsAgentId),
   command_bridge_configured: Boolean(claudeBridgeUrl),
   web_search_configured: Boolean(webSearchToken),
+  cli_bridge_token_configured: Boolean(cliBridgeToken),
   github_read_configured: Boolean(githubReadToken),
   github_write_configured: Boolean(githubWriteToken),
   expected_elevenlabs_audio_format: ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
@@ -118,6 +134,30 @@ app.post("/github-issues/create", async (request, reply) =>
 
 app.post("/github-issues/update", async (request, reply) =>
   handleGithubIssueUpdate(request, reply)
+);
+
+app.post("/cli/himalaya/email-list", async (request, reply) =>
+  handleHimalayaEmailList(request, reply)
+);
+
+app.post("/cli/himalaya/email-read", async (request, reply) =>
+  handleHimalayaEmailRead(request, reply)
+);
+
+app.post("/cli/otter/speeches-list", async (request, reply) =>
+  handleOtterSpeechesList(request, reply)
+);
+
+app.post("/cli/otter/speech-get", async (request, reply) =>
+  handleOtterSpeechGet(request, reply)
+);
+
+app.post("/cli/otter/speech-search", async (request, reply) =>
+  handleOtterSpeechSearch(request, reply)
+);
+
+app.post("/cli/github/common", async (request, reply) =>
+  handleGithubCliCommon(request, reply)
 );
 
 try {
@@ -502,6 +542,95 @@ async function handleGithubIssueUpdate(request, reply) {
   }
 }
 
+async function handleHimalayaEmailList(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaEmailList({
+    query: body.query || body.search_query || body.searchQuery,
+    folder: body.folder,
+    account: body.account,
+    page: body.page,
+    pageSize: body.page_size || body.pageSize || body.max_results || body.maxResults,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleHimalayaEmailRead(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaEmailRead({
+    id: body.id || body.envelope_id || body.envelopeId,
+    folder: body.folder,
+    account: body.account,
+    includeHeaders: body.include_headers ?? body.includeHeaders,
+    markSeen: body.mark_seen ?? body.markSeen,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleOtterSpeechesList(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await otterSpeechesList({
+    source: body.source,
+    days: body.days,
+    pageSize: body.page_size || body.pageSize || body.max_results || body.maxResults,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleOtterSpeechGet(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await otterSpeechGet({
+    speechId: body.speech_id || body.speechId || body.otid || body.id,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleOtterSpeechSearch(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await otterSpeechSearch({
+    speechId: body.speech_id || body.speechId || body.otid || body.id,
+    query: body.query || body.search_query || body.searchQuery,
+    size: body.size || body.max_results || body.maxResults,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
+async function handleGithubCliCommon(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await githubCliCommon({
+    action: body.action,
+    repo: body.repo || body.repository,
+    number: body.number || body.issue_number || body.issueNumber || body.pr_number || body.prNumber,
+    state: body.state,
+    query: body.query || body.search_query || body.searchQuery,
+    limit: body.limit || body.max_results || body.maxResults,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply.code(result.ok ? 200 : 400).send(result);
+}
+
 function validateToolAuth(request, reply) {
   if (!webSearchToken) {
     reply.code(503).send({
@@ -514,6 +643,27 @@ function validateToolAuth(request, reply) {
 
   const authHeader = request.headers.authorization || "";
   if (!secureEquals(authHeader, `Bearer ${webSearchToken}`)) {
+    reply.code(401).send({ ok: false, status: "unauthorized" });
+    return false;
+  }
+
+  return true;
+}
+
+function validateCliToolAuth(request, reply) {
+  const expectedToken = cliBridgeToken || webSearchToken;
+  if (!expectedToken) {
+    reply.code(503).send({
+      ok: false,
+      status: "cli_tool_auth_not_configured",
+      message:
+        "CLI_BRIDGE_TOKEN is not configured on this server. WEB_SEARCH_TOKEN can be used only for local development.",
+    });
+    return false;
+  }
+
+  const authHeader = request.headers.authorization || "";
+  if (!secureEquals(authHeader, `Bearer ${expectedToken}`)) {
     reply.code(401).send({ ok: false, status: "unauthorized" });
     return false;
   }
