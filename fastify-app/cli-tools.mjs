@@ -435,7 +435,6 @@ export async function himalayaEmailForward({
     subject: forwardSubject,
     body: normalizedBody,
     original: parsedOriginal,
-    originalRaw: original.raw_message_buffer,
   });
 
   const saved = await saveRawHimalayaMessage({
@@ -460,7 +459,7 @@ export async function himalayaEmailForward({
     original_has_html: Boolean(parsedOriginal.html),
     original_has_plain: Boolean(parsedOriginal.plain),
     original_size_bytes: original.size_bytes,
-    attached_original_eml: true,
+    attached_original_eml: false,
     answer_text: saved.ok
       ? `Saved a forward draft to ${normalizedTo} with subject "${forwardSubject}".`
       : saved.answer_text,
@@ -886,11 +885,11 @@ function githubArgsFor({ action, repo, number, state, query, limit }) {
   return { error: missingField("action", "Unsupported GitHub CLI action.") };
 }
 
-function runCli({ command, args, timeoutMs = DEFAULT_TIMEOUT_MS, maxRawBytes }) {
+function runCli({ command, args, timeoutMs = DEFAULT_TIMEOUT_MS, maxRawBytes, input }) {
   const rawLimit = clampInteger(maxRawBytes, 1_000, MAX_RAW_BYTES, DEFAULT_MAX_RAW_BYTES);
 
   return new Promise((resolve) => {
-    execFile(
+    const child = execFile(
       command,
       args,
       {
@@ -939,6 +938,10 @@ function runCli({ command, args, timeoutMs = DEFAULT_TIMEOUT_MS, maxRawBytes }) 
         });
       }
     );
+
+    if (input != null) {
+      child.stdin?.end(input);
+    }
   });
 }
 
@@ -1113,7 +1116,6 @@ async function sendRawHimalayaMessage({
 
   const args = ["-o", "json", "message", "send"];
   if (account) args.push("--account", normalizeString(account));
-  args.push(rawMessage);
 
   return runCli({
     command: process.env.HIMALAYA_BIN || "himalaya",
@@ -1125,6 +1127,7 @@ async function sendRawHimalayaMessage({
       DEFAULT_HIMALAYA_SEND_TIMEOUT_MS
     ),
     maxRawBytes,
+    input: rawMessage,
   });
 }
 
@@ -1223,6 +1226,8 @@ function buildRawEmailMessage({
     ["Subject", normalizeHeaderValue(subject)],
     ["In-Reply-To", normalizeHeaderValue(inReplyTo)],
     ["References", normalizeHeaderValue(references)],
+    ["Date", new Date().toUTCString()],
+    ["Message-ID", generatedMessageId()],
     ["MIME-Version", "1.0"],
     ["Content-Type", "text/plain; charset=UTF-8"],
     ["Content-Transfer-Encoding", "8bit"],
@@ -1241,13 +1246,10 @@ function buildForwardRawEmailMessage({
   subject,
   body,
   original,
-  originalRaw,
 }) {
-  const mixedBoundary = mimeBoundary("phoneclaw-forward-mixed");
   const alternativeBoundary = mimeBoundary("phoneclaw-forward-alt");
   const plainBody = buildForwardPlainBody({ body, original });
   const htmlBody = buildForwardHtmlBody({ body, original });
-  const originalBase64 = wrapBase64(originalRaw.toString("base64"));
 
   const headers = [
     ["From", normalizeHeaderValue(from)],
@@ -1255,17 +1257,16 @@ function buildForwardRawEmailMessage({
     ["Cc", normalizeHeaderValue(cc)],
     ["Bcc", normalizeHeaderValue(bcc)],
     ["Subject", normalizeHeaderValue(subject)],
+    ["Date", new Date().toUTCString()],
+    ["Message-ID", generatedMessageId()],
     ["MIME-Version", "1.0"],
-    ["Content-Type", `multipart/mixed; boundary="${mixedBoundary}"`],
+    ["Content-Type", `multipart/alternative; boundary="${alternativeBoundary}"`],
   ]
     .filter(([, value]) => value)
     .map(([key, value]) => `${key}: ${value}`);
 
   return [
     headers.join("\r\n"),
-    "",
-    `--${mixedBoundary}`,
-    `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
     "",
     `--${alternativeBoundary}`,
     "Content-Type: text/plain; charset=UTF-8",
@@ -1280,15 +1281,6 @@ function buildForwardRawEmailMessage({
     htmlBody,
     "",
     `--${alternativeBoundary}--`,
-    "",
-    `--${mixedBoundary}`,
-    'Content-Type: application/octet-stream; name="forwarded-message.eml"',
-    'Content-Disposition: attachment; filename="forwarded-message.eml"',
-    "Content-Transfer-Encoding: base64",
-    "",
-    originalBase64,
-    "",
-    `--${mixedBoundary}--`,
     "",
   ].join("\r\n");
 }
@@ -1620,8 +1612,13 @@ function mimeBoundary(prefix) {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
-function wrapBase64(value) {
-  return String(value || "").replace(/.{1,76}/g, "$&\r\n").trimEnd();
+function generatedMessageId() {
+  const host = normalizeString(process.env.PHONECLAW_MESSAGE_ID_HOST, "aifurman.com")
+    .replace(/^@+/, "")
+    .replace(/[^A-Za-z0-9.-]/g, "")
+    .replace(/^\.+|\.+$/g, "");
+  const safeHost = host || "aifurman.com";
+  return `<phoneclaw-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}@${safeHost}>`;
 }
 
 function compactEnvelope(envelope) {

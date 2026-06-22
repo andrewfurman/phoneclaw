@@ -125,9 +125,25 @@ By default this uses the public `andrewfurman/phoneclaw` repo. Override `GITHUB_
 
 ## Email Forwarding Tool
 
-`Andrew Assistant Agent` has a confirmation-gated `himalaya_email_forward` webhook tool. It saves a Gmail/Himalaya forward draft for an existing envelope id, includes Andrew's optional message above the forwarded email, preserves the original HTML inline when available, and attaches the original `.eml` as a fidelity backup.
+`Andrew Assistant Agent` has a confirmation-gated `himalaya_email_forward` webhook tool. It saves a Gmail/Himalaya forward draft for an existing envelope id, includes Andrew's optional message above the forwarded email, and preserves the original HTML inline when available without attaching the original `.eml`.
 
 The tool does not send email. The agent should use `himalaya_email_list` and `himalaya_email_read` first to identify the exact source email, then verbally confirm the recipient and message before calling `himalaya_email_forward` with `confirmed=true`.
+
+## Emergency Email Send Tool
+
+`himalaya_email_send` is emergency-only and requires the agent to preview the exact recipient, subject, and body before asking for a second confirmation. Run the live conversation test with:
+
+```bash
+npm run elevenlabs:email-send:test
+```
+
+The test sends a small validation email to `EMAIL_SEND_TEST_TO`, defaulting to Andrew's Gmail account.
+
+## Voice Stability
+
+The agent uses Jessi (`wfJ7pHCS3lXZdaz77rIG`) as its single configured voice. Multi-voice support remains empty, runtime voice overrides remain disabled, and `setup-and-testing-scripts/configure-elevenlabs-github-tools.mjs` enforces conservative TTS settings: stability `0.75`, similarity boost `0.9`, and speed `1`.
+
+These settings are meant to reduce mid-call voice drift while keeping the same selected voice. If voice drift returns, first check that the exported agent config still has `supported_voices: []`, the same `voice_id`, and voice overrides disabled under platform settings.
 
 On macOS, run the audio-style test with:
 

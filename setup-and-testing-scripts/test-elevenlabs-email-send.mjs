@@ -1,37 +1,28 @@
 const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
-const workerBaseUrl =
-  process.env.PHONECLAW_WORKER_BASE_URL || "https://webhooks.aifurman.com";
-const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
-const forwardTo = process.env.EMAIL_FORWARD_TEST_TO || "aifurman@gmail.com";
-const forwardMessage =
-  "Phoneclaw automated ElevenLabs validation: please ignore this forward draft.";
-const question = `Please forward the most recent email in my inbox to ${forwardTo} with the message "${forwardMessage}" above the forwarded email. I confirm you should create the forward draft now, but do not send it.`;
+const sendTo = process.env.EMAIL_SEND_TEST_TO || "aifurman@gmail.com";
+const testStamp = new Date().toISOString().replace(/[:.]/g, "-");
+const subject = `Phoneclaw emergency send validation ${testStamp}`;
+const body = "Phoneclaw automated ElevenLabs validation: emergency send path test.";
+const question = `Please prepare an emergency email to ${sendTo}. The subject is "${subject}". The body is "${body}". Please read me the exact preview and ask for final confirmation before sending.`;
 
 if (!agentId || !apiKey) {
   console.error("Missing ELEVENLABS_AGENT_ID or ELEVENLABS_API_KEY.");
   process.exit(1);
 }
 
-if (!toolToken) {
-  console.error("Missing WEB_SEARCH_TOKEN or COMMAND_BRIDGE_TOKEN.");
-  process.exit(1);
-}
-
-const expected = await fetchMostRecentInboxEmail();
 const conversation = await runConversation(question);
 const details = await fetchConversationDetails(conversation.conversationId);
-const verification = verifyConversation(details, expected);
+const verification = verifyConversation(details);
 
 console.log(
   JSON.stringify(
     {
       ok: verification.ok,
       conversation_id: conversation.conversationId,
-      expected_source_id_present: Boolean(expected.id),
-      expected_source_subject_length: String(expected.subject || "").length,
       conversation_status: details.status,
+      subject,
       agent_response_preview: verification.agentResponse.slice(0, 700),
       checks: verification.checks,
       tool_result: verification.toolResultSummary,
@@ -42,27 +33,6 @@ console.log(
 );
 process.exit(verification.ok ? 0 : 1);
 
-async function fetchMostRecentInboxEmail() {
-  const response = await fetch(`${workerBaseUrl}/cli/himalaya/email-list`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${toolToken}`,
-    },
-    body: JSON.stringify({
-      folder: "INBOX",
-      page_size: 1,
-    }),
-  });
-  const body = await response.json();
-
-  if (!response.ok || !body.ok || !body.items?.[0]?.id) {
-    throw new Error(`Worker Himalaya list failed (${response.status}): ${JSON.stringify(body)}`);
-  }
-
-  return body.items[0];
-}
-
 async function runConversation(messageText) {
   const signed = await requestJson(
     `${apiBase}/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(
@@ -72,10 +42,8 @@ async function runConversation(messageText) {
 
   const ws = new WebSocket(signed.signed_url);
   let sentQuestion = false;
-  let sawForwardToolResponse = false;
-  let sawEmailListResult = false;
-  let sentForwardConfirmation = false;
-  let toolResponseCount = 0;
+  let sentFinalConfirmation = false;
+  let sawSendToolResponse = false;
   let conversationId = null;
   let postToolAgentResponse = "";
   let done;
@@ -117,12 +85,8 @@ async function runConversation(messageText) {
 
     if (message.type === "agent_tool_response") {
       const toolName = message.agent_tool_response_event?.tool_name || "";
-      toolResponseCount += 1;
-      if (toolName === "himalaya_email_list") {
-        sawEmailListResult = true;
-      }
-      if (toolName === "himalaya_email_forward" || (!toolName && toolResponseCount >= 2)) {
-        sawForwardToolResponse = true;
+      if (toolName === "himalaya_email_send") {
+        sawSendToolResponse = true;
       }
       return;
     }
@@ -130,21 +94,23 @@ async function runConversation(messageText) {
     if (message.type === "agent_response") {
       const text = message.agent_response_event?.agent_response || "";
       if (
-        sawEmailListResult &&
-        !sentForwardConfirmation &&
-        !sawForwardToolResponse &&
-        /\b(confirm|confirmation)\b/i.test(text)
+        !sentFinalConfirmation &&
+        !sawSendToolResponse &&
+        /\bemergency\b/i.test(text) &&
+        /\bsend\b/i.test(text) &&
+        (/\bconfirm/i.test(text) || /\bdo you want\b/i.test(text))
       ) {
-        sentForwardConfirmation = true;
+        sentFinalConfirmation = true;
         ws.send(
           JSON.stringify({
             type: "user_message",
-            text: "Yes, confirmed. Create the forward draft now, but do not send it.",
+            text: "Yes, this is an emergency email. I confirm you should send it now.",
           })
         );
         return;
       }
-      if (sawForwardToolResponse && text) {
+
+      if (sawSendToolResponse && text) {
         postToolAgentResponse += `${text}\n`;
         settle();
       }
@@ -177,17 +143,17 @@ async function fetchConversationDetails(conversationId) {
 
   while (Date.now() < deadline) {
     last = await requestJson(`${apiBase}/v1/convai/conversations/${conversationId}`);
-    if (conversationHasPostForwardAnswer(last)) return last;
+    if (conversationHasPostSendAnswer(last)) return last;
     await wait(1_500);
   }
 
   return last;
 }
 
-function conversationHasPostForwardAnswer(details) {
+function conversationHasPostSendAnswer(details) {
   const transcript = details?.transcript || [];
   const toolResultIndex = transcript.findIndex((turn) =>
-    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_forward")
+    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_send")
   );
   if (toolResultIndex < 0) return false;
   return transcript
@@ -195,39 +161,48 @@ function conversationHasPostForwardAnswer(details) {
     .some((turn) => turn.role === "agent" && isRealAgentMessage(turn.message));
 }
 
-function verifyConversation(details, expected) {
+function verifyConversation(details) {
   const transcript = details.transcript || [];
   const toolCalls = transcript.flatMap((turn) => turn.tool_calls || []);
-  const listToolCall = toolCalls.find((call) => call.tool_name === "himalaya_email_list");
-  const forwardToolCall = toolCalls.find((call) => call.tool_name === "himalaya_email_forward");
-  const forwardToolResult = transcript
+  const sendToolCall = toolCalls.find((call) => call.tool_name === "himalaya_email_send");
+  const sendToolResult = transcript
     .flatMap((turn) => turn.tool_results || [])
-    .find((result) => result.tool_name === "himalaya_email_forward");
-  const resultValue = parseMaybeJson(forwardToolResult?.result_value);
-  const params = parseMaybeJson(forwardToolCall?.params_as_json);
+    .find((result) => result.tool_name === "himalaya_email_send");
+  const resultValue = parseMaybeJson(sendToolResult?.result_value);
+  const params = parseMaybeJson(sendToolCall?.params_as_json);
   const toolResultIndex = transcript.findIndex((turn) =>
-    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_forward")
+    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_send")
   );
   const agentResponse =
-    transcript
-      .slice(Math.max(0, toolResultIndex + 1))
-      .filter((turn) => turn.role === "agent" && isRealAgentMessage(turn.message))
-      .map((turn) => turn.message)
-      .at(-1) || "";
+    toolResultIndex >= 0
+      ? transcript
+          .slice(toolResultIndex + 1)
+          .filter((turn) => turn.role === "agent" && isRealAgentMessage(turn.message))
+          .map((turn) => turn.message)
+          .at(-1) || ""
+      : "";
+  const preToolAgentText = transcript
+    .slice(0, Math.max(0, toolResultIndex))
+    .filter((turn) => turn.role === "agent" && isRealAgentMessage(turn.message))
+    .map((turn) => turn.message)
+    .join("\n");
 
   const checks = {
     transcript_available: transcript.length > 0,
-    used_email_list_tool: Boolean(listToolCall),
-    used_email_forward_tool: Boolean(forwardToolCall),
-    forwarded_expected_recent_email: resultValue?.id === expected.id,
+    previewed_before_tool:
+      /recipient/i.test(preToolAgentText) &&
+      /subject/i.test(preToolAgentText) &&
+      /emergency/i.test(preToolAgentText),
+    used_email_send_tool: Boolean(sendToolCall),
     requested_expected_recipient: String(params?.to || resultValue?.to || "")
       .toLowerCase()
-      .includes(forwardTo.toLowerCase()),
+      .includes(sendTo.toLowerCase()),
+    requested_expected_subject: String(params?.subject || resultValue?.subject || "").includes(subject),
+    requested_emergency: params?.emergency === true,
+    requested_previewed: params?.previewed === true,
     requested_confirmation: params?.confirmed === true,
-    tool_returned_without_error: Boolean(forwardToolResult) && forwardToolResult.is_error === false,
-    tool_created_forward_draft: resultValue?.ok === true && resultValue?.action === "forward_draft_created",
-    original_html_preserved: resultValue?.original_has_html === true,
-    no_original_eml_attachment: resultValue?.attached_original_eml === false,
+    tool_returned_without_error: Boolean(sendToolResult) && sendToolResult.is_error === false,
+    tool_sent_email: resultValue?.ok === true && resultValue?.action === "email_sent",
     agent_answered_after_tool: agentResponse.length > 0,
   };
 
@@ -239,12 +214,9 @@ function verifyConversation(details, expected) {
       ok: resultValue?.ok,
       status: resultValue?.status,
       action: resultValue?.action,
-      id: resultValue?.id,
-      draft_id: resultValue?.draft_id,
       to: resultValue?.to,
       subject: resultValue?.subject,
-      original_has_html: resultValue?.original_has_html,
-      attached_original_eml: resultValue?.attached_original_eml,
+      timeout_ms: resultValue?.timeout_ms,
     },
   };
 }
@@ -280,6 +252,6 @@ function parseMaybeJson(value) {
   }
 }
 
-function wait(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+async function wait(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -150,7 +150,7 @@ The ElevenLabs agent also has focused wrappers for local CLIs:
 - `conversation_history_search` and `conversation_history_get`
 - `claude_code`
 
-Email write tools require explicit confirmation. They can archive email and save drafts by default. `himalaya_email_forward` saves a forward draft with Andrew's message above the original email, preserves the original HTML inline when available, and attaches the original `.eml` for fidelity. `himalaya_email_send` is a separate emergency-only send tool that requires an exact verbal preview and a second explicit confirmation before sending.
+Email write tools require explicit confirmation. They can archive email and save drafts by default. `himalaya_email_forward` saves a forward draft with Andrew's message above the original email and preserves the original HTML inline when available, without attaching the original `.eml`. `himalaya_email_send` is a separate emergency-only send tool that requires an exact verbal preview and a second explicit confirmation before sending.
 
 `himalaya_email_list` is paginated by default and returns compact envelope metadata only: id, subject, sender, recipients, date, flags, and attachment presence. Use `all_pages=true` on the same tool for complete folder lists and total-count questions such as "how many emails are in my inbox?" All-pages mode returns at most 200 envelopes by default and reports `has_more`, `complete`, and `capped` so the agent does not dump an entire mailbox into context.
 

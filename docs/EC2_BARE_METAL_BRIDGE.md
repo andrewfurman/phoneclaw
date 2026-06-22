@@ -67,6 +67,18 @@ Common bridge environment settings include:
 HIMALAYA_SEND_TIMEOUT_MS=8000
 ```
 
+For the Gmail-backed Himalaya account, configure Gmail's real folder aliases and avoid the extra sent-copy save:
+
+```toml
+folder.aliases.inbox = "INBOX"
+folder.aliases.sent = "[Gmail]/Sent Mail"
+folder.aliases.drafts = "[Gmail]/Drafts"
+folder.aliases.trash = "[Gmail]/Trash"
+message.send.save-copy = false
+```
+
+Phoneclaw sends raw emergency messages to `himalaya message send` through stdin. Passing raw MIME as a positional argument can trigger a Himalaya/mail-parser panic, and Gmail SMTP already stores sent mail, so `message.send.save-copy = false` avoids both parser and sent-copy failures.
+
 ## Services
 
 Check status:

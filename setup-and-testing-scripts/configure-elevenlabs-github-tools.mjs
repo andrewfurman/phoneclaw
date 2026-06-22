@@ -57,6 +57,7 @@ for (const name of obsoleteToolNames) {
 const agent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`);
 const conversationConfig = structuredClone(agent.conversation_config || {});
 const promptConfig = conversationConfig.agent?.prompt || {};
+const currentTtsConfig = conversationConfig.tts || {};
 const currentToolIds = promptConfig.tool_ids || [];
 const obsoleteToolIds = new Set(obsoleteTools.map((tool) => tool.id));
 const toolIds = unique([
@@ -64,6 +65,15 @@ const toolIds = unique([
   ...tools.map((tool) => tool.id),
 ]);
 const nextPrompt = promptWithGithubFileTools(promptConfig.prompt || "");
+
+conversationConfig.tts = {
+  ...currentTtsConfig,
+  voice_id: currentTtsConfig.voice_id || process.env.ELEVENLABS_AGENT_VOICE_ID,
+  supported_voices: [],
+  stability: Number(process.env.ELEVENLABS_AGENT_VOICE_STABILITY || 0.75),
+  similarity_boost: Number(process.env.ELEVENLABS_AGENT_VOICE_SIMILARITY_BOOST || 0.9),
+  speed: Number(process.env.ELEVENLABS_AGENT_VOICE_SPEED || currentTtsConfig.speed || 1),
+};
 
 delete promptConfig.tools;
 conversationConfig.agent = {
@@ -80,7 +90,7 @@ const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`,
   body: JSON.stringify({
     conversation_config: conversationConfig,
     version_description:
-      "Add Economist RSS tools backed by Miniflux",
+      "Refresh Phoneclaw tools and stabilize the configured voice",
   }),
 });
 
@@ -699,7 +709,7 @@ function himalayaEmailForwardToolConfig() {
   return webhookTool({
     name: "himalaya_email_forward",
     description:
-      "Creates a saved Gmail/Himalaya forward draft for an existing email envelope. It includes Andrew's optional message, preserves the original email HTML inline when available, and attaches the original .eml. This does not send email and requires Andrew's explicit confirmation.",
+      "Creates a saved Gmail/Himalaya forward draft for an existing email envelope. It includes Andrew's optional message above the forwarded content and preserves the original email HTML inline when available. It does not attach the original .eml, does not send email, and requires Andrew's explicit confirmation.",
     url: `${workerBaseUrl}/cli/himalaya/email-forward`,
     required: ["id", "to", "confirmed"],
     responseTimeoutSecs: 45,
@@ -1475,7 +1485,7 @@ function emailWriteResponseProperties() {
     subject: stringProperty({ description: "Email subject when applicable." }),
     original_has_html: booleanProperty("Whether the forwarded original email had an HTML body."),
     original_has_plain: booleanProperty("Whether the forwarded original email had a plain-text body."),
-    attached_original_eml: booleanProperty("Whether the full original .eml was attached to the draft."),
+    attached_original_eml: booleanProperty("Always false for forward drafts; the original email is included inline, not attached as an .eml."),
     original_size_bytes: integerProperty({ description: "Original exported email size in bytes." }),
     emergency: booleanProperty("Whether the write was requested as an emergency send."),
     requires_preview: booleanProperty("Whether the tool requires a verbal preview first."),
@@ -1699,7 +1709,7 @@ CLI capability:
 - Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.
 - Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.
 - Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.
-- Use himalaya_email_forward when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and attaches the original .eml.
+- Use himalaya_email_forward when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and does not attach the original .eml.
 - After himalaya_email_forward returns ok=true, tell Andrew the forward draft was saved and clearly say it was not sent.
 - Use drafts by default for email composition. Do not send email unless Andrew explicitly asks to send an emergency email.
 - For himalaya_email_send, first read the exact recipients, subject, and body aloud and ask, "Is this an emergency email, and do you want me to send it now?" Call the tool with previewed=true and confirmed=true only after Andrew says yes after that preview.

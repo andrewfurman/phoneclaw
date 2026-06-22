@@ -66,6 +66,7 @@ For local development only, the bridge can fall back to `WEB_SEARCH_TOKEN` if `C
 - Use a long random `CLI_BRIDGE_TOKEN` that is different from `WEB_SEARCH_TOKEN`.
 - Run the bridge as a non-admin service user with only the CLI config files it needs.
 - Keep CLI tools read-only by default. Any write tool must be narrowly scoped and confirmation-gated. Email archive/draft tools cannot send mail; `himalaya_email_forward` saves a draft only and does not send the forwarded message. Emergency sends are isolated in `himalaya_email_send` and require `emergency=true`, an exact verbal preview, and a second confirmation. The emergency send path should use a short `HIMALAYA_SEND_TIMEOUT_MS` so SMTP hangs fail with an explicit unconfirmed-send result instead of tying up a voice turn. Claude Code task submission is also confirmation-gated and runs asynchronously.
+- For Gmail-backed emergency sends, set Himalaya `message.send.save-copy = false` and point `folder.aliases.sent` at `[Gmail]/Sent Mail`. Gmail SMTP stores sent mail automatically; the extra IMAP sent-copy step can fail or hang after a successful SMTP send.
 - Cap command output and timeouts. The current bridge uses fixed commands, `execFile`, no shell interpolation, timeouts, and raw output truncation.
 - Rotate Otter, email, GitHub, and bridge tokens if they are ever pasted into chat, logs, or a public issue.
 
