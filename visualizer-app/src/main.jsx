@@ -28,6 +28,8 @@ function App() {
 function Dashboard() {
   const navigate = useNavigate();
   const { conversationId } = useParams();
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState("latest");
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -46,10 +48,20 @@ function Dashboard() {
     setBootstrap(data);
     setLoading(false);
 
-    const conversations = mergedConversations(data);
-    const nextId = conversationId || conversations[0]?.conversation_id;
+    const nextId = conversationId || mergedConversations(data)[0]?.conversation_id;
     if (!conversationId && nextId) {
       navigate(`/conversation/${encodeURIComponent(nextId)}`, { replace: true });
+    }
+  };
+
+  const loadConversationDetail = async (id, { showLoading = false } = {}) => {
+    if (!id) return;
+    if (showLoading) setDetailLoading(true);
+    try {
+      const data = await requestJson(`/visualizer/api/conversations/${encodeURIComponent(id)}`);
+      setSelected(data.conversation || null);
+    } finally {
+      if (showLoading) setDetailLoading(false);
     }
   };
 
@@ -68,33 +80,21 @@ function Dashboard() {
     return () => clearInterval(timer);
   }, [autoRefresh, submittedQuery, conversationId]);
 
-  useEffect(() => {
-    if (!conversationId) {
-      setSelected(null);
-      return;
-    }
-
-    let cancelled = false;
-    setDetailLoading(true);
-    requestJson(`/visualizer/api/conversations/${encodeURIComponent(conversationId)}`)
-      .then((data) => {
-        if (!cancelled) setSelected(data.conversation || null);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setDetailLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [conversationId]);
-
   const conversations = useMemo(() => mergedConversations(bootstrap), [bootstrap]);
+  const latestConversation = conversations[0] || null;
+  const latestConversationId = latestConversation?.conversation_id || "";
+  const effectiveConversationId =
+    isMobile && mobileView === "latest"
+      ? latestConversationId
+      : conversationId || latestConversationId;
+  const listConversations =
+    isMobile && mobileView === "archive" ? conversations.slice(1) : conversations;
+  const summaryConversation =
+    conversations.find((item) => item.conversation_id === effectiveConversationId) || null;
   const selectedConversation =
-    selected || conversations.find((item) => item.conversation_id === conversationId) || null;
+    selected?.conversation_id === effectiveConversationId
+      ? mergeSelectedConversation(summaryConversation, selected)
+      : summaryConversation;
   const twilioEvents = bootstrap?.twilio_events?.events || [];
   const selectedEvents = selectedConversation?.twilio_call_sid
     ? twilioEvents.filter((event) => event.call_sid === selectedConversation.twilio_call_sid)
@@ -108,8 +108,47 @@ function Dashboard() {
     setSubmittedQuery(query.trim());
   };
 
+  useEffect(() => {
+    if (!isMobile || mobileView !== "latest" || !latestConversationId) return;
+    if (conversationId !== latestConversationId) {
+      navigate(`/conversation/${encodeURIComponent(latestConversationId)}`, { replace: true });
+    }
+  }, [conversationId, isMobile, latestConversationId, mobileView, navigate]);
+
+  useEffect(() => {
+    if (!effectiveConversationId) {
+      setSelected(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setDetailLoading(true);
+    requestJson(`/visualizer/api/conversations/${encodeURIComponent(effectiveConversationId)}`)
+      .then((data) => {
+        if (!cancelled) setSelected(data.conversation || null);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setDetailLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveConversationId]);
+
+  useEffect(() => {
+    if (!autoRefresh || !effectiveConversationId) return undefined;
+    const timer = setInterval(() => {
+      loadConversationDetail(effectiveConversationId).catch((err) => setError(err.message));
+    }, AUTO_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [autoRefresh, effectiveConversationId]);
+
   return (
-    <main className="app-shell">
+    <main className={`app-shell mobile-${mobileView}`}>
       <header className="topbar">
         <div>
           <div className="eyebrow">Phoneclaw</div>
@@ -135,6 +174,28 @@ function Dashboard() {
         </div>
       </header>
 
+      <nav className="mobile-tabs" aria-label="Mobile visualizer views">
+        <button
+          className={mobileView === "latest" ? "active" : ""}
+          type="button"
+          onClick={() => {
+            setMobileView("latest");
+            if (latestConversationId) {
+              navigate(`/conversation/${encodeURIComponent(latestConversationId)}`, { replace: true });
+            }
+          }}
+        >
+          Latest conversation
+        </button>
+        <button
+          className={mobileView === "archive" ? "active" : ""}
+          type="button"
+          onClick={() => setMobileView("archive")}
+        >
+          Archive
+        </button>
+      </nav>
+
       <section className="toolbar" aria-label="Conversation filters">
         <form className="search-form" onSubmit={onSearchSubmit}>
           <input
@@ -159,22 +220,26 @@ function Dashboard() {
 
       {error ? <div className="error-banner">{error}</div> : null}
 
-      <section className="workspace">
+      <section className={`workspace mobile-${mobileView}`}>
         <aside className="conversation-list" aria-label="Conversations">
           <div className="panel-heading">
-            <h2>Recent calls</h2>
-            <span>{loading ? "Loading" : `${conversations.length} shown`}</span>
+            <h2>{isMobile && mobileView === "archive" ? "Archived conversations" : "Recent calls"}</h2>
+            <span>{loading ? "Loading" : `${listConversations.length} shown`}</span>
           </div>
           <div className="list-items">
-            {conversations.map((conversation) => (
+            {listConversations.map((conversation) => (
               <ConversationListItem
                 key={`${conversation.source}-${conversation.conversation_id}`}
                 conversation={conversation}
-                selected={conversation.conversation_id === conversationId}
+                selected={conversation.conversation_id === effectiveConversationId}
               />
             ))}
-            {!loading && conversations.length === 0 ? (
-              <div className="empty-state">No conversations found.</div>
+            {!loading && listConversations.length === 0 ? (
+              <div className="empty-state">
+                {isMobile && mobileView === "archive"
+                  ? "No archived conversations beyond the latest call yet."
+                  : "No conversations found."}
+              </div>
             ) : null}
           </div>
         </aside>
@@ -293,13 +358,19 @@ function Transcript({ conversation }) {
     <div className="transcript">
       {turns.map((turn, index) => (
         <article className={`turn ${turn.role || "event"}`} key={turn.id || index}>
-          <div className="turn-role">{turn.role || "event"}</div>
+          <div className="turn-meta">
+            <div className="turn-role">{turn.role || "event"}</div>
+            <time>{formatLocalTime(timestampForTurn(turn, conversation))}</time>
+          </div>
           <div className="turn-body">
             {turn.message ? <p>{turn.message}</p> : <p className="muted">No spoken text.</p>}
             {Array.isArray(turn.tool_calls) && turn.tool_calls.length > 0 ? (
               <div className="inline-tools">
                 {turn.tool_calls.map((call, callIndex) => (
-                  <ToolCallCard item={normalizeToolItem(call, "call")} key={call.id || callIndex} />
+                  <ToolCallCard
+                    item={normalizeToolItem(call, "call", turn, conversation)}
+                    key={call.id || callIndex}
+                  />
                 ))}
               </div>
             ) : null}
@@ -307,7 +378,7 @@ function Transcript({ conversation }) {
               <div className="inline-tools">
                 {turn.tool_results.map((result, resultIndex) => (
                   <ToolCallCard
-                    item={normalizeToolItem(result, "result")}
+                    item={normalizeToolItem(result, "result", turn, conversation)}
                     key={result.id || resultIndex}
                   />
                 ))}
@@ -345,7 +416,10 @@ function ToolCallCard({ item }) {
     <div className={`tool-card ${item.type}`}>
       <div className="tool-card-header">
         <span>{displayToolName(item.name)}</span>
-        <Badge value={item.type} />
+        <div className="tool-card-meta">
+          <time>{formatLocalTime(item.happenedAt)}</time>
+          <Badge value={item.type} />
+        </div>
       </div>
       <div className="tool-summary">{toolSummary(item)}</div>
       {item.links.length ? <LinkChips links={item.links} compact /> : null}
@@ -455,6 +529,21 @@ function mergedConversations(data) {
   );
 }
 
+function mergeSelectedConversation(summary, detail) {
+  if (!summary) return detail;
+  if (!detail) return summary;
+  return {
+    ...summary,
+    ...detail,
+    started_at: detail.started_at || summary.started_at,
+    updated_at: detail.updated_at || summary.updated_at,
+    ended_at: detail.ended_at || summary.ended_at,
+    duration_seconds: detail.duration_seconds ?? summary.duration_seconds,
+    status: detail.status || summary.status,
+    source: detail.source || summary.source,
+  };
+}
+
 function turnsFor(conversation) {
   return (
     conversation?.transcript ||
@@ -468,15 +557,23 @@ function allToolItems(conversation) {
   const turns = turnsFor(conversation);
   const items = [];
   for (const turn of turns) {
-    for (const call of turn.tool_calls || []) items.push(normalizeToolItem(call, "call"));
-    for (const result of turn.tool_results || []) items.push(normalizeToolItem(result, "result"));
+    for (const call of turn.tool_calls || []) {
+      items.push(normalizeToolItem(call, "call", turn, conversation));
+    }
+    for (const result of turn.tool_results || []) {
+      items.push(normalizeToolItem(result, "result", turn, conversation));
+    }
   }
-  for (const call of conversation?.tool_calls || []) items.push(normalizeToolItem(call, "call"));
-  for (const result of conversation?.tool_results || []) items.push(normalizeToolItem(result, "result"));
+  for (const call of conversation?.tool_calls || []) {
+    items.push(normalizeToolItem(call, "call", turnForToolItem(call, turns), conversation));
+  }
+  for (const result of conversation?.tool_results || []) {
+    items.push(normalizeToolItem(result, "result", turnForToolItem(result, turns), conversation));
+  }
   return dedupeToolItems(items);
 }
 
-function normalizeToolItem(item, type) {
+function normalizeToolItem(item, type, turn, conversation) {
   const parsedParams = parseJson(item.params_as_json || item.params || item.parameters || {});
   const parsedResult = parseJson(item.result_value || item.result || item.value || {});
   const raw = type === "result" ? parsedResult : parsedParams;
@@ -487,10 +584,25 @@ function normalizeToolItem(item, type) {
     action: parsedResult?.action || parsedParams?.action || "",
     raw,
     preview: compactPreview(raw),
+    happenedAt: timestampForToolItem(item, turn, conversation),
+    latencySeconds: item.tool_latency_secs ?? null,
     links: [],
   };
   normalized.links = extractToolLinks(normalized);
   return normalized;
+}
+
+function turnForToolItem(item, turns) {
+  const index = Number(item?.transcript_index ?? item?.turn_index);
+  if (Number.isInteger(index) && index >= 0 && index < turns.length) return turns[index];
+  if (item?.request_id) {
+    return turns.find((turn) =>
+      [...(turn.tool_calls || []), ...(turn.tool_results || [])].some(
+        (toolItem) => toolItem.request_id === item.request_id
+      )
+    );
+  }
+  return null;
 }
 
 function dedupeToolItems(items) {
@@ -810,6 +922,60 @@ async function requestJson(url, options = {}) {
   return body;
 }
 
+function timestampForToolItem(item, turn, conversation) {
+  const exact = firstString(
+    item?.happened_at,
+    item?.created_at,
+    item?.started_at,
+    item?.received_at,
+    item?.timestamp
+  );
+  if (exact) return exact;
+
+  const unixSeconds = numberOrNull(
+    item?.time_unix_secs ??
+      item?.start_time_unix_secs ??
+      item?.created_at_unix_secs ??
+      item?.timestamp_unix_secs
+  );
+  if (unixSeconds != null) return new Date(unixSeconds * 1000).toISOString();
+
+  const offsetSeconds = numberOrNull(item?.time_in_call_secs);
+  if (offsetSeconds != null) return timestampFromConversationOffset(conversation, offsetSeconds);
+
+  return timestampForTurn(turn, conversation);
+}
+
+function timestampForTurn(turn, conversation) {
+  const exact = firstString(
+    turn?.happened_at,
+    turn?.created_at,
+    turn?.started_at,
+    turn?.received_at,
+    turn?.timestamp
+  );
+  if (exact) return exact;
+
+  const unixSeconds = numberOrNull(
+    turn?.time_unix_secs ??
+      turn?.start_time_unix_secs ??
+      turn?.created_at_unix_secs ??
+      turn?.timestamp_unix_secs
+  );
+  if (unixSeconds != null) return new Date(unixSeconds * 1000).toISOString();
+
+  const offsetSeconds = numberOrNull(turn?.time_in_call_secs);
+  if (offsetSeconds != null) return timestampFromConversationOffset(conversation, offsetSeconds);
+
+  return conversation?.started_at || conversation?.updated_at || "";
+}
+
+function timestampFromConversationOffset(conversation, offsetSeconds) {
+  const start = dateOrNull(conversation?.started_at || conversation?.created_at);
+  if (!start) return conversation?.started_at || conversation?.updated_at || "";
+  return new Date(start.getTime() + offsetSeconds * 1000).toISOString();
+}
+
 function formatDateTime(value) {
   if (!value) return "unknown time";
   const date = new Date(value);
@@ -819,6 +985,16 @@ function formatDateTime(value) {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+  }).format(date);
+}
+
+function formatLocalTime(value) {
+  const date = dateOrNull(value);
+  if (!date) return "local time pending";
+  return new Intl.DateTimeFormat(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "long",
   }).format(date);
 }
 
@@ -833,6 +1009,34 @@ function formatDuration(seconds) {
 function capitalize(value) {
   const text = String(value || "");
   return text ? `${text[0].toUpperCase()}${text.slice(1)}` : "";
+}
+
+function dateOrNull(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function numberOrNull(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === "undefined" ? false : window.matchMedia("(max-width: 720px)").matches
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const query = window.matchMedia("(max-width: 720px)");
+    const update = () => setIsMobile(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return isMobile;
 }
 
 createRoot(document.getElementById("root")).render(<App />);

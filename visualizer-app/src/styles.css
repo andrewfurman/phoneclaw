@@ -171,6 +171,10 @@ h3 {
   text-decoration: none;
 }
 
+.mobile-tabs {
+  display: none;
+}
+
 .toolbar {
   margin-top: 12px;
   padding: 12px;
@@ -404,11 +408,24 @@ h3 {
   border-bottom: 0;
 }
 
+.turn-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
 .turn-role {
   color: #687386;
   font-size: 0.78rem;
   font-weight: 850;
   text-transform: capitalize;
+}
+
+.turn-meta time {
+  color: #7b8796;
+  font-size: 0.7rem;
+  line-height: 1.25;
 }
 
 .turn-body p {
@@ -526,6 +543,7 @@ h3 {
 
 .tool-card-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
   padding: 8px 9px;
@@ -533,6 +551,22 @@ h3 {
   font-size: 0.82rem;
   font-weight: 850;
   text-transform: capitalize;
+}
+
+.tool-card-meta {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.tool-card-meta time {
+  color: #7b8796;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-transform: none;
 }
 
 .tool-card.result .tool-card-header {
@@ -628,6 +662,28 @@ h3 {
     padding: 10px;
   }
 
+  .mobile-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .mobile-tabs button {
+    min-height: 42px;
+    border: 1px solid #c8d1dd;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #2c3848;
+    font-weight: 850;
+  }
+
+  .mobile-tabs button.active {
+    border-color: #176b87;
+    background: #eaf6f9;
+    color: #0f5269;
+  }
+
   .topbar,
   .toolbar {
     align-items: stretch;
@@ -668,8 +724,21 @@ h3 {
     padding: 8px;
   }
 
+  .app-shell.mobile-latest .toolbar {
+    display: none;
+  }
+
+  .workspace.mobile-latest .conversation-list,
+  .workspace.mobile-archive .conversation-detail {
+    display: none;
+  }
+
   .conversation-list {
     max-height: 280px;
+  }
+
+  .workspace.mobile-archive .conversation-list {
+    max-height: none;
   }
 
   .detail-header {
@@ -694,8 +763,18 @@ h3 {
     gap: 5px;
   }
 
+  .turn-meta {
+    flex-direction: row;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
   .turn-role {
     font-size: 0.74rem;
+  }
+
+  .turn-meta time {
+    text-align: right;
   }
 
   .link-chip,
