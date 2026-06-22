@@ -33,7 +33,7 @@ This project intentionally keeps provider configuration explicit because the voi
 | Neon | Optional Postgres archive for Phoneclaw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
 | Miniflux | Private RSS/article backend for Economist feed listings, keyword/date search, and original-content fetch attempts. | Runs on EC2 bound to localhost. Phoneclaw uses `MINIFLUX_BASE_URL` and `MINIFLUX_API_TOKEN` in bridge env. |
 | RSS-Bridge | Secure full-text Economist latest/daily Atom feed. | RSS-Bridge itself stays on `127.0.0.1`; the EC2 bridge exposes a token-protected allow-listed Atom route. Phoneclaw uses `ECONOMIST_RSS_BRIDGE_URL` plus `ECONOMIST_RSS_BRIDGE_TOKEN` or `ECONOMIST_PUBLIC_RSS_TOKEN`. |
-| Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
+| Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts/reply drafts/forward drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
 | Himalaya CLI | Local email CLI used by the private bridge to access Gmail. | `HIMALAYA_BIN`, `HIMALAYA_ARCHIVE_FOLDER`, and `HIMALAYA_DRAFTS_FOLDER` in bridge env. |
 | Otter.ai | Transcript source for listing, fetching raw transcript JSON, and transcript search. | Authenticated on the bridge host through Otter CLI config; no Otter credentials are committed. |
 | Otter CLI | Local CLI used by the private bridge to access Otter transcripts. | `OTTER_BIN` in bridge env. |
@@ -143,14 +143,14 @@ Do not store GitHub PATs as Worker secrets for these tools.
 The ElevenLabs agent also has focused wrappers for local CLIs:
 
 - `himalaya_email_list` and `himalaya_email_read`
-- `himalaya_email_archive`, `himalaya_draft_create`, `himalaya_draft_reply`, and `himalaya_email_send`
+- `himalaya_email_archive`, `himalaya_draft_create`, `himalaya_draft_reply`, `himalaya_email_forward`, and `himalaya_email_send`
 - `otter_speeches_list`, `otter_speech_get`, and `otter_speech_search`
 - `github_cli_common`
 - `rss_recent_economist_entries`, `rss_search_economist_entries`, and `rss_get_economist_article_text`
 - `conversation_history_search` and `conversation_history_get`
 - `claude_code`
 
-Email write tools require explicit confirmation. They can archive email and save drafts by default. `himalaya_email_send` is a separate emergency-only send tool that requires an exact verbal preview and a second explicit confirmation before sending.
+Email write tools require explicit confirmation. They can archive email and save drafts by default. `himalaya_email_forward` saves a forward draft with Andrew's message above the original email, preserves the original HTML inline when available, and attaches the original `.eml` for fidelity. `himalaya_email_send` is a separate emergency-only send tool that requires an exact verbal preview and a second explicit confirmation before sending.
 
 `himalaya_email_list` is paginated by default and returns compact envelope metadata only: id, subject, sender, recipients, date, flags, and attachment presence. Use `all_pages=true` on the same tool for complete folder lists and total-count questions such as "how many emails are in my inbox?" All-pages mode returns at most 200 envelopes by default and reports `has_more`, `complete`, and `capped` so the agent does not dump an entire mailbox into context.
 

@@ -27,6 +27,7 @@ const configs = [
   himalayaEmailArchiveToolConfig(),
   himalayaDraftCreateToolConfig(),
   himalayaDraftReplyToolConfig(),
+  himalayaEmailForwardToolConfig(),
   himalayaEmailSendToolConfig(),
   otterSpeechesListToolConfig(),
   otterSpeechGetToolConfig(),
@@ -690,6 +691,48 @@ function himalayaDraftReplyToolConfig() {
       ),
     },
     responseDescription: "Himalaya reply draft creation response.",
+    responseProperties: emailWriteResponseProperties(),
+  });
+}
+
+function himalayaEmailForwardToolConfig() {
+  return webhookTool({
+    name: "himalaya_email_forward",
+    description:
+      "Creates a saved Gmail/Himalaya forward draft for an existing email envelope. It includes Andrew's optional message, preserves the original email HTML inline when available, and attaches the original .eml. This does not send email and requires Andrew's explicit confirmation.",
+    url: `${workerBaseUrl}/cli/himalaya/email-forward`,
+    required: ["id", "to", "confirmed"],
+    responseTimeoutSecs: 45,
+    forcePreToolSpeech: true,
+    toolCallSound: "typing",
+    requestProperties: {
+      id: stringProperty({
+        description: "Himalaya envelope id returned by himalaya_email_list.",
+      }),
+      folder: stringProperty({
+        description: "Source mailbox folder. Use INBOX by default.",
+      }),
+      to: stringProperty({
+        description:
+          "Forwarding recipient email address or comma-separated recipients. Must include explicit email addresses.",
+      }),
+      cc: stringProperty({ description: "Optional CC recipients." }),
+      bcc: stringProperty({ description: "Optional BCC recipients." }),
+      subject: stringProperty({
+        description:
+          "Optional forward draft subject. Omit to use Fwd: plus the original subject.",
+      }),
+      body: stringProperty({
+        description: "Optional message to include above the forwarded email.",
+      }),
+      draft_folder: stringProperty({
+        description: "Draft folder. Use [Gmail]/Drafts by default.",
+      }),
+      confirmed: booleanProperty(
+        "Must be true only after Andrew verbally confirms the exact forward draft recipient and message."
+      ),
+    },
+    responseDescription: "Himalaya email forward draft response.",
     responseProperties: emailWriteResponseProperties(),
   });
 }
@@ -1419,9 +1462,10 @@ function emailWriteResponseProperties() {
     ...cliResponseProperties(),
     action: stringProperty({
       description:
-        "Action performed, such as archived, draft_created, reply_draft_created, email_send_preview_required, email_send_confirmation_required, email_sent, email_send_timeout, or email_send_failed.",
+        "Action performed, such as archived, draft_created, reply_draft_created, forward_draft_created, email_send_preview_required, email_send_confirmation_required, email_sent, email_send_timeout, or email_send_failed.",
     }),
     id: stringProperty({ description: "Himalaya envelope id when applicable." }),
+    draft_id: stringProperty({ description: "Saved Himalaya draft envelope id when available." }),
     source_folder: stringProperty({ description: "Source folder when applicable." }),
     target_folder: stringProperty({ description: "Target folder when applicable." }),
     draft_folder: stringProperty({ description: "Draft folder when applicable." }),
@@ -1429,6 +1473,10 @@ function emailWriteResponseProperties() {
     cc: stringProperty({ description: "Email CC recipients when applicable." }),
     bcc: stringProperty({ description: "Email BCC recipients when applicable." }),
     subject: stringProperty({ description: "Email subject when applicable." }),
+    original_has_html: booleanProperty("Whether the forwarded original email had an HTML body."),
+    original_has_plain: booleanProperty("Whether the forwarded original email had a plain-text body."),
+    attached_original_eml: booleanProperty("Whether the full original .eml was attached to the draft."),
+    original_size_bytes: integerProperty({ description: "Original exported email size in bytes." }),
     emergency: booleanProperty("Whether the write was requested as an emergency send."),
     requires_preview: booleanProperty("Whether the tool requires a verbal preview first."),
     requires_confirmation: booleanProperty("Whether the tool requires another confirmation."),
@@ -1643,7 +1691,7 @@ Claude Code capability:
 - Do not ask Claude Code to push commits, deploy, rotate secrets, or perform destructive operations unless Andrew explicitly requested that exact action.
 
 CLI capability:
-- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, himalaya_email_send, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
+- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, himalaya_email_forward, himalaya_email_send, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
 - Use himalaya_email_list with all_pages=true when Andrew asks how many emails are in a mailbox folder, asks for all emails, or asks for a complete folder list. This mode returns at most 200 envelopes by default to protect context; if capped or has_more is true, say it is a partial list and suggest narrowing the query.
 - Only treat total_count as exact when complete or exact is true.
 - Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
@@ -1651,6 +1699,8 @@ CLI capability:
 - Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.
 - Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.
 - Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.
+- Use himalaya_email_forward when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and attaches the original .eml.
+- After himalaya_email_forward returns ok=true, tell Andrew the forward draft was saved and clearly say it was not sent.
 - Use drafts by default for email composition. Do not send email unless Andrew explicitly asks to send an emergency email.
 - For himalaya_email_send, first read the exact recipients, subject, and body aloud and ask, "Is this an emergency email, and do you want me to send it now?" Call the tool with previewed=true and confirmed=true only after Andrew says yes after that preview.
 - If Andrew asks to send ordinary non-emergency email, save a draft instead and say sending is restricted to emergency sends.

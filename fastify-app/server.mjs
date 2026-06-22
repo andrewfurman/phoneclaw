@@ -16,6 +16,7 @@ import {
   himalayaDraftCreate,
   himalayaDraftReply,
   himalayaEmailArchive,
+  himalayaEmailForward,
   himalayaEmailList,
   himalayaEmailRead,
   himalayaEmailSend,
@@ -114,6 +115,7 @@ app.get("/", async () => ({
     himalaya_email_archive: "POST /cli/himalaya/email-archive",
     himalaya_draft_create: "POST /cli/himalaya/draft-create",
     himalaya_draft_reply: "POST /cli/himalaya/draft-reply",
+    himalaya_email_forward: "POST /cli/himalaya/email-forward",
     himalaya_email_send: "POST /cli/himalaya/email-send",
     otter_speeches_list: "POST /cli/otter/speeches-list",
     otter_speech_get: "POST /cli/otter/speech-get",
@@ -215,6 +217,10 @@ app.post("/cli/himalaya/draft-create", async (request, reply) =>
 
 app.post("/cli/himalaya/draft-reply", async (request, reply) =>
   handleHimalayaDraftReply(request, reply)
+);
+
+app.post("/cli/himalaya/email-forward", async (request, reply) =>
+  handleHimalayaEmailForward(request, reply)
 );
 
 app.post("/cli/himalaya/email-send", async (request, reply) =>
@@ -792,6 +798,31 @@ async function handleHimalayaDraftReply(request, reply) {
     draftFolder: body.draft_folder || body.draftFolder,
     account: body.account,
     confirmed: body.confirmed,
+    maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
+  });
+
+  return reply
+    .code(result.ok || result.status === "confirmation_required" ? 200 : 400)
+    .send(result);
+}
+
+async function handleHimalayaEmailForward(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await himalayaEmailForward({
+    id: body.id || body.envelope_id || body.envelopeId,
+    folder: body.folder,
+    to: body.to,
+    cc: body.cc,
+    bcc: body.bcc,
+    subject: body.subject,
+    body: body.body || body.message,
+    draftFolder: body.draft_folder || body.draftFolder,
+    account: body.account,
+    confirmed: body.confirmed,
+    maxOriginalBytes:
+      body.max_original_bytes || body.maxOriginalBytes || body.max_raw_bytes || body.maxRawBytes,
     maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
   });
 

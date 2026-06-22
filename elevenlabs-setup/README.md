@@ -123,6 +123,12 @@ npm run elevenlabs:github:files:test
 
 By default this uses the public `andrewfurman/phoneclaw` repo. Override `GITHUB_FILES_TEST_REPO` and `GITHUB_FILES_TEST_FILE` locally to test private repos.
 
+## Email Forwarding Tool
+
+`Andrew Assistant Agent` has a confirmation-gated `himalaya_email_forward` webhook tool. It saves a Gmail/Himalaya forward draft for an existing envelope id, includes Andrew's optional message above the forwarded email, preserves the original HTML inline when available, and attaches the original `.eml` as a fidelity backup.
+
+The tool does not send email. The agent should use `himalaya_email_list` and `himalaya_email_read` first to identify the exact source email, then verbally confirm the recipient and message before calling `himalaya_email_forward` with `confirmed=true`.
+
 On macOS, run the audio-style test with:
 
 ```bash
