@@ -1,5 +1,9 @@
 import { execFile } from "node:child_process";
 import { Buffer } from "node:buffer";
+import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { htmlToText } from "html-to-text";
 
 const DEFAULT_TIMEOUT_MS = 25_000;
 const DEFAULT_MAX_BUFFER_BYTES = 1_000_000;
@@ -10,6 +14,8 @@ const MAX_EMAIL_LIST_PAGES = 200;
 const DEFAULT_EMAIL_LIST_MAX_ITEMS = 200;
 const MAX_EMAIL_LIST_ITEMS = 1_000;
 const DEFAULT_HIMALAYA_SEND_TIMEOUT_MS = 8_000;
+const DEFAULT_FORWARD_MAX_ORIGINAL_BYTES = 600_000;
+const MAX_FORWARD_ORIGINAL_BYTES = 1_500_000;
 
 export async function himalayaEmailList({
   query = "",
@@ -240,6 +246,7 @@ export async function himalayaDraftCreate({
     ...saved,
     command: "himalaya message save",
     action: "draft_created",
+    draft_id: savedHimalayaMessageId(saved),
     draft_folder: normalizedDraftFolder,
     to: normalizedTo,
     subject: normalizedSubject,
@@ -331,11 +338,131 @@ export async function himalayaDraftReply({
     ...saved,
     command: "himalaya message save",
     action: "reply_draft_created",
+    draft_id: savedHimalayaMessageId(saved),
     id: messageId,
     source_folder: sourceFolder,
     draft_folder: normalizedDraftFolder,
     answer_text: saved.ok
       ? "Saved a reply draft for the selected email."
+      : saved.answer_text,
+  };
+}
+
+export async function himalayaEmailForward({
+  id,
+  folder = "INBOX",
+  to,
+  cc,
+  bcc,
+  subject,
+  body,
+  message,
+  draftFolder = process.env.HIMALAYA_DRAFTS_FOLDER || "[Gmail]/Drafts",
+  account,
+  confirmed = false,
+  maxOriginalBytes = DEFAULT_FORWARD_MAX_ORIGINAL_BYTES,
+  maxRawBytes = DEFAULT_MAX_RAW_BYTES,
+} = {}) {
+  const messageId = normalizeString(id);
+  const sourceFolder = normalizeString(folder, "INBOX");
+  const normalizedTo = normalizeHeaderValue(to);
+  const normalizedCc = normalizeHeaderValue(cc);
+  const normalizedBcc = normalizeHeaderValue(bcc);
+  const normalizedBody = normalizeString(body || message);
+  const normalizedDraftFolder = normalizeString(draftFolder, "[Gmail]/Drafts");
+  const boundedMaxOriginalBytes = clampInteger(
+    maxOriginalBytes,
+    10_000,
+    MAX_FORWARD_ORIGINAL_BYTES,
+    DEFAULT_FORWARD_MAX_ORIGINAL_BYTES
+  );
+
+  if (!messageId) {
+    return missingField("id", "A Himalaya envelope id is required.");
+  }
+  if (!normalizedTo) {
+    return missingField("to", "At least one forwarding recipient is required.");
+  }
+  if (!hasEmailAddress(normalizedTo)) {
+    return missingField(
+      "to",
+      "The forwarding recipient must include at least one explicit email address."
+    );
+  }
+
+  const preview = {
+    id: messageId,
+    source_folder: sourceFolder,
+    to: normalizedTo,
+    cc: normalizedCc,
+    bcc: normalizedBcc,
+    message: normalizedBody,
+    draft_folder: normalizedDraftFolder,
+  };
+
+  if (!toBoolean(confirmed)) {
+    return {
+      ...confirmationRequired(
+        `Confirm that Andrew wants to save a forward draft for email ${messageId} to ${normalizedTo}.`
+      ),
+      action: "email_forward_confirmation_required",
+      requires_confirmation: true,
+      preview,
+    };
+  }
+
+  const fromAddress = await getHimalayaFromAddress({ account, maxRawBytes });
+  if (!fromAddress.ok) return fromAddress;
+
+  const original = await exportHimalayaRawMessage({
+    id: messageId,
+    folder: sourceFolder,
+    account,
+    maxOriginalBytes: boundedMaxOriginalBytes,
+    maxRawBytes,
+  });
+  if (!original.ok) return original;
+
+  const parsedOriginal = parseForwardOriginal(original.raw_message_buffer);
+  const forwardSubject =
+    normalizeHeaderValue(subject) ||
+    ensureForwardSubject(decodedHeaderValue(headerValue(parsedOriginal.headers, "subject")));
+  const rawMessage = buildForwardRawEmailMessage({
+    from: fromAddress.from,
+    to: normalizedTo,
+    cc: normalizedCc,
+    bcc: normalizedBcc,
+    subject: forwardSubject,
+    body: normalizedBody,
+    original: parsedOriginal,
+    originalRaw: original.raw_message_buffer,
+  });
+
+  const saved = await saveRawHimalayaMessage({
+    rawMessage,
+    draftFolder: normalizedDraftFolder,
+    account,
+    maxRawBytes,
+  });
+
+  return {
+    ...saved,
+    command: "himalaya message save",
+    action: "forward_draft_created",
+    draft_id: savedHimalayaMessageId(saved),
+    id: messageId,
+    source_folder: sourceFolder,
+    draft_folder: normalizedDraftFolder,
+    to: normalizedTo,
+    cc: normalizedCc,
+    bcc: normalizedBcc,
+    subject: forwardSubject,
+    original_has_html: Boolean(parsedOriginal.html),
+    original_has_plain: Boolean(parsedOriginal.plain),
+    original_size_bytes: original.size_bytes,
+    attached_original_eml: true,
+    answer_text: saved.ok
+      ? `Saved a forward draft to ${normalizedTo} with subject "${forwardSubject}".`
       : saved.answer_text,
   };
 }
@@ -957,6 +1084,19 @@ async function saveRawHimalayaMessage({
   });
 }
 
+function savedHimalayaMessageId(result) {
+  const parsed = result?.parsed_json;
+  if (!parsed || typeof parsed !== "object") return "";
+
+  const candidate =
+    parsed.id ||
+    parsed.envelope?.id ||
+    parsed.message?.id ||
+    (Array.isArray(parsed) ? parsed[0]?.id : "");
+
+  return candidate == null ? "" : String(candidate);
+}
+
 async function sendRawHimalayaMessage({
   rawMessage,
   account,
@@ -986,6 +1126,73 @@ async function sendRawHimalayaMessage({
     ),
     maxRawBytes,
   });
+}
+
+async function exportHimalayaRawMessage({
+  id,
+  folder,
+  account,
+  maxOriginalBytes,
+  maxRawBytes,
+}) {
+  const tmpDir = await mkdtemp(path.join(tmpdir(), "phoneclaw-forward-"));
+  const destination = path.join(tmpDir, "original.eml");
+
+  try {
+    const args = [
+      "message",
+      "export",
+      "--folder",
+      normalizeString(folder, "INBOX"),
+      "--full",
+      "--destination",
+      destination,
+    ];
+    if (account) args.push("--account", normalizeString(account));
+    args.push(normalizeString(id));
+
+    const result = await runCli({
+      command: process.env.HIMALAYA_BIN || "himalaya",
+      args,
+      timeoutMs: 30_000,
+      maxRawBytes,
+    });
+
+    if (!result.ok) {
+      return {
+        ...result,
+        command: "himalaya message export",
+      };
+    }
+
+    const fileStat = await stat(destination);
+    if (fileStat.size > maxOriginalBytes) {
+      return {
+        ok: false,
+        status: "original_email_too_large",
+        command: "himalaya message export",
+        size_bytes: fileStat.size,
+        max_original_bytes: maxOriginalBytes,
+        message:
+          "The original email is too large to safely embed in a Himalaya draft command.",
+        answer_text:
+          "That email is too large to safely forward as a preserved draft with the current Himalaya wrapper.",
+      };
+    }
+
+    const rawMessageBuffer = await readFile(destination);
+    return {
+      ...compactCliResult(result),
+      ok: true,
+      status: "ok",
+      command: "himalaya message export",
+      size_bytes: rawMessageBuffer.byteLength,
+      raw_message_buffer: rawMessageBuffer,
+      answer_text: "Exported the original email for forwarding.",
+    };
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
 }
 
 function emailSendAnswerText(result, { to, subject }) {
@@ -1026,6 +1233,130 @@ function buildRawEmailMessage({
   return `${headers.join("\r\n")}\r\n\r\n${normalizeEmailBody(body)}\r\n`;
 }
 
+function buildForwardRawEmailMessage({
+  from,
+  to,
+  cc,
+  bcc,
+  subject,
+  body,
+  original,
+  originalRaw,
+}) {
+  const mixedBoundary = mimeBoundary("phoneclaw-forward-mixed");
+  const alternativeBoundary = mimeBoundary("phoneclaw-forward-alt");
+  const plainBody = buildForwardPlainBody({ body, original });
+  const htmlBody = buildForwardHtmlBody({ body, original });
+  const originalBase64 = wrapBase64(originalRaw.toString("base64"));
+
+  const headers = [
+    ["From", normalizeHeaderValue(from)],
+    ["To", normalizeHeaderValue(to)],
+    ["Cc", normalizeHeaderValue(cc)],
+    ["Bcc", normalizeHeaderValue(bcc)],
+    ["Subject", normalizeHeaderValue(subject)],
+    ["MIME-Version", "1.0"],
+    ["Content-Type", `multipart/mixed; boundary="${mixedBoundary}"`],
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`);
+
+  return [
+    headers.join("\r\n"),
+    "",
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+    "",
+    `--${alternativeBoundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    plainBody,
+    "",
+    `--${alternativeBoundary}`,
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    htmlBody,
+    "",
+    `--${alternativeBoundary}--`,
+    "",
+    `--${mixedBoundary}`,
+    'Content-Type: application/octet-stream; name="forwarded-message.eml"',
+    'Content-Disposition: attachment; filename="forwarded-message.eml"',
+    "Content-Transfer-Encoding: base64",
+    "",
+    originalBase64,
+    "",
+    `--${mixedBoundary}--`,
+    "",
+  ].join("\r\n");
+}
+
+function buildForwardPlainBody({ body, original }) {
+  const metadata = forwardedMetadata(original);
+  const originalPlain =
+    original.plain ||
+    (original.html
+      ? htmlToText(original.html, { wordwrap: false, selectors: [{ selector: "a", options: { ignoreHref: true } }] })
+      : "");
+
+  return [
+    normalizeEmailBody(body),
+    "",
+    "-------- Forwarded Message --------",
+    ...metadata.map(([label, value]) => `${label}: ${value}`),
+    "",
+    normalizeEmailBody(originalPlain),
+  ]
+    .filter((line, index, lines) => line || index < lines.length - 1)
+    .join("\r\n")
+    .trimEnd();
+}
+
+function buildForwardHtmlBody({ body, original }) {
+  const metadataRows = forwardedMetadata(original)
+    .map(
+      ([label, value]) =>
+        `<tr><th style="text-align:left;vertical-align:top;padding:2px 10px 2px 0;color:#555;">${escapeHtml(label)}</th><td style="padding:2px 0;">${escapeHtml(value)}</td></tr>`
+    )
+    .join("");
+  const noteHtml = normalizeEmailBody(body)
+    ? `<div>${textToHtml(normalizeEmailBody(body))}</div><br>`
+    : "";
+  const originalHtml = original.html
+    ? htmlBodyFragment(original.html)
+    : `<pre style="white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">${escapeHtml(original.plain || "")}</pre>`;
+
+  return [
+    "<!doctype html>",
+    '<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.45;color:#111;">',
+    noteHtml,
+    '<div class="phoneclaw-forwarded-message">',
+    '<hr style="border:0;border-top:1px solid #ddd;margin:18px 0;">',
+    '<p style="margin:0 0 8px 0;color:#555;">Forwarded message</p>',
+    `<table style="border-collapse:collapse;margin:0 0 14px 0;">${metadataRows}</table>`,
+    '<blockquote style="margin:0;padding:0 0 0 14px;border-left:3px solid #ddd;">',
+    originalHtml,
+    "</blockquote>",
+    "</div>",
+    "</body></html>",
+  ].join("");
+}
+
+function parseForwardOriginal(rawMessageBuffer) {
+  const rawMessage = rawMessageBuffer.toString("latin1");
+  const root = parseMimeEntity(rawMessage);
+  const htmlPart = findMimePart(root, "text/html");
+  const plainPart = findMimePart(root, "text/plain");
+
+  return {
+    headers: root.headers,
+    html: htmlPart ? decodeMimePartBody(htmlPart) : "",
+    plain: plainPart ? decodeMimePartBody(plainPart) : "",
+  };
+}
+
 function parseEmailHeaders(value) {
   const text = String(value || "");
   const headerText = text.split(/\r?\n\r?\n/, 1)[0] || "";
@@ -1057,8 +1388,240 @@ function ensureReplySubject(subject) {
   return /^re:/i.test(normalized) ? normalized : `Re: ${normalized}`;
 }
 
+function ensureForwardSubject(subject) {
+  const normalized = normalizeHeaderValue(subject);
+  if (!normalized) return "Fwd:";
+  return /^(fwd?|fw):/i.test(normalized) ? normalized : `Fwd: ${normalized}`;
+}
+
 function normalizeEmailBody(value) {
   return String(value || "").replace(/\r\n/g, "\n").replace(/\r/g, "\n").trimEnd();
+}
+
+function forwardedMetadata(original) {
+  const headers = original?.headers || {};
+  return [
+    ["Date", decodedHeaderValue(headerValue(headers, "date"))],
+    ["From", decodedHeaderValue(headerValue(headers, "from"))],
+    ["To", decodedHeaderValue(headerValue(headers, "to"))],
+    ["Cc", decodedHeaderValue(headerValue(headers, "cc"))],
+    ["Subject", decodedHeaderValue(headerValue(headers, "subject"))],
+  ].filter(([, value]) => value);
+}
+
+function parseMimeEntity(rawEntity) {
+  const { headerText, body } = splitMimeHeadersAndBody(rawEntity);
+  const headers = parseEmailHeaders(headerText);
+  const contentType = parseContentType(headerValue(headers, "content-type"));
+  const entity = {
+    headers,
+    content_type: contentType.value,
+    content_type_params: contentType.params,
+    transfer_encoding: headerValue(headers, "content-transfer-encoding").toLowerCase(),
+    body,
+    parts: [],
+  };
+
+  if (entity.content_type.startsWith("multipart/") && contentType.params.boundary) {
+    entity.parts = splitMultipartBody(body, contentType.params.boundary).map(parseMimeEntity);
+  }
+
+  return entity;
+}
+
+function findMimePart(entity, contentType) {
+  if (!entity) return null;
+  if (entity.content_type === contentType) return entity;
+
+  for (const part of entity.parts || []) {
+    const match = findMimePart(part, contentType);
+    if (match) return match;
+  }
+
+  return null;
+}
+
+function decodeMimePartBody(part) {
+  const bytes = decodeTransferToBuffer(part.body, part.transfer_encoding);
+  return decodeTextBuffer(bytes, part.content_type_params.charset || "utf-8");
+}
+
+function splitMimeHeadersAndBody(value) {
+  const text = String(value || "");
+  const match = text.match(/\r?\n\r?\n/);
+  if (!match || match.index === undefined) {
+    return { headerText: text, body: "" };
+  }
+
+  const headerText = text.slice(0, match.index);
+  const body = text.slice(match.index + match[0].length);
+  return { headerText, body };
+}
+
+function parseContentType(value) {
+  const parts = splitHeaderParameters(value);
+  const type = normalizeString(parts.shift(), "text/plain").toLowerCase();
+  const params = {};
+
+  for (const part of parts) {
+    const equalIndex = part.indexOf("=");
+    if (equalIndex < 0) continue;
+    const key = part.slice(0, equalIndex).trim().toLowerCase();
+    const rawValue = part.slice(equalIndex + 1).trim();
+    params[key] = unquoteHeaderValue(rawValue);
+  }
+
+  return { value: type, params };
+}
+
+function splitHeaderParameters(value) {
+  const text = String(value || "");
+  const parts = [];
+  let current = "";
+  let inQuotes = false;
+  let escaped = false;
+
+  for (const char of text) {
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+    if (char === "\\") {
+      current += char;
+      escaped = true;
+      continue;
+    }
+    if (char === '"') {
+      current += char;
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (char === ";" && !inQuotes) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+
+  if (current.trim()) parts.push(current.trim());
+  return parts;
+}
+
+function splitMultipartBody(body, boundary) {
+  const marker = `--${boundary}`;
+  const segments = String(body || "").split(marker).slice(1);
+  const parts = [];
+
+  for (const segment of segments) {
+    if (segment.startsWith("--")) break;
+    const cleaned = segment
+      .replace(/^\r?\n/, "")
+      .replace(/\r?\n$/, "");
+    if (cleaned.trim()) parts.push(cleaned);
+  }
+
+  return parts;
+}
+
+function decodeTransferToBuffer(body, transferEncoding) {
+  const normalized = normalizeString(transferEncoding).toLowerCase();
+  if (normalized === "base64") {
+    return Buffer.from(String(body || "").replace(/\s+/g, ""), "base64");
+  }
+  if (normalized === "quoted-printable") {
+    return decodeQuotedPrintableToBuffer(body);
+  }
+  return Buffer.from(String(body || ""), "latin1");
+}
+
+function decodeQuotedPrintableToBuffer(value) {
+  const bytes = [];
+  const text = String(value || "").replace(/=\r?\n/g, "");
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const hex = text.slice(index + 1, index + 3);
+    if (char === "=" && /^[0-9A-Fa-f]{2}$/.test(hex)) {
+      bytes.push(Number.parseInt(hex, 16));
+      index += 2;
+    } else {
+      bytes.push(text.charCodeAt(index) & 0xff);
+    }
+  }
+
+  return Buffer.from(bytes);
+}
+
+function decodeTextBuffer(buffer, charset) {
+  const label = normalizeString(charset, "utf-8").toLowerCase();
+  try {
+    return new TextDecoder(label).decode(buffer);
+  } catch {
+    return buffer.toString(label === "iso-8859-1" || label === "latin1" ? "latin1" : "utf8");
+  }
+}
+
+function decodedHeaderValue(value) {
+  return normalizeHeaderValue(decodeMimeWords(value));
+}
+
+function decodeMimeWords(value) {
+  return String(value || "").replace(
+    /=\?([^?]+)\?([bqBQ])\?([^?]*)\?=/g,
+    (_match, charset, encoding, encoded) => {
+      try {
+        const bytes =
+          encoding.toLowerCase() === "b"
+            ? Buffer.from(encoded.replace(/\s+/g, ""), "base64")
+            : decodeQuotedPrintableToBuffer(encoded.replace(/_/g, " "));
+        return decodeTextBuffer(bytes, charset);
+      } catch {
+        return _match;
+      }
+    }
+  );
+}
+
+function htmlBodyFragment(html) {
+  const text = String(html || "");
+  const styleTags = [...text.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>/gi)]
+    .map((match) => match[0])
+    .join("");
+  const bodyMatch = text.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i);
+  return `${styleTags}${bodyMatch ? bodyMatch[1] : text}`;
+}
+
+function textToHtml(value) {
+  return escapeHtml(value)
+    .replace(/\n{2,}/g, (match) => "<br>".repeat(match.length))
+    .replace(/\n/g, "<br>");
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function unquoteHeaderValue(value) {
+  const text = String(value || "").trim();
+  if (text.startsWith('"') && text.endsWith('"')) {
+    return text.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, "\\");
+  }
+  return text;
+}
+
+function mimeBoundary(prefix) {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+function wrapBase64(value) {
+  return String(value || "").replace(/.{1,76}/g, "$&\r\n").trimEnd();
 }
 
 function compactEnvelope(envelope) {

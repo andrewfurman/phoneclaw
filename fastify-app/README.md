@@ -35,6 +35,8 @@ The local app mirrors the Worker endpoints, including:
 - `POST /cli/himalaya/email-archive`
 - `POST /cli/himalaya/draft-create`
 - `POST /cli/himalaya/draft-reply`
+- `POST /cli/himalaya/email-forward`
+- `POST /cli/himalaya/email-send`
 - `POST /cli/otter/speeches-list`
 - `POST /cli/otter/speech-get`
 - `POST /cli/otter/speech-search`
@@ -46,7 +48,7 @@ The local app mirrors the Worker endpoints, including:
 - `POST /cli/claude-code`
 - `POST /agent-command`
 
-The `/cli/*` endpoints execute focused local CLI wrappers and should run on a private bridge host in production. Email write endpoints and Claude Code task submission are confirmation-gated. Email sends are isolated in the emergency-only `himalaya_email_send` tool, which requires preview plus second confirmation. See `docs/CLI_BRIDGE_SECURITY.md`.
+The `/cli/*` endpoints execute focused local CLI wrappers and should run on a private bridge host in production. Email write endpoints and Claude Code task submission are confirmation-gated. Email forwarding saves a draft and preserves original HTML inline when available. Email sends are isolated in the emergency-only `himalaya_email_send` tool, which requires preview plus second confirmation. See `docs/CLI_BRIDGE_SECURITY.md`.
 
 ## Expose Locally
 

@@ -59,6 +59,7 @@ npm run worker:deploy
 - `POST /cli/himalaya/email-archive`
 - `POST /cli/himalaya/draft-create`
 - `POST /cli/himalaya/draft-reply`
+- `POST /cli/himalaya/email-forward`
 - `POST /cli/himalaya/email-send`
 - `POST /cli/otter/speeches-list`
 - `POST /cli/otter/speech-get`
@@ -151,12 +152,12 @@ The `/cli/*` endpoints are authenticated ElevenLabs webhook tools, but the Worke
 
 Supported bridge-backed tools:
 
-- Himalaya: email envelope list/search, all-pages capped listing/count, preview read, confirmed archive, confirmed new draft, confirmed reply draft, and emergency-only confirmed send.
+- Himalaya: email envelope list/search, all-pages capped listing/count, preview read, confirmed archive, confirmed new draft, confirmed reply draft, confirmed forward draft with inline original HTML when available plus `.eml` attachment, and emergency-only confirmed send.
 - Otter: transcript list, raw JSON fetch, and transcript search.
 - GitHub CLI: common read-only repo, issue, PR, and search commands.
 - RSS/Miniflux: Economist recent entries, keyword/date search, original article text fetch attempt, and feed refresh. Article-text responses include `access_note` when the bridge only has an RSS excerpt or the publisher blocks original-content fetching.
 - Claude Code: auth status, session start, confirmed async task submission, and job status.
 
-The Himalaya write tools and Claude Code task submission require `confirmed=true`. Ordinary email composition should use draft tools. The send path is isolated in `himalaya_email_send` and additionally requires `emergency=true`, `previewed=true`, and `confirmed=true`.
+The Himalaya write tools and Claude Code task submission require `confirmed=true`. Ordinary email composition and forwarding should use draft tools. The send path is isolated in `himalaya_email_send` and additionally requires `emergency=true`, `previewed=true`, and `confirmed=true`.
 
 If `CLI_BRIDGE_URL` or `CLI_BRIDGE_TOKEN` is unset, these endpoints return `cli_bridge_not_configured`. See `docs/CLI_BRIDGE_SECURITY.md` before deploying a bridge with real email/Otter/GitHub/Claude Code credentials.
