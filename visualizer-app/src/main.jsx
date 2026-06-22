@@ -99,7 +99,8 @@ function Dashboard() {
   const selectedEvents = selectedConversation?.twilio_call_sid
     ? twilioEvents.filter((event) => event.call_sid === selectedConversation.twilio_call_sid)
     : twilioEvents;
-  const draftLinks = extractDraftLinks(selectedConversation);
+  const toolItems = allToolItems(selectedConversation);
+  const quickLinks = extractQuickLinks(selectedConversation);
   const health = bootstrap?.health || {};
 
   const onSearchSubmit = (event) => {
@@ -112,7 +113,7 @@ function Dashboard() {
       <header className="topbar">
         <div>
           <div className="eyebrow">Phoneclaw</div>
-          <h1>Live conversations</h1>
+          <h1>Live demo console</h1>
         </div>
         <div className="topbar-actions">
           <StatusPill label="Bridge" ok={health.cli_bridge_configured} />
@@ -126,7 +127,7 @@ function Dashboard() {
             <span>Live</span>
           </label>
           <button className="icon-button" type="button" title="Refresh" onClick={loadBootstrap}>
-            ↻
+            Refresh
           </button>
           <a className="logout-link" href="/visualizer/logout">
             Logout
@@ -161,7 +162,7 @@ function Dashboard() {
       <section className="workspace">
         <aside className="conversation-list" aria-label="Conversations">
           <div className="panel-heading">
-            <h2>Recent</h2>
+            <h2>Recent calls</h2>
             <span>{loading ? "Loading" : `${conversations.length} shown`}</span>
           </div>
           <div className="list-items">
@@ -182,17 +183,23 @@ function Dashboard() {
           {selectedConversation ? (
             <>
               <ConversationHeader conversation={selectedConversation} loading={detailLoading} />
+              <OverviewStrip
+                conversation={selectedConversation}
+                toolItems={toolItems}
+                quickLinks={quickLinks}
+                events={selectedEvents}
+              />
               <div className="detail-grid">
                 <section className="transcript-panel">
                   <div className="panel-heading">
-                    <h2>Transcript</h2>
+                    <h2>Live transcript</h2>
                     <span>{turnsFor(selectedConversation).length} turns</span>
                   </div>
                   <Transcript conversation={selectedConversation} />
                 </section>
                 <aside className="side-panel">
-                  <DraftLinks links={draftLinks} />
-                  <ToolCalls conversation={selectedConversation} />
+                  <QuickLinksPanel links={quickLinks} />
+                  <ToolCalls items={toolItems} />
                   <TwilioEvents events={selectedEvents} />
                 </aside>
               </div>
@@ -207,6 +214,7 @@ function Dashboard() {
 }
 
 function ConversationListItem({ conversation, selected }) {
+  const links = extractQuickLinks(conversation);
   return (
     <Link
       className={`conversation-row ${selected ? "selected" : ""}`}
@@ -220,6 +228,7 @@ function ConversationListItem({ conversation, selected }) {
         <span>{formatDateTime(conversation.started_at || conversation.updated_at)}</span>
         <span>{conversation.status || "unknown"}</span>
         <span>{toolCount(conversation)} tools</span>
+        {links.length ? <span>{links.length} links</span> : null}
       </div>
       {conversation.summary ? <p>{conversation.summary}</p> : null}
     </Link>
@@ -243,6 +252,36 @@ function ConversationHeader({ conversation, loading }) {
       </div>
       {loading ? <Badge value="syncing" /> : <Badge value={conversation.status || "loaded"} />}
     </header>
+  );
+}
+
+function OverviewStrip({ conversation, toolItems, quickLinks, events }) {
+  const latestTurn = turnsFor(conversation).findLast((turn) => realText(turn.message));
+  return (
+    <section className="overview-strip" aria-label="Conversation overview">
+      <MetricCard label="Transcript" value={`${turnsFor(conversation).length}`} detail="turns" />
+      <MetricCard
+        label="Tools"
+        value={`${toolItems.filter((item) => item.type === "call").length}`}
+        detail={`${toolItems.filter((item) => item.type === "result").length} results`}
+      />
+      <MetricCard label="Links" value={`${quickLinks.length}`} detail={linkTypeSummary(quickLinks)} />
+      <MetricCard label="Events" value={`${events.length}`} detail="Twilio log" />
+      <div className="now-card">
+        <span>Latest spoken turn</span>
+        <p>{latestTurn?.message || "Waiting for the next live update."}</p>
+      </div>
+    </section>
+  );
+}
+
+function MetricCard({ label, value, detail }) {
+  return (
+    <div className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+      <small>{detail}</small>
+    </div>
   );
 }
 
@@ -281,12 +320,11 @@ function Transcript({ conversation }) {
   );
 }
 
-function ToolCalls({ conversation }) {
-  const items = allToolItems(conversation);
+function ToolCalls({ items }) {
   return (
     <section className="tool-panel">
       <div className="panel-heading">
-        <h2>Tool calls</h2>
+        <h2>Tool activity</h2>
         <span>{items.length}</span>
       </div>
       {items.length === 0 ? (
@@ -306,31 +344,36 @@ function ToolCallCard({ item }) {
   return (
     <div className={`tool-card ${item.type}`}>
       <div className="tool-card-header">
-        <span>{item.name || "tool"}</span>
+        <span>{displayToolName(item.name)}</span>
         <Badge value={item.type} />
       </div>
-      {item.action ? <div className="tool-action">{item.action}</div> : null}
-      <pre>{JSON.stringify(item.preview, null, 2)}</pre>
+      <div className="tool-summary">{toolSummary(item)}</div>
+      {item.links.length ? <LinkChips links={item.links} compact /> : null}
+      <details className="payload-details">
+        <summary>Payload</summary>
+        <pre>{JSON.stringify(item.preview, null, 2)}</pre>
+      </details>
     </div>
   );
 }
 
-function DraftLinks({ links }) {
+function QuickLinksPanel({ links }) {
+  const groups = groupLinks(links);
   return (
-    <section className="draft-panel">
+    <section className="quick-links-panel">
       <div className="panel-heading">
-        <h2>Gmail drafts</h2>
+        <h2>Action links</h2>
         <span>{links.length}</span>
       </div>
       {links.length === 0 ? (
-        <div className="empty-state">No draft tools in this conversation.</div>
+        <div className="empty-state">No GitHub, Gmail, or article links found yet.</div>
       ) : (
-        <div className="draft-links">
-          {links.map((link, index) => (
-            <a href={link.href} target="_blank" rel="noreferrer" key={`${link.href}-${index}`}>
-              <span>{link.label}</span>
-              <small>{link.subject || link.draftId || "Open in Gmail"}</small>
-            </a>
+        <div className="quick-link-groups">
+          {groups.map((group) => (
+            <div className="quick-link-group" key={group.label}>
+              <h3>{group.label}</h3>
+              <LinkChips links={group.links} />
+            </div>
           ))}
         </div>
       )}
@@ -338,11 +381,30 @@ function DraftLinks({ links }) {
   );
 }
 
+function LinkChips({ links, compact = false }) {
+  return (
+    <div className={`link-chips ${compact ? "compact" : ""}`}>
+      {links.map((link, index) => (
+        <a
+          className={`link-chip ${link.type}`}
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          key={`${link.href}-${index}`}
+        >
+          <span>{link.label}</span>
+          {link.detail ? <small>{link.detail}</small> : null}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 function TwilioEvents({ events }) {
   return (
     <section className="events-panel">
       <div className="panel-heading">
-        <h2>Twilio events</h2>
+        <h2>Call events</h2>
         <span>{events.length}</span>
       </div>
       {events.length === 0 ? (
@@ -417,13 +479,18 @@ function allToolItems(conversation) {
 function normalizeToolItem(item, type) {
   const parsedParams = parseJson(item.params_as_json || item.params || item.parameters || {});
   const parsedResult = parseJson(item.result_value || item.result || item.value || {});
-  const preview = type === "result" ? parsedResult : parsedParams;
-  return {
+  const raw = type === "result" ? parsedResult : parsedParams;
+  const name = item.tool_name || item.name || parsedResult?.tool_name || "";
+  const normalized = {
     type,
-    name: item.tool_name || item.name || parsedResult?.tool_name || "",
+    name,
     action: parsedResult?.action || parsedParams?.action || "",
-    preview: compactPreview(preview),
+    raw,
+    preview: compactPreview(raw),
+    links: [],
   };
+  normalized.links = extractToolLinks(normalized);
+  return normalized;
 }
 
 function dedupeToolItems(items) {
@@ -436,70 +503,286 @@ function dedupeToolItems(items) {
   });
 }
 
-function extractDraftLinks(conversation) {
+function extractQuickLinks(conversation) {
+  return dedupeLinks(allToolItems(conversation).flatMap((item) => item.links));
+}
+
+function extractToolLinks(item) {
   const links = [];
-  for (const item of allToolItems(conversation)) {
-    const value = item.preview || {};
-    const action = value.action || item.action || "";
-    if (!["draft_created", "reply_draft_created", "forward_draft_created"].includes(action)) {
+  const raw = item.raw || {};
+  const objects = collectObjects(raw);
+
+  for (const object of objects) {
+    const url = firstString(
+      object.url,
+      object.html_url,
+      object.web_url,
+      object.article_url,
+      object.external_url,
+      object.link
+    );
+    if (!url || !isHttpUrl(url)) continue;
+
+    if (isGithubIssueUrl(url)) {
+      links.push({
+        type: "github_issue",
+        label: githubIssueLabel(object, url),
+        detail: object.repo || "GitHub issue",
+        href: url,
+      });
       continue;
     }
-    const subject = value.subject || "";
-    const draftId = value.draft_id || value.id || "";
-    const search = subject ? `in:drafts "${subject}"` : "in:drafts";
+
+    if (isGithubUrl(url)) {
+      links.push({
+        type: "github",
+        label: object.title || object.name || "Open GitHub",
+        detail: object.repo || "GitHub",
+        href: url,
+      });
+      continue;
+    }
+
+    if (isEconomistUrl(url)) {
+      links.push({
+        type: "economist_article",
+        label: object.title || object.name || "Open Economist article",
+        detail: formatDateTime(object.published_at || object.date || object.created_at),
+        href: url,
+      });
+    }
+  }
+
+  const action = raw.action || item.action || "";
+  if (["draft_created", "reply_draft_created", "forward_draft_created"].includes(action)) {
+    const subject = raw.subject || "";
     links.push({
-      label:
-        action === "forward_draft_created"
-          ? "Forward draft"
-          : action === "reply_draft_created"
-            ? "Reply draft"
-            : "New draft",
-      subject,
-      draftId,
-      href: `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(search)}`,
+      type: "gmail_draft",
+      label: draftLabel(action),
+      detail: subject || raw.draft_id || "Gmail drafts",
+      href: gmailDraftSearchHref(subject),
     });
   }
-  return links;
+
+  return dedupeLinks(links);
+}
+
+function collectObjects(value, depth = 0) {
+  if (depth > 4 || value == null) return [];
+  if (Array.isArray(value)) return value.flatMap((item) => collectObjects(item, depth + 1));
+  if (typeof value !== "object") return [];
+
+  const nestedKeys = [
+    "issue",
+    "pull_request",
+    "entry",
+    "article",
+    "items",
+    "articles",
+    "results",
+    "entries",
+  ];
+  const nested = nestedKeys.flatMap((key) => collectObjects(value[key], depth + 1));
+  return [value, ...nested];
 }
 
 function compactPreview(value) {
-  if (!value || typeof value !== "object") return value;
-  const allowed = [
+  if (value == null || typeof value !== "object") return compactPrimitive(value);
+  if (Array.isArray(value)) return value.slice(0, 4).map((item) => compactPreview(item));
+
+  const output = {};
+  const preferred = [
     "action",
     "status",
     "ok",
+    "provider",
+    "source",
+    "repo",
+    "path",
+    "query",
     "to",
     "cc",
     "bcc",
     "subject",
     "id",
     "draft_id",
-    "source_folder",
-    "draft_folder",
-    "query",
-    "repo",
-    "path",
+    "entry_id",
+    "returned_count",
+    "total_count",
+    "content_source",
+    "full_text_chars",
     "answer_text",
     "error",
     "message",
   ];
-  const output = {};
-  for (const key of allowed) {
-    if (value[key] != null && value[key] !== "") output[key] = value[key];
+
+  for (const key of preferred) {
+    if (value[key] != null && value[key] !== "") output[key] = compactPrimitive(value[key]);
   }
-  return Object.keys(output).length ? output : value;
+
+  if (value.issue && typeof value.issue === "object") output.issue = compactLinkedObject(value.issue);
+  if (value.entry && typeof value.entry === "object") output.entry = compactLinkedObject(value.entry);
+  if (Array.isArray(value.items)) {
+    output.items = value.items.slice(0, 4).map((item) => compactLinkedObject(item));
+  }
+
+  if (Object.keys(output).length) return output;
+
+  for (const [key, item] of Object.entries(value).slice(0, 14)) {
+    if (["full_text", "content", "raw_json", "raw_message", "result_value"].includes(key)) continue;
+    output[key] = compactPrimitive(item);
+  }
+  return output;
+}
+
+function compactLinkedObject(value) {
+  if (!value || typeof value !== "object") return compactPrimitive(value);
+  const keys = [
+    "title",
+    "name",
+    "number",
+    "state",
+    "repo",
+    "url",
+    "html_url",
+    "article_url",
+    "published_at",
+    "entry_id",
+    "id",
+    "author",
+    "source",
+  ];
+  const output = {};
+  for (const key of keys) {
+    if (value[key] != null && value[key] !== "") output[key] = compactPrimitive(value[key]);
+  }
+  return Object.keys(output).length ? output : compactPreview(value);
+}
+
+function compactPrimitive(value) {
+  if (typeof value !== "string") return value;
+  return value.length > 700 ? `${value.slice(0, 700)}...` : value;
+}
+
+function groupLinks(links) {
+  const labels = {
+    github_issue: "GitHub issues",
+    github: "GitHub",
+    gmail_draft: "Gmail drafts",
+    economist_article: "Economist articles",
+  };
+  const order = ["github_issue", "gmail_draft", "economist_article", "github"];
+  const groups = [];
+  for (const type of order) {
+    const groupLinksForType = links.filter((link) => link.type === type);
+    if (groupLinksForType.length) groups.push({ label: labels[type], links: groupLinksForType });
+  }
+  const other = links.filter((link) => !order.includes(link.type));
+  if (other.length) groups.push({ label: "Other links", links: other });
+  return groups;
+}
+
+function dedupeLinks(links) {
+  const seen = new Set();
+  return links.filter((link) => {
+    if (!link?.href) return false;
+    const key = `${link.type}:${link.href}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function toolSummary(item) {
+  const value = item.raw || {};
+  if (item.type === "call") {
+    const target = value.query || value.repo || value.to || value.subject || value.entry_id || value.path || "";
+    return target ? `Requested ${displayToolName(item.name)} for ${target}.` : `Requested ${displayToolName(item.name)}.`;
+  }
+
+  if (value.issue?.url) {
+    return `${capitalize(value.action || "created")} GitHub issue #${value.issue.number}: ${value.issue.title || ""}`;
+  }
+  if (["draft_created", "reply_draft_created", "forward_draft_created"].includes(value.action)) {
+    return `${draftLabel(value.action)} saved${value.subject ? `: ${value.subject}` : ""}.`;
+  }
+  if (item.name?.startsWith("rss_") && Array.isArray(value.items)) {
+    return `Returned ${value.items.length} Economist article${value.items.length === 1 ? "" : "s"}.`;
+  }
+  if (item.name === "rss_get_economist_article_text") {
+    return `Fetched ${value.full_text_chars || 0} characters from ${value.entry?.title || "the article"}.`;
+  }
+  if (value.answer_text) return value.answer_text;
+  if (value.status) return `Finished with status ${value.status}.`;
+  return "Tool result received.";
+}
+
+function displayToolName(value) {
+  return String(value || "tool").replaceAll("_", " ");
 }
 
 function conversationLabel(conversation) {
   return (
-    conversation.summary?.split(".")[0]?.slice(0, 90) ||
-    conversation.conversation_id ||
+    conversation?.summary?.split(".")[0]?.slice(0, 90) ||
+    conversation?.conversation_id ||
     "Conversation"
   );
 }
 
 function toolCount(conversation) {
-  return conversation.tool_call_count ?? allToolItems(conversation).filter((item) => item.type === "call").length;
+  return conversation?.tool_call_count ?? allToolItems(conversation).filter((item) => item.type === "call").length;
+}
+
+function linkTypeSummary(links) {
+  if (!links.length) return "none yet";
+  const counts = links.reduce((acc, link) => {
+    acc[link.type] = (acc[link.type] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts)
+    .map(([type, count]) => `${count} ${type.replace("_", " ")}`)
+    .join(", ");
+}
+
+function githubIssueLabel(object, url) {
+  const number = object.number || url.match(/\/issues\/(\d+)/)?.[1];
+  return number ? `Issue #${number}` : object.title || "Open issue";
+}
+
+function draftLabel(action) {
+  if (action === "forward_draft_created") return "Forward draft";
+  if (action === "reply_draft_created") return "Reply draft";
+  return "New draft";
+}
+
+function gmailDraftSearchHref(subject) {
+  const query = subject ? `in:drafts "${subject}"` : "in:drafts";
+  return `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
+}
+
+function firstString(...values) {
+  return values.find((value) => typeof value === "string" && value.trim()) || "";
+}
+
+function isHttpUrl(value) {
+  return /^https?:\/\//i.test(String(value || ""));
+}
+
+function isGithubUrl(value) {
+  return /^https:\/\/github\.com\//i.test(String(value || ""));
+}
+
+function isGithubIssueUrl(value) {
+  return /^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\/\d+/i.test(String(value || ""));
+}
+
+function isEconomistUrl(value) {
+  return /^https:\/\/(www\.)?economist\.com\//i.test(String(value || ""));
+}
+
+function realText(value) {
+  const text = String(value || "").trim();
+  return text && text !== "...";
 }
 
 function parseJson(value) {
@@ -545,6 +828,11 @@ function formatDuration(seconds) {
   const minutes = Math.floor(total / 60);
   const rest = Math.round(total % 60);
   return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function capitalize(value) {
+  const text = String(value || "");
+  return text ? `${text[0].toUpperCase()}${text.slice(1)}` : "";
 }
 
 createRoot(document.getElementById("root")).render(<App />);

@@ -23,7 +23,7 @@ This project intentionally keeps provider configuration explicit because the voi
 | ElevenLabs | Hosts the Conversational AI voice agent, voice settings, LLM settings, and webhook tool definitions. | `ELEVENLABS_AGENT_ID` in Worker config, `ELEVENLABS_API_KEY` as a secret, and sanitized exported config in `elevenlabs-setup/`. |
 | Cloudflare Workers | Public HTTPS layer for Twilio and ElevenLabs webhooks. It validates callers, registers Twilio calls with ElevenLabs, proxies tool calls, and serves diagnostics. | `cloudflare-worker/`, `wrangler.toml` locally, Worker secrets in Cloudflare. |
 | Cloudflare KV | Stores recent Twilio call and Media Stream diagnostic events. | `TWILIO_EVENT_LOGS` binding in Worker config. |
-| React Router | Password-protected live conversation visualizer served by the Worker at `/visualizer`. | `visualizer-app/` source, generated Worker assets, and `VISUALIZER_PASSWORD` as a Worker secret. |
+| React Router | Password-protected live conversation visualizer served by the Worker at `/visualizer` and the `phoneclaw.aifurman.com` custom domain. | `visualizer-app/` source, generated Worker assets, and `VISUALIZER_PASSWORD` as a Worker secret. |
 | Cloudflare Tunnel | Exposes the private CLI bridge to the Worker without opening a raw public port. | Tunnel config and token live outside the public repo. |
 | AWS EC2 | Runs the long-lived private Fastify CLI bridge because Workers cannot spawn local CLI binaries. | EC2 setup is documented in `docs/EC2_BARE_METAL_BRIDGE.md`; AWS credentials and instance secrets stay outside the repo. |
 | GitHub | Stores this public repo and backs agent tools for issue/PR summaries, file reads, and confirmed issue create/update actions. | The EC2 bridge uses the authenticated `gh` CLI session for the `phoneclaw` service user. The Worker only proxies these routes with `CLI_BRIDGE_TOKEN`; no GitHub PAT is required in Cloudflare. |
@@ -178,9 +178,16 @@ Cloudflare Workers cannot run those binaries directly. The Worker proxies `/cli/
 
 ## Live Visualizer
 
-`GET /visualizer` serves a password-protected React Router dashboard from the Cloudflare Worker. It displays recent live ElevenLabs conversations, archived Neon summaries, transcript turns, tool calls/results, Gmail draft search links, and recent Twilio events.
+`GET /visualizer` serves a password-protected React Router dashboard from the Cloudflare Worker. It displays recent live ElevenLabs conversations, archived Neon summaries, transcript turns, tool calls/results, recent Twilio events, and action links extracted from tool results.
+
+The dashboard turns GitHub issue results, Gmail draft results, and Economist article results into tap-friendly links. Gmail draft links use Gmail search against the exact draft subject because Himalaya draft ids are not stable Gmail web URLs.
 
 Run `npm run visualizer:build` before deploying the Worker. The build embeds the visualizer output into `cloudflare-worker/visualizer-assets.generated.mjs`. Configure `VISUALIZER_PASSWORD` as a Worker secret, not in committed config. After deployment, validate with `npm run visualizer:test` while `VISUALIZER_PASSWORD` is present in the local shell.
+
+Useful demo scripts:
+
+- `npm run visualizer:demo-test` runs an ElevenLabs text conversation that exercises Economist RSS, Gmail draft creation, and GitHub issue creation.
+- `npm run visualizer:screenshots` captures desktop and mobile screenshots of the deployed visualizer. Set `VISUALIZER_CONVERSATION_ID` to pin the screenshots to a specific call.
 
 ## Twilio Diagnostics
 

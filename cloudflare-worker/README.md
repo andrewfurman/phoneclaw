@@ -171,7 +171,9 @@ If `CLI_BRIDGE_URL` or `CLI_BRIDGE_TOKEN` is unset, these endpoints return `cli_
 
 ## Live Conversation Visualizer
 
-`GET /visualizer` serves a password-protected React Router dashboard from the same Worker. The dashboard shows recent ElevenLabs conversations, archived Neon conversation summaries, transcript turns, tool calls/results, Gmail draft search links, and recent Twilio stream/call events.
+`GET /visualizer` serves a password-protected React Router dashboard from the same Worker. The dashboard shows recent ElevenLabs conversations, archived Neon conversation summaries, transcript turns, tool calls/results, recent Twilio stream/call events, and action links extracted from tool outputs.
+
+The production Worker also has a visualizer-only custom domain at `phoneclaw.aifurman.com`; its root path redirects to `/visualizer/`.
 
 Set `VISUALIZER_PASSWORD` as a Worker secret. Do not commit the real password to `wrangler.toml`. The Worker sets a signed, HttpOnly session cookie after login; the browser never receives `CLI_BRIDGE_TOKEN` or `ELEVENLABS_API_KEY`.
 
@@ -187,3 +189,5 @@ After deploy, validate the password gate and API with:
 ```bash
 VISUALIZER_PASSWORD='<local test password>' npm run visualizer:test
 ```
+
+For a live demo validation, run `npm run visualizer:demo-test`. It starts an ElevenLabs text conversation that exercises Economist RSS, Gmail draft creation, and GitHub issue creation, then reports the resulting conversation id and links. Use that id with `VISUALIZER_CONVERSATION_ID=<id> npm run visualizer:screenshots` to capture desktop and mobile visual QA screenshots.

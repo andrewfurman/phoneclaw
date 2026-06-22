@@ -31,10 +31,19 @@ const OUTSIDE_COVERAGE_MESSAGE =
   "Thanks for calling Andrew's assistance line. Sorry we haven't set up outside coverage yet.";
 const VISUALIZER_COOKIE = "phoneclaw_visualizer";
 const VISUALIZER_SESSION_TTL_SECONDS = 86_400;
+const VISUALIZER_HOSTS = new Set(["phoneclaw.aifurman.com"]);
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    if (isVisualizerHost(url) && url.pathname === "/") {
+      return redirectNoCookie("/visualizer/");
+    }
+
+    if (isVisualizerHost(url) && url.pathname.startsWith("/conversation/")) {
+      return redirectNoCookie(`/visualizer${url.pathname}`);
+    }
 
     if (url.pathname === "/visualizer" || url.pathname.startsWith("/visualizer/")) {
       return handleVisualizerRequest(request, env, ctx, url);
@@ -650,6 +659,20 @@ function cookieValue(cookieHeader, name) {
     .map((item) => item.trim())
     .find((item) => item.startsWith(`${name}=`))
     ?.slice(name.length + 1) || "";
+}
+
+function isVisualizerHost(url) {
+  return VISUALIZER_HOSTS.has(url.hostname.toLowerCase());
+}
+
+function redirectNoCookie(location) {
+  return new Response("", {
+    status: 302,
+    headers: {
+      location,
+      "cache-control": "no-store",
+    },
+  });
 }
 
 function redirectWithCookie(location, cookie) {
