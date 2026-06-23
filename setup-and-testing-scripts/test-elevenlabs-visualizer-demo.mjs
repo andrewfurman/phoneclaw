@@ -2,15 +2,15 @@ const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
 const testStamp = new Date().toISOString().replace(/[:.]/g, "-");
-const issueTitle = `Phoneclaw visualizer validation ${testStamp}`;
-const draftSubject = `Phoneclaw visualizer validation ${testStamp}`;
+const issueTitle = `phone-claw visualizer validation ${testStamp}`;
+const draftSubject = `phone-claw visualizer validation ${testStamp}`;
 const recipient = process.env.VISUALIZER_DEMO_EMAIL_TO || "aifurman@gmail.com";
-const issueRepo = process.env.VISUALIZER_DEMO_REPO || "andrewfurman/phoneclaw";
+const issueRepo = process.env.VISUALIZER_DEMO_REPO || "andrewfurman/phone-claw";
 const question = [
-  "This is an automated Phoneclaw visualizer validation call.",
+  "This is an automated phone-claw visualizer validation call.",
   "Please do all of the following so the live visualizer has real artifacts to show:",
   "1. Use your configured RSS tools to get the latest article from the configured Economist feed and get the article text for the first entry.",
-  `2. Create a Gmail draft to ${recipient} with subject "${draftSubject}" and body "Phoneclaw visualizer validation draft. Please ignore." Do not send it.`,
+  `2. Create a Gmail draft to ${recipient} with subject "${draftSubject}" and body "phone-claw visualizer validation draft. Please ignore." Do not send it.`,
   `3. Create a GitHub issue in ${issueRepo} with title "${issueTitle}" and body "Automated validation issue for the live conversation visualizer. This can be closed after validation."`,
   "I explicitly confirm the exact Gmail draft recipient, subject, and body.",
   "I explicitly confirm the exact GitHub repo, issue title, and issue body.",

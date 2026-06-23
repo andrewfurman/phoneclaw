@@ -2,7 +2,7 @@ const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
 const question =
-  "Use your configured RSS tools, not memory. List the latest article from the configured Economist feed. Search configured RSS articles with the keyword America since June 1, 2026. Then get the full text for the first latest article entry id and say whether it is full text or an excerpt.";
+  "Use your configured RSS tools, not memory. List the latest article from the configured Economist feed. Search configured RSS articles with the keyword America since June 1, 2026, limited to three results. Then get the full text for the first latest article entry id. In your final answer, start with RSS check complete, then say whether the article text is full text or an excerpt.";
 const RSS_TOOL_NAMES = [
   "rss_recent_entries",
   "rss_search_entries",

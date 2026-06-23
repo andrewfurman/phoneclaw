@@ -13,7 +13,7 @@ const workerBaseUrl =
   process.env.PHONECLAW_WORKER_BASE_URL || "https://webhooks.aifurman.com";
 const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
 const question =
-  "This is a Phoneclaw logging smoke test. Please answer in one short sentence that logging is being tested.";
+  "This is a phone-claw logging smoke test. Please answer in one short sentence that logging is being tested.";
 
 if (!agentId || !apiKey) {
   console.error("Missing ELEVENLABS_AGENT_ID or ELEVENLABS_API_KEY.");

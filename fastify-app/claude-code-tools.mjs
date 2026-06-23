@@ -404,7 +404,7 @@ function startClaudeJob({ job, task, cwd, sessionId, mode, timeoutMs }) {
 
 function buildClaudeTaskPrompt(task, mode, { steeringFile = "" } = {}) {
   const guardrails = [
-    "You are running from phone claw's voice-agent bridge on an EC2 host.",
+    "You are running from phone-claw's voice-agent bridge on an EC2 host.",
     "Work only in the current repository unless the user explicitly named another allowed path.",
     "Do not push commits, deploy, rotate secrets, or perform destructive operations unless the user explicitly requested that exact action.",
     "Do not reveal secrets or credential values. Redact any secret-like value you encounter.",

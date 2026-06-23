@@ -77,7 +77,7 @@ async function createForwardDraft(selected) {
     body: [
       "Andrew,",
       "",
-      "Here is a Phoneclaw validation forward draft. I picked this recent newsletter so you can inspect whether Gmail shows the original HTML inline below this note.",
+      "Here is a phone-claw validation forward draft. I picked this recent newsletter so you can inspect whether Gmail shows the original HTML inline below this note.",
       "",
       "This draft was created automatically and was not sent.",
     ].join("\n"),
@@ -90,7 +90,7 @@ async function createReplyAllDraft(selected) {
     id: selected.id,
     folder,
     body: [
-      "Phoneclaw validation reply-all draft only.",
+      "phone-claw validation reply-all draft only.",
       "",
       "This is checking that the agent can create a reply-all draft with my text above the quoted original thread. Please do not send this draft.",
     ].join("\n"),

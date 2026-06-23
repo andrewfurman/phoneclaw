@@ -1,6 +1,6 @@
 # CLI Bridge Security
 
-Phoneclaw exposes public ElevenLabs webhook tools through the Cloudflare Worker. A normal Worker cannot run local binaries such as `himalaya`, `otter`, or `gh`, and it should not store copied CLI credential files from a laptop.
+phone-claw exposes public ElevenLabs webhook tools through the Cloudflare Worker. A normal Worker cannot run local binaries such as `himalaya`, `otter`, or `gh`, and it should not store copied CLI credential files from a laptop.
 
 ## Recommended Shape
 

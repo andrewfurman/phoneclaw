@@ -121,7 +121,7 @@ Run the live file-tool test with:
 npm run elevenlabs:github:files:test
 ```
 
-By default this uses the public `andrewfurman/phoneclaw` repo. Override `GITHUB_FILES_TEST_REPO` and `GITHUB_FILES_TEST_FILE` locally to test private repos.
+By default this uses the public `andrewfurman/phone-claw` repo. Override `GITHUB_FILES_TEST_REPO` and `GITHUB_FILES_TEST_FILE` locally to test private repos.
 
 ## Email Forwarding Tool
 

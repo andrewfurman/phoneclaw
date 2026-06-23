@@ -49,10 +49,10 @@ if (firstConversation?.conversation_id) {
 
 const checks = {
   unauth_api_blocked: unauthApi.status === 401,
-  login_page_served: loginPage.ok && (await loginPage.text()).includes("Phoneclaw Live"),
+  login_page_served: loginPage.ok && (await loginPage.text()).includes("phone-claw Live"),
   login_redirected: [301, 302, 303, 307, 308].includes(login.status),
   session_cookie_set: cookie.includes("phoneclaw_visualizer="),
-  app_served: app.ok && appHtml.includes("Phoneclaw"),
+  app_served: app.ok && appHtml.includes("phone-claw"),
   bootstrap_ok: bootstrap.ok && bootstrapBody.ok === true,
   live_conversations_array: Array.isArray(bootstrapBody.live_conversations?.items),
   archived_conversations_array: Array.isArray(bootstrapBody.archived_conversations?.items),

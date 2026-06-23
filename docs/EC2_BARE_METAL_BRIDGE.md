@@ -77,7 +77,7 @@ folder.aliases.trash = "[Gmail]/Trash"
 message.send.save-copy = false
 ```
 
-Phoneclaw sends raw emergency messages to `himalaya message send` through stdin. Passing raw MIME as a positional argument can trigger a Himalaya/mail-parser panic, and Gmail SMTP already stores sent mail, so `message.send.save-copy = false` avoids both parser and sent-copy failures.
+phone-claw sends raw emergency messages to `himalaya message send` through stdin. Passing raw MIME as a positional argument can trigger a Himalaya/mail-parser panic, and Gmail SMTP already stores sent mail, so `message.send.save-copy = false` avoids both parser and sent-copy failures.
 
 ## Services
 
@@ -156,7 +156,7 @@ Run-mode jobs use Claude Code `bypassPermissions` plus `--dangerously-skip-permi
 
 ## Configured RSS Feeds
 
-Phoneclaw can expose any public or private RSS/Atom feed to the voice agent through generic tools. Store private URLs in a host-local JSON file, not in Git:
+phone-claw can expose any public or private RSS/Atom feed to the voice agent through generic tools. Store private URLs in a host-local JSON file, not in Git:
 
 ```bash
 sudo install -d -m 0750 -o phoneclaw -g phoneclaw /etc/phoneclaw
@@ -187,7 +187,7 @@ RSS_FEEDS_CACHE_SECONDS=900
 RSS_FEEDS_TIMEOUT_MS=12000
 ```
 
-The generic RSS tools fetch feed XML only and cache it on the Phoneclaw bridge. For feeds that already do upstream article scraping, such as the separate full-text Economist feed service, Phoneclaw should not hold publisher credentials or browser state; it only needs the private RSS URL.
+The generic RSS tools fetch feed XML only and cache it on the phone-claw bridge. For feeds that already do upstream article scraping, such as the separate full-text Economist feed service, phone-claw should not hold publisher credentials or browser state; it only needs the private RSS URL.
 
 ## Legacy Miniflux RSS
 
@@ -222,9 +222,9 @@ Do not store publisher account passwords in the repo or bridge env. If a publish
 
 For The Economist specifically, list/search works from section RSS feeds, but Miniflux original-content fetches can be rejected by the site's Cloudflare challenge. Treat `access_note` on `rss_get_economist_article_text` as authoritative: when it says the returned text is only an excerpt, the bridge needs a separate authenticated fetch path before it can provide subscriber full text.
 
-The live bridge can expose secure RSS-Bridge Atom feeds without publishing RSS-Bridge itself. RSS-Bridge should stay bound to `127.0.0.1`; the Fastify bridge proxies only allow-listed Economist topics such as `latest`, requires a secret token, and clamps the feed limit. For internal article-text lookups on EC2, Phoneclaw can also use `ECONOMIST_RSS_BRIDGE_BASE_URL` directly and infer the section topic from an Economist article URL before falling back to the latest feed.
+The live bridge can expose secure RSS-Bridge Atom feeds without publishing RSS-Bridge itself. RSS-Bridge should stay bound to `127.0.0.1`; the Fastify bridge proxies only allow-listed Economist topics such as `latest`, requires a secret token, and clamps the feed limit. For internal article-text lookups on EC2, phone-claw can also use `ECONOMIST_RSS_BRIDGE_BASE_URL` directly and infer the section topic from an Economist article URL before falling back to the latest feed.
 
-RSS-Bridge's Economist cookie is operationally sensitive. When the publisher returns a Cloudflare `403 Forbidden` placeholder, Phoneclaw reports `rss_bridge_article_fetch_failed` instead of treating that placeholder as full text. Refresh the RSS-Bridge cookie or browser profile before expecting full subscriber text again.
+RSS-Bridge's Economist cookie is operationally sensitive. When the publisher returns a Cloudflare `403 Forbidden` placeholder, phone-claw reports `rss_bridge_article_fetch_failed` instead of treating that placeholder as full text. Refresh the RSS-Bridge cookie or browser profile before expecting full subscriber text again.
 
 The browser fallback uses Playwright/Chromium on the EC2 host. It should run as the `phoneclaw` service user with browser state under `/var/lib/phoneclaw/`, so cookies are readable only by the bridge service. The tool still returns `access_note` when the browser profile is not logged in, is challenged, or only sees an excerpt.
 

@@ -6,7 +6,7 @@ const workerBaseUrl =
 const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
 const forwardTo = process.env.EMAIL_FORWARD_TEST_TO || "aifurman@gmail.com";
 const forwardMessage =
-  "Phoneclaw automated ElevenLabs validation: please ignore this forward draft.";
+  "phone-claw automated ElevenLabs validation: please ignore this forward draft.";
 const question = `Please forward the most recent email in my inbox to ${forwardTo} with the message "${forwardMessage}" above the forwarded email. I confirm you should create the forward draft now, but do not send it.`;
 
 if (!agentId || !apiKey) {

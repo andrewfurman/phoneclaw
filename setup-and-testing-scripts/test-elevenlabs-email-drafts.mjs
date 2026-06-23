@@ -18,9 +18,9 @@ if (!toolToken) {
 
 const selected = await fetchRecentNewsletterLikeEmail();
 const forwardMessage =
-  "Phoneclaw automated ElevenLabs validation forward draft. Please ignore; this was not sent.";
+  "phone-claw automated ElevenLabs validation forward draft. Please ignore; this was not sent.";
 const replyAllMessage =
-  "Phoneclaw automated ElevenLabs validation reply-all draft only. Please do not send this draft.";
+  "phone-claw automated ElevenLabs validation reply-all draft only. Please do not send this draft.";
 const question = [
   `Please create two Gmail draft validations for the INBOX email with envelope id ${selected.id}, subject "${selected.subject}".`,
   `First create a forward draft to ${forwardTo} with this message above the original email: "${forwardMessage}"`,
