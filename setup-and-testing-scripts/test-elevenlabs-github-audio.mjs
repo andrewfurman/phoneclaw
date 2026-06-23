@@ -12,8 +12,13 @@ const apiKey = process.env.ELEVENLABS_API_KEY;
 const workerBaseUrl =
   process.env.PHONECLAW_WORKER_BASE_URL || "https://webhooks.aifurman.com";
 const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
+const itemType = normalizeItemType(
+  readArgValue("--item-type") || process.env.GITHUB_AUDIO_TEST_ITEM_TYPE || "pull_requests"
+);
 const question =
-  "How many open GitHub pull requests do I have, and what are the top ones about? Please answer from GitHub.";
+  itemType === "issues"
+    ? "How many open GitHub issues do I have, and what are the top ones about? Please answer from GitHub. Do not read issue numbers unless I ask for them."
+    : "How many open GitHub pull requests do I have, and what are the top ones about? Please answer from GitHub. Do not read pull request numbers unless I ask for them.";
 
 if (!agentId || !apiKey) {
   console.error("Missing ELEVENLABS_AGENT_ID or ELEVENLABS_API_KEY.");
@@ -25,7 +30,7 @@ if (!toolToken) {
   process.exit(1);
 }
 
-const expected = await fetchWorkerGithubSummary("pull_requests");
+const expected = await fetchWorkerGithubSummary(itemType);
 const wavPath = await generateQuestionAudio(question);
 const pcm16 = extractWavData(await readFile(wavPath));
 const ulaw = pcm16le16kToUlaw8k(pcm16);
@@ -39,6 +44,7 @@ console.log(
     {
       ok,
       conversation_id: conversation.conversationId,
+      item_type: itemType,
       expected_total_count: expected.total_count,
       tool_total_count: verification.toolTotalCount,
       user_transcript: conversation.userTranscript,
@@ -245,6 +251,8 @@ function verifyConversation(details, expected) {
     .find((result) => result.tool_name === "github_summary");
   const resultValue = parseMaybeJson(toolResult?.result_value);
   const params = parseMaybeJson(toolCall?.params_as_json);
+  const returnedItems = Array.isArray(resultValue?.items) ? resultValue.items : [];
+  const hasReturnedItems = returnedItems.length > 0;
   const toolResultIndex = transcript.findIndex((turn) =>
     (turn.tool_results || []).some((result) => result.tool_name === "github_summary")
   );
@@ -257,13 +265,22 @@ function verifyConversation(details, expected) {
 
   const checks = {
     transcribed_github_question: transcript.some((turn) =>
-      String(turn.message || "").toLowerCase().includes("github pull requests")
+      String(turn.message || "")
+        .toLowerCase()
+        .includes(itemType === "issues" ? "github issues" : "github pull requests")
     ),
     used_github_summary_tool: Boolean(toolCall),
-    requested_pull_requests: params?.item_type === "pull_requests",
+    requested_expected_item_type: params?.item_type === itemType,
     tool_returned_without_error: Boolean(toolResult) && toolResult.is_error === false,
     tool_count_matches_worker: resultValue?.total_count === expected.total_count,
+    tool_answer_omits_item_numbers:
+      !hasReturnedItems || !containsSpokenGithubNumber(resultValue?.answer_text),
+    tool_items_include_spoken_summaries:
+      !hasReturnedItems ||
+      returnedItems.every((item) => twoToFourWordSummary(item.spoken_summary)),
     agent_answered_after_tool: agentResponse.length > 0,
+    agent_omitted_item_numbers:
+      !hasReturnedItems || !containsSpokenGithubNumber(agentResponse),
   };
 
   return {
@@ -334,6 +351,31 @@ function linearToUlaw(sample) {
 function isRealAgentMessage(value) {
   const text = String(value || "").trim();
   return text.length > 5 && text !== "...";
+}
+
+function containsSpokenGithubNumber(value) {
+  const text = String(value || "").toLowerCase();
+  return /#\d+|(?:^|\n)\s*\d+\.|\b(issue|pull request|pr)\s+number\s+\d+\b/.test(text);
+}
+
+function twoToFourWordSummary(value) {
+  const words = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return words.length >= 2 && words.length <= 4;
+}
+
+function normalizeItemType(value) {
+  const normalized = String(value || "").toLowerCase().replaceAll("-", "_");
+  if (["issue", "issues"].includes(normalized)) return "issues";
+  return "pull_requests";
+}
+
+function readArgValue(name) {
+  const prefix = `${name}=`;
+  const value = process.argv.find((arg) => arg.startsWith(prefix));
+  return value ? value.slice(prefix.length) : "";
 }
 
 function parseMaybeJson(value) {

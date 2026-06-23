@@ -297,6 +297,10 @@ function githubSummaryToolConfig() {
           repo: stringProperty({ description: "Repository full name." }),
           number: integerProperty({ description: "Issue or pull request number." }),
           title: stringProperty({ description: "Issue or pull request title." }),
+          spoken_summary: stringProperty({
+            description:
+              "Two to four word voice-friendly description. Use this instead of reading the number by default.",
+          }),
           url: stringProperty({ description: "GitHub web URL." }),
           author: stringProperty({ description: "GitHub login of the author." }),
           comments: integerProperty({ description: "Number of comments." }),
@@ -1684,6 +1688,7 @@ GitHub capability:
 - Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.
 - Use item_type="issues" for issue questions and item_type="pull_requests" for pull request questions.
 - Use scope="involved" by default. Use scope="assigned", "authored", "mentioned", or "review_requested" only when Andrew asks for that narrower view.
+- When summarizing GitHub issues or pull requests by voice, do not read issue or pull request numbers by default. Lead with each item's spoken_summary or a two-to-four-word description, then a short plain-English explanation. Read item numbers, URLs, and internal identifiers only if Andrew explicitly asks or is confirming a specific GitHub write action.
 - When Andrew names a specific repository, pass repo in owner/name format, for example repo="octo-org/example-repo". When he names only an organization, pass organization, for example organization="octo-org".
 - Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path="" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.
 - Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.

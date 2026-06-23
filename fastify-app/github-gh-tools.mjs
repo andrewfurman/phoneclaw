@@ -651,11 +651,13 @@ function normalizeScope(value, itemType) {
 }
 
 function summarizeSearchItem(item) {
+  const title = item.title || "";
   return {
     type: item.pull_request ? "pull_request" : "issue",
     repo: repoNameFromApiUrl(item.repository_url),
     number: item.number,
-    title: item.title || "",
+    title,
+    spoken_summary: shortSpokenDescription(title),
     url: item.html_url || "",
     author: item.user?.login || "",
     labels: (item.labels || []).map((label) => label.name).filter(Boolean),
@@ -690,11 +692,13 @@ function summarizeTreeEntry(entry) {
 }
 
 function summarizeIssue(issue) {
+  const title = issue.title || "";
   return {
     type: issue.pull_request ? "pull_request" : "issue",
     repo: repoNameFromApiUrl(issue.repository_url),
     number: issue.number,
-    title: issue.title || "",
+    title,
+    spoken_summary: shortSpokenDescription(title),
     state: issue.state || "",
     state_reason: issue.state_reason || "",
     url: issue.html_url || "",
@@ -739,12 +743,13 @@ function formatGithubSummaryAnswer({
   }
 
   const intro = `GitHub shows ${totalCount} ${label}${location} for ${account} matching ${scopeLabel}. Showing the ${items.length} most recently updated.`;
-  const lines = items.map((item, index) => {
+  const lines = items.map((item) => {
     const labels = item.labels.length > 0 ? ` Labels: ${item.labels.join(", ")}.` : "";
     const assignees =
       item.assignees.length > 0 ? ` Assigned to ${item.assignees.join(", ")}.` : "";
     const excerptText = item.excerpt ? ` ${item.excerpt}` : "";
-    return `${index + 1}. ${item.repo} #${item.number}: ${item.title}. Updated ${item.updated_at}.${labels}${assignees}${excerptText}`;
+    const spokenSummary = item.spoken_summary || shortSpokenDescription(item.title);
+    return `${spokenSummary}: ${sanitizeVoiceText(item.title)}. Repository ${item.repo}. Updated ${item.updated_at}.${labels}${assignees}${excerptText}`;
   });
   return [intro, ...lines].join("\n");
 }
@@ -768,6 +773,44 @@ function voiceIssueSummary(issue) {
   const body = String(issue.excerpt || "").trim();
   const text = [title, body].filter(Boolean).join(". ");
   return text ? `${text.slice(0, 220)}${text.length > 220 ? "..." : ""}` : "No details provided.";
+}
+
+function shortSpokenDescription(value) {
+  const normalized = String(value || "")
+    .replace(/[`"'“”‘’()[\]{}]/g, " ")
+    .replace(/[#/:;,.!?]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!normalized) return "GitHub item";
+
+  const stopWords = new Set([
+    "a",
+    "an",
+    "and",
+    "are",
+    "as",
+    "at",
+    "be",
+    "by",
+    "for",
+    "from",
+    "in",
+    "into",
+    "is",
+    "it",
+    "of",
+    "on",
+    "or",
+    "the",
+    "to",
+    "with",
+  ]);
+  const words = normalized
+    .split(" ")
+    .filter((word) => /[a-z0-9]/i.test(word))
+    .filter((word) => !stopWords.has(word.toLowerCase()));
+  const chosen = (words.length >= 2 ? words : normalized.split(" ")).slice(0, 4);
+  return chosen.join(" ") || "GitHub item";
 }
 
 function requireConfirmed(confirmed) {
@@ -954,7 +997,19 @@ function confirmationRequired(message) {
 }
 
 function excerpt(value) {
-  return normalizeString(value).replace(/\s+/g, " ").slice(0, 220);
+  return sanitizeVoiceText(normalizeString(value)).slice(0, 220);
+}
+
+function sanitizeVoiceText(value) {
+  return String(value || "")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/#\d+/g, "linked item")
+    .replace(/\b(issue|pull request|pr)\s+linked item\b/gi, "$1 reference")
+    .replace(/[*_`>~-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function utf8ByteLength(value) {

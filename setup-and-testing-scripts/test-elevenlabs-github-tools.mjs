@@ -203,6 +203,8 @@ function verifyConversation(details, itemType, expected) {
     .at(-1) || "";
   const resultValue = parseMaybeJson(toolResult?.result_value);
   const params = parseMaybeJson(toolCall?.params_as_json);
+  const returnedItems = Array.isArray(resultValue?.items) ? resultValue.items : [];
+  const hasReturnedItems = returnedItems.length > 0;
 
   const checks = {
     transcript_available: transcript.length > 0,
@@ -210,7 +212,14 @@ function verifyConversation(details, itemType, expected) {
     tool_returned_without_error: Boolean(toolResult) && toolResult.is_error === false,
     requested_expected_item_type: params?.item_type === itemType,
     tool_count_matches_worker: resultValue?.total_count === expected.total_count,
+    tool_answer_omits_item_numbers:
+      !hasReturnedItems || !containsSpokenGithubNumber(resultValue?.answer_text),
+    tool_items_include_spoken_summaries:
+      !hasReturnedItems ||
+      returnedItems.every((item) => twoToFourWordSummary(item.spoken_summary)),
     agent_answered_after_tool: agentResponse.length > 0,
+    agent_omitted_item_numbers:
+      !hasReturnedItems || !containsSpokenGithubNumber(agentResponse),
   };
 
   return {
@@ -225,6 +234,19 @@ function verifyConversation(details, itemType, expected) {
 function isRealAgentMessage(value) {
   const text = String(value || "").trim();
   return text.length > 5 && text !== "...";
+}
+
+function containsSpokenGithubNumber(value) {
+  const text = String(value || "").toLowerCase();
+  return /#\d+|(?:^|\n)\s*\d+\.|\b(issue|pull request|pr)\s+number\s+\d+\b/.test(text);
+}
+
+function twoToFourWordSummary(value) {
+  const words = String(value || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  return words.length >= 2 && words.length <= 4;
 }
 
 async function requestJson(url) {
