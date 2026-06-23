@@ -8,6 +8,7 @@ const RSS_TOOL_NAMES = [
   "rss_search_economist_entries",
   "rss_get_economist_article_text",
 ];
+const WEB_SEARCH_TOOL_NAME = "web_search";
 
 if (!agentId || !apiKey) {
   console.error("Missing ELEVENLABS_AGENT_ID or ELEVENLABS_API_KEY.");
@@ -198,6 +199,7 @@ function verifyConversation(details) {
     used_recent_tool: callsByName.has("rss_recent_economist_entries"),
     used_search_tool: callsByName.has("rss_search_economist_entries"),
     used_article_text_tool: callsByName.has("rss_get_economist_article_text"),
+    did_not_use_web_search: !callsByName.has(WEB_SEARCH_TOOL_NAME),
     recent_tool_returned_without_error:
       resultsByName.has("rss_recent_economist_entries") &&
       resultsByName.get("rss_recent_economist_entries").is_error === false,
