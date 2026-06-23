@@ -74,6 +74,11 @@ npm run worker:deploy
 - `POST /cli/rss/economist/search`
 - `POST /cli/rss/economist/article-text`
 - `POST /cli/rss/economist/refresh`
+- `POST /cli/rss/feeds`
+- `POST /cli/rss/recent`
+- `POST /cli/rss/search`
+- `POST /cli/rss/article-text`
+- `POST /cli/rss/refresh`
 - `POST /cli/claude-code`
 - `POST /conversation-history/search`
 - `POST /conversation-history/get`
@@ -164,7 +169,7 @@ Supported bridge-backed tools:
 - Himalaya: email envelope list/search, all-pages capped listing/count, preview read, confirmed archive, confirmed new draft, confirmed reply-all draft with inline original thread, confirmed forward draft with inline original HTML when available and no `.eml` attachment, and emergency-only confirmed send.
 - Otter: transcript list, raw JSON fetch, and transcript search.
 - GitHub CLI: common read-only repo, issue, PR, and search commands.
-- RSS/Miniflux: Economist recent entries, keyword/date search, original article text fetch attempt, and feed refresh. Article-text responses include `access_note` when the bridge only has an RSS excerpt or the publisher blocks original-content fetching.
+- RSS: configured public/private RSS feed listing, recent entries, keyword/date search, article text from feed content fields, and bridge cache refresh. Article-text responses include `access_note` when the feed appears to provide only an excerpt.
 - Claude Code: auth status, session start, confirmed async task submission, and job status.
 
 The Himalaya write tools and Claude Code task submission require `confirmed=true`. Ordinary email composition and forwarding should use draft tools. The send path is isolated in `himalaya_email_send` and additionally requires `emergency=true`, `previewed=true`, and `confirmed=true`.

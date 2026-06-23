@@ -151,7 +151,42 @@ The `claude_code` voice tool is intentionally explicit. It can check auth, creat
 
 Run-mode jobs use Claude Code `bypassPermissions` plus `--dangerously-skip-permissions` when `CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true`, so they do not stall on permission prompts.
 
-## Miniflux RSS
+## Configured RSS Feeds
+
+Phoneclaw can expose any public or private RSS/Atom feed to the voice agent through generic tools. Store private URLs in a host-local JSON file, not in Git:
+
+```bash
+sudo install -d -m 0750 -o phoneclaw -g phoneclaw /etc/phoneclaw
+sudo install -m 0640 -o phoneclaw -g phoneclaw /dev/null /etc/phoneclaw/rss-feeds.json
+```
+
+Example file shape:
+
+```json
+{
+  "feeds": [
+    {
+      "id": "economist",
+      "title": "The Economist",
+      "url": "https://example.com/rss.xml?token=replace-with-private-token",
+      "private": true,
+      "cache_seconds": 900
+    }
+  ]
+}
+```
+
+Then set the bridge env and restart:
+
+```bash
+RSS_FEEDS_CONFIG_PATH=/etc/phoneclaw/rss-feeds.json
+RSS_FEEDS_CACHE_SECONDS=900
+RSS_FEEDS_TIMEOUT_MS=12000
+```
+
+The generic RSS tools fetch feed XML only and cache it on the Phoneclaw bridge. For feeds that already do upstream article scraping, such as the separate full-text Economist feed service, Phoneclaw should not hold publisher credentials or browser state; it only needs the private RSS URL.
+
+## Legacy Miniflux RSS
 
 The live bridge can run Miniflux privately on `127.0.0.1:8080` with PostgreSQL. Store the API token in `/etc/phoneclaw/bridge.env`:
 

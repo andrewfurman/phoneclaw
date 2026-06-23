@@ -35,15 +35,22 @@ const configs = [
   otterSpeechGetToolConfig(),
   otterSpeechSearchToolConfig(),
   githubCliCommonToolConfig(),
-  rssRecentEconomistEntriesToolConfig(),
-  rssSearchEconomistEntriesToolConfig(),
-  rssGetEconomistArticleTextToolConfig(),
-  rssRefreshEconomistFeedsToolConfig(),
+  rssListFeedsToolConfig(),
+  rssRecentEntriesToolConfig(),
+  rssSearchEntriesToolConfig(),
+  rssGetArticleTextToolConfig(),
+  rssRefreshFeedsToolConfig(),
   conversationHistorySearchToolConfig(),
   conversationHistoryGetToolConfig(),
   claudeCodeToolConfig(),
 ];
-const obsoleteToolNames = ["himalaya_email_count"];
+const obsoleteToolNames = [
+  "himalaya_email_count",
+  "rss_recent_economist_entries",
+  "rss_search_economist_entries",
+  "rss_get_economist_article_text",
+  "rss_refresh_economist_feeds",
+];
 
 const tools = [];
 for (const toolConfig of configs) {
@@ -1040,37 +1047,68 @@ function githubCliCommonToolConfig() {
   });
 }
 
-function rssRecentEconomistEntriesToolConfig() {
+function rssListFeedsToolConfig() {
   return webhookTool({
-    name: "rss_recent_economist_entries",
+    name: "rss_list_feeds",
     description:
-      "List recent Economist articles from the Miniflux RSS backend. Use when Andrew asks for recent Economist articles, latest Economist news, or updated Economist stories.",
-    url: `${workerBaseUrl}/cli/rss/economist/recent`,
+      "List configured RSS feeds available to the private bridge. Use this when Andrew asks what feeds are configured or when you need the feed_id for a named private or public RSS feed.",
+    url: `${workerBaseUrl}/cli/rss/feeds`,
+    required: [],
+    responseTimeoutSecs: 15,
+    forcePreToolSpeech: true,
+    toolCallSound: "typing",
+    requestProperties: {},
+    responseDescription: "Configured RSS feeds.",
+    responseProperties: {
+      ok: booleanProperty("Whether configured feed listing succeeded."),
+      status: stringProperty({ description: "Status code." }),
+      provider: stringProperty({ description: "RSS backend provider." }),
+      returned_count: integerProperty({ description: "Number of configured feeds." }),
+      answer_text: stringProperty({
+        description: "Compact spoken summary. Prefer this for voice responses.",
+      }),
+      feeds: arrayProperty({
+        description: "Configured RSS feeds.",
+        itemDescription: "One configured RSS feed.",
+        properties: rssFeedProperties(),
+      }),
+    },
+  });
+}
+
+function rssRecentEntriesToolConfig() {
+  return webhookTool({
+    name: "rss_recent_entries",
+    description:
+      "List recent entries from configured public or private RSS feeds. Optionally pass feed_id when Andrew asks for one named feed.",
+    url: `${workerBaseUrl}/cli/rss/recent`,
     required: [],
     responseTimeoutSecs: 20,
     forcePreToolSpeech: true,
     toolCallSound: "typing",
     requestProperties: {
+      feed_id: stringProperty({
+        description:
+          "Optional configured feed id, for example the id returned by rss_list_feeds. Omit to search all configured feeds.",
+      }),
       limit: integerProperty({
         description: "Maximum articles to return. Use 5 by default for phone answers.",
       }),
-      status: stringProperty({
-        description:
-          "Read status filter. Use all by default unless Andrew specifically asks for unread or read.",
-        values: ["all", "unread", "read"],
-      }),
+      refresh: booleanProperty(
+        "Set true only when Andrew explicitly asks to refresh the bridge cache now."
+      ),
     },
-    responseDescription: "Recent Economist RSS entries.",
+    responseDescription: "Recent configured RSS entries.",
     responseProperties: rssEntriesResponseProperties(),
   });
 }
 
-function rssSearchEconomistEntriesToolConfig() {
+function rssSearchEntriesToolConfig() {
   return webhookTool({
-    name: "rss_search_economist_entries",
+    name: "rss_search_entries",
     description:
-      "Search Economist articles from the Miniflux RSS backend by keyword and optional published date range.",
-    url: `${workerBaseUrl}/cli/rss/economist/search`,
+      "Search configured public or private RSS feeds by keyword and optional published date range. Optionally pass feed_id for one named feed.",
+    url: `${workerBaseUrl}/cli/rss/search`,
     required: ["query"],
     responseTimeoutSecs: 20,
     forcePreToolSpeech: true,
@@ -1078,6 +1116,10 @@ function rssSearchEconomistEntriesToolConfig() {
     requestProperties: {
       query: stringProperty({
         description: "Search query or keywords, for example AI, oil, China, tariffs.",
+      }),
+      feed_id: stringProperty({
+        description:
+          "Optional configured feed id, for example the id returned by rss_list_feeds. Omit to search all configured feeds.",
       }),
       start_date: stringProperty({
         description: "Optional inclusive published-after date or timestamp.",
@@ -1088,86 +1130,62 @@ function rssSearchEconomistEntriesToolConfig() {
       limit: integerProperty({
         description: "Maximum articles to return. Use 5 by default for phone answers.",
       }),
-      status: stringProperty({
-        description:
-          "Read status filter. Use all by default unless Andrew specifically asks for unread or read.",
-        values: ["all", "unread", "read"],
-      }),
+      refresh: booleanProperty(
+        "Set true only when Andrew explicitly asks to refresh the bridge cache now."
+      ),
     },
-    responseDescription: "Economist RSS search results.",
+    responseDescription: "Configured RSS search results.",
     responseProperties: rssEntriesResponseProperties(),
   });
 }
 
-function rssGetEconomistArticleTextToolConfig() {
+function rssGetArticleTextToolConfig() {
   return webhookTool({
-    name: "rss_get_economist_article_text",
+    name: "rss_get_article_text",
     description:
-      "Fetch readable full text for a specific Economist article entry id returned by rss_recent_economist_entries or rss_search_economist_entries. Prefers the secure RSS-Bridge full-text feed when available, then falls back to Miniflux and the authenticated browser fetcher.",
-    url: `${workerBaseUrl}/cli/rss/economist/article-text`,
+      "Fetch readable article text for a configured RSS entry id returned by rss_recent_entries or rss_search_entries. Use article_url only when an entry id is not available.",
+    url: `${workerBaseUrl}/cli/rss/article-text`,
     required: ["entry_id"],
-    responseTimeoutSecs: 45,
+    responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
     toolCallSound: "typing",
     requestProperties: {
-      entry_id: integerProperty({
-        description:
-          "Economist entry id from a recent/search result. This may be a Miniflux id or a virtual RSS-Bridge id.",
+      entry_id: stringProperty({
+        description: "Entry id from rss_recent_entries or rss_search_entries.",
       }),
       article_url: stringProperty({
-        description:
-          "Optional Economist article URL when an entry id is not available.",
+        description: "Optional article URL when an entry id is not available.",
       }),
-      fetch_original: booleanProperty(
-        "Set true by default to ask Miniflux to fetch the original article content."
-      ),
-      update_content: booleanProperty(
-        "Set true by default so Miniflux caches the fetched original content."
-      ),
+      feed_id: stringProperty({
+        description:
+          "Optional configured feed id. Include it when known to avoid searching all feeds.",
+      }),
       max_text_chars: integerProperty({
         description:
           "Maximum article text characters to return. Use 30000 by default; lower for short phone summaries.",
       }),
+      refresh: booleanProperty(
+        "Set true only when Andrew explicitly asks to refresh the bridge cache now."
+      ),
     },
-    responseDescription: "Economist article text.",
+    responseDescription: "Configured RSS article text.",
     responseProperties: {
       ok: booleanProperty("Whether article text retrieval succeeded."),
       status: stringProperty({ description: "Status code." }),
       answer_text: stringProperty({
         description:
-          "Compact spoken summary of the final article retrieval result. Prefer this before diagnostic status fields.",
+          "Compact spoken summary of article retrieval. Prefer this before diagnostic fields.",
       }),
       full_article_available: booleanProperty(
-        "True when the final returned content should be treated as full article text."
+        "True when the feed entry should be treated as full article text."
       ),
       provider: stringProperty({ description: "RSS backend provider." }),
-      source: stringProperty({ description: "Article source." }),
-      entry_id: integerProperty({ description: "Miniflux entry id." }),
+      source: stringProperty({ description: "Configured feed id." }),
+      entry_id: stringProperty({ description: "Configured RSS entry id." }),
+      feed_id: stringProperty({ description: "Configured feed id." }),
+      feed_title: stringProperty({ description: "Configured feed title." }),
       content_source: stringProperty({
-        description:
-          "economist_rss_bridge, stored_entry_content, original_article_fetch, or economist_browser_fetch.",
-      }),
-      original_fetch_status: stringProperty({ description: "Status of original-content fetch." }),
-      original_fetch_message: stringProperty({
-        description: "Error message when original-content fetch failed.",
-      }),
-      rss_bridge_fetch_status: stringProperty({
-        description: "Status of secure RSS-Bridge full-text fetch.",
-      }),
-      rss_bridge_fetch_message: stringProperty({
-        description: "RSS-Bridge message or reason it did not match the requested article.",
-      }),
-      rss_bridge_url: stringProperty({
-        description: "Redacted RSS-Bridge feed URL used for the request.",
-      }),
-      browser_fetch_status: stringProperty({
-        description: "Status of authenticated browser fallback fetch.",
-      }),
-      browser_fetch_message: stringProperty({
-        description: "Browser fallback message or reason it did not return full text.",
-      }),
-      browser_fetch_url: stringProperty({
-        description: "Final URL visited by the browser fallback.",
+        description: "Source of the returned text, such as feed_content_encoded or feed_summary.",
       }),
       full_text_chars: integerProperty({ description: "Full extracted text length." }),
       returned_text_chars: integerProperty({ description: "Returned text length." }),
@@ -1177,8 +1195,7 @@ function rssGetEconomistArticleTextToolConfig() {
           "Readable article text. Summarize by voice; do not read the entire article unless Andrew asks.",
       }),
       access_note: stringProperty({
-        description:
-          "Note when the returned text appears to be an excerpt or needs authenticated access.",
+        description: "Note when the returned text appears to be an excerpt.",
       }),
       entry: objectProperty({
         description: "Article metadata.",
@@ -1188,25 +1205,34 @@ function rssGetEconomistArticleTextToolConfig() {
   });
 }
 
-function rssRefreshEconomistFeedsToolConfig() {
+function rssRefreshFeedsToolConfig() {
   return webhookTool({
-    name: "rss_refresh_economist_feeds",
+    name: "rss_refresh_feeds",
     description:
-      "Refresh the Economist feed category in Miniflux. Use before listing recent articles when Andrew asks for the latest possible results.",
-    url: `${workerBaseUrl}/cli/rss/economist/refresh`,
+      "Refresh the bridge cache for configured RSS feeds. Do not call this before every RSS lookup; use it only when Andrew asks to refresh now.",
+    url: `${workerBaseUrl}/cli/rss/refresh`,
     required: [],
     responseTimeoutSecs: 20,
     forcePreToolSpeech: true,
     toolCallSound: "typing",
-    requestProperties: {},
-    responseDescription: "Economist RSS refresh response.",
+    requestProperties: {
+      feed_id: stringProperty({
+        description:
+          "Optional configured feed id. Omit to refresh all configured feeds.",
+      }),
+    },
+    responseDescription: "Configured RSS refresh response.",
     responseProperties: {
-      ok: booleanProperty("Whether refresh was started."),
+      ok: booleanProperty("Whether one or more feeds refreshed."),
       status: stringProperty({ description: "Status code." }),
       provider: stringProperty({ description: "RSS backend provider." }),
-      source: stringProperty({ description: "Feed source." }),
-      category_id: integerProperty({ description: "Miniflux category id." }),
-      category_title: stringProperty({ description: "Miniflux category title." }),
+      refreshed_count: integerProperty({ description: "Number of feeds refreshed." }),
+      returned_count: integerProperty({ description: "Number of feeds refreshed." }),
+      feeds: arrayProperty({
+        description: "Refresh status by configured feed.",
+        itemDescription: "One feed refresh status.",
+        properties: rssFeedProperties(),
+      }),
       answer_text: stringProperty({
         description: "Compact spoken summary. Prefer this for voice responses.",
       }),
@@ -1517,38 +1543,60 @@ function rssEntriesResponseProperties() {
     ok: booleanProperty("Whether the RSS request succeeded."),
     status: stringProperty({ description: "Status code." }),
     provider: stringProperty({ description: "RSS backend provider." }),
-    source: stringProperty({ description: "Feed source." }),
+    source: stringProperty({ description: "Feed source or configured feed id." }),
     query: stringProperty({ description: "Search query when applicable." }),
     start_date: stringProperty({ description: "Start date when applicable." }),
     end_date: stringProperty({ description: "End date when applicable." }),
+    feed_id: stringProperty({ description: "Configured feed id when applicable." }),
     returned_count: integerProperty({ description: "Number of entries returned." }),
-    total_count: integerProperty({ description: "Total matching entries if reported by Miniflux." }),
-    category_id: integerProperty({ description: "Miniflux category id." }),
-    category_title: stringProperty({ description: "Miniflux category title." }),
+    total_count: integerProperty({ description: "Total matching entries if reported." }),
+    category_id: integerProperty({ description: "Legacy category id, when present." }),
+    category_title: stringProperty({ description: "Legacy category title, when present." }),
     answer_text: stringProperty({
       description: "Compact spoken summary. Prefer this before reading item details.",
     }),
+    feeds: arrayProperty({
+      description: "Configured feeds consulted.",
+      itemDescription: "One feed status.",
+      properties: rssFeedProperties(),
+    }),
     items: arrayProperty({
-      description: "Economist article entries.",
-      itemDescription: "One Economist article entry.",
+      description: "RSS entries.",
+      itemDescription: "One RSS entry.",
       properties: rssEntryProperties(),
     }),
   };
 }
 
+function rssFeedProperties() {
+  return {
+    id: stringProperty({ description: "Configured feed id." }),
+    title: stringProperty({ description: "Configured feed title." }),
+    ok: booleanProperty("Whether the feed request succeeded when status is included."),
+    status: stringProperty({ description: "Feed request status, when included." }),
+    private: booleanProperty("Whether the feed URL is marked private."),
+    cache_seconds: integerProperty({ description: "Bridge cache TTL in seconds." }),
+    cache_status: stringProperty({ description: "Cache status, such as hit or refreshed." }),
+    fetched_at: stringProperty({ description: "Last fetched timestamp, when available." }),
+    item_count: integerProperty({ description: "Number of entries parsed from the feed." }),
+    stale_reason: stringProperty({ description: "Reason stale cache was used, when applicable." }),
+    feed_url: stringProperty({ description: "Feed URL with private tokens redacted." }),
+  };
+}
+
 function rssEntryProperties() {
   return {
-    id: integerProperty({ description: "Miniflux entry id." }),
+    id: stringProperty({ description: "RSS entry id." }),
     title: stringProperty({ description: "Article title." }),
     url: stringProperty({ description: "Article URL." }),
     author: stringProperty({ description: "Article author." }),
     published_at: stringProperty({ description: "Published timestamp." }),
-    created_at: stringProperty({ description: "Miniflux created timestamp." }),
-    changed_at: stringProperty({ description: "Miniflux changed timestamp." }),
+    created_at: stringProperty({ description: "Created timestamp when reported." }),
+    changed_at: stringProperty({ description: "Updated timestamp when reported." }),
     status: stringProperty({ description: "Read status." }),
     starred: booleanProperty("Whether the article is starred."),
     reading_time: integerProperty({ description: "Estimated reading time." }),
-    feed_id: integerProperty({ description: "Miniflux feed id." }),
+    feed_id: stringProperty({ description: "Configured feed id." }),
     feed_title: stringProperty({ description: "Feed title." }),
     feed_url: stringProperty({ description: "Feed URL." }),
     category_title: stringProperty({ description: "Category title." }),
@@ -1820,17 +1868,16 @@ CLI capability:
 - If himalaya_email_send returns action="email_send_timeout" or action="email_send_failed", say the send was not confirmed and Andrew should check Sent Mail before retrying.
 - Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON. Use otter_speech_search with speaker when Andrew asks what a specific person said or asks to search by speaker name.
 - Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.
-- You also have RSS tools backed by Miniflux: rss_recent_economist_entries, rss_search_economist_entries, rss_get_economist_article_text, and rss_refresh_economist_feeds.
-- Use rss_recent_economist_entries when Andrew asks for recent or latest Economist articles.
-- Use rss_search_economist_entries when Andrew asks to search Economist articles by date, topic, keyword, or section.
-- Use rss_get_economist_article_text only after you have an exact entry_id from recent/search results. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
-- After rss_recent_economist_entries, rss_search_economist_entries, or rss_get_economist_article_text returns relevant results, answer directly from the returned Economist entries, answer_text, and article text. Do not immediately call web_search just because Economist articles are current/recent.
-- If Andrew asks to discuss, explain, summarize, compare, or reason about an Economist article that you already retrieved, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.
-- For rss_get_economist_article_text, prefer answer_text and full_article_available before interpreting diagnostic fetch status fields. If full_article_available=true and access_note is empty, say the final result is full article text even if intermediate RSS-Bridge or Miniflux diagnostic fields mention failures.
-- If rss_get_economist_article_text returns content_source="economist_rss_bridge", full Economist article text was fetched through the secure RSS-Bridge feed. Treat it as full text unless access_note says otherwise.
-- If rss_get_economist_article_text returns content_source="economist_browser_fetch", full subscriber text was fetched through the authenticated bridge browser. Summarize it by voice instead of reading the article verbatim.
-- If rss_get_economist_article_text returns an access_note saying the text may be an excerpt or needs authenticated access, say that plainly. If browser_fetch_status indicates login or Cloudflare, say the EC2 browser profile needs to be authenticated.
-- Use rss_refresh_economist_feeds before listing when Andrew asks for the latest possible Economist results.
+- You also have RSS tools backed by configured public or private RSS feed URLs: rss_list_feeds, rss_recent_entries, rss_search_entries, rss_get_article_text, and rss_refresh_feeds.
+- Use rss_list_feeds when Andrew asks what feeds are configured or when you need the feed_id for a named feed.
+- Use rss_recent_entries when Andrew asks for recent or latest articles from configured RSS feeds. Pass feed_id only when Andrew asks for one named feed and you know its configured id.
+- Use rss_search_entries when Andrew asks to search configured RSS feeds by date, topic, keyword, publication, or section.
+- Use rss_get_article_text only after you have an exact entry_id from rss_recent_entries or rss_search_entries. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
+- After rss_recent_entries, rss_search_entries, or rss_get_article_text returns relevant results, answer directly from the returned RSS entries, answer_text, and article text. Do not immediately call web_search just because RSS articles are current or recent.
+- If Andrew asks to discuss, explain, summarize, compare, or reason about an article that you already retrieved from RSS, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.
+- For rss_get_article_text, prefer answer_text, full_article_available, and access_note before interpreting diagnostic fields. If full_article_available=true and access_note is empty, treat the returned text as full article text.
+- If rss_get_article_text returns access_note saying the text may be an excerpt, say that plainly.
+- Do not call rss_refresh_feeds before every RSS lookup. Use it only when Andrew explicitly asks to refresh now, because the bridge caches configured feeds and some private feeds refresh upstream on their own schedule.
 - These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.
 - Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.`;
   const webMarker = "\n\nWeb search capability:";

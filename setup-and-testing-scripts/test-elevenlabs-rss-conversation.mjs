@@ -2,11 +2,11 @@ const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
 const question =
-  "Use your Economist RSS tools, not memory. List the latest Economist article. Search for Economist articles with the keyword America since June 1, 2026. Then get the full text for the first latest article entry id and say whether it is full text or an excerpt.";
+  "Use your configured RSS tools, not memory. List the latest article from the configured Economist feed. Search configured RSS articles with the keyword America since June 1, 2026. Then get the full text for the first latest article entry id and say whether it is full text or an excerpt.";
 const RSS_TOOL_NAMES = [
-  "rss_recent_economist_entries",
-  "rss_search_economist_entries",
-  "rss_get_economist_article_text",
+  "rss_recent_entries",
+  "rss_search_entries",
+  "rss_get_article_text",
 ];
 const WEB_SEARCH_TOOL_NAME = "web_search";
 
@@ -163,15 +163,9 @@ function verifyConversation(details) {
   const toolResults = transcript.flatMap((turn) => turn.tool_results || []);
   const callsByName = new Map(toolCalls.map((call) => [call.tool_name, call]));
   const resultsByName = new Map(toolResults.map((result) => [result.tool_name, result]));
-  const recentResult = parseMaybeJson(
-    resultsByName.get("rss_recent_economist_entries")?.result_value
-  );
-  const searchResult = parseMaybeJson(
-    resultsByName.get("rss_search_economist_entries")?.result_value
-  );
-  const articleResult = parseMaybeJson(
-    resultsByName.get("rss_get_economist_article_text")?.result_value
-  );
+  const recentResult = parseMaybeJson(resultsByName.get("rss_recent_entries")?.result_value);
+  const searchResult = parseMaybeJson(resultsByName.get("rss_search_entries")?.result_value);
+  const articleResult = parseMaybeJson(resultsByName.get("rss_get_article_text")?.result_value);
   const latestToolIndex = transcript.findLastIndex((turn) =>
     (turn.tool_results || []).some((result) => RSS_TOOL_NAMES.includes(result.tool_name))
   );
@@ -186,6 +180,8 @@ function verifyConversation(details) {
   const articleTextChars = Number(articleResult?.full_text_chars || 0);
   const fullArticleAvailable =
     [
+      "feed_content_encoded",
+      "feed_content",
       "economist_rss_bridge",
       "original_article_fetch",
       "economist_browser_fetch",
@@ -196,19 +192,19 @@ function verifyConversation(details) {
 
   const checks = {
     transcript_available: transcript.length > 0,
-    used_recent_tool: callsByName.has("rss_recent_economist_entries"),
-    used_search_tool: callsByName.has("rss_search_economist_entries"),
-    used_article_text_tool: callsByName.has("rss_get_economist_article_text"),
+    used_recent_tool: callsByName.has("rss_recent_entries"),
+    used_search_tool: callsByName.has("rss_search_entries"),
+    used_article_text_tool: callsByName.has("rss_get_article_text"),
     did_not_use_web_search: !callsByName.has(WEB_SEARCH_TOOL_NAME),
     recent_tool_returned_without_error:
-      resultsByName.has("rss_recent_economist_entries") &&
-      resultsByName.get("rss_recent_economist_entries").is_error === false,
+      resultsByName.has("rss_recent_entries") &&
+      resultsByName.get("rss_recent_entries").is_error === false,
     search_tool_returned_without_error:
-      resultsByName.has("rss_search_economist_entries") &&
-      resultsByName.get("rss_search_economist_entries").is_error === false,
+      resultsByName.has("rss_search_entries") &&
+      resultsByName.get("rss_search_entries").is_error === false,
     article_text_tool_returned_without_error:
-      resultsByName.has("rss_get_economist_article_text") &&
-      resultsByName.get("rss_get_economist_article_text").is_error === false,
+      resultsByName.has("rss_get_article_text") &&
+      resultsByName.get("rss_get_article_text").is_error === false,
     recent_returned_items: recentItems.length > 0,
     search_returned_items: searchItems.length > 0,
     article_text_returned_controlled_result:

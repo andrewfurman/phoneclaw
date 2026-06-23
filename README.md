@@ -32,8 +32,8 @@ This project intentionally keeps provider configuration explicit because the voi
 | Yahoo Finance public chart API | Market-history enrichment for WTI crude high/low/range questions. | No secret required. Used as a compact fallback to avoid relying only on generic search snippets. |
 | ESPN public scoreboard endpoint | Prototype sports enrichment for FIFA World Cup schedule/score queries. | No secret required. Treat as a convenience endpoint, not a committed long-term sports-data contract. |
 | Neon | Optional Postgres archive for Phoneclaw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
-| Miniflux | Private RSS/article backend for Economist feed listings, keyword/date search, and original-content fetch attempts. | Runs on EC2 bound to localhost. Phoneclaw uses `MINIFLUX_BASE_URL` and `MINIFLUX_API_TOKEN` in bridge env. |
-| RSS-Bridge | Secure full-text Economist latest/daily Atom feed. | RSS-Bridge itself stays on `127.0.0.1`; the EC2 bridge exposes a token-protected allow-listed Atom route. Phoneclaw uses `ECONOMIST_RSS_BRIDGE_URL` plus `ECONOMIST_RSS_BRIDGE_TOKEN` or `ECONOMIST_PUBLIC_RSS_TOKEN`. |
+| Configured RSS feeds | Public or private RSS/Atom feeds exposed to the voice agent by feed id. | Store feed URLs in `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the EC2 bridge. Private URLs are redacted in tool responses and should never be committed. |
+| Miniflux/RSS-Bridge | Legacy RSS backends kept for compatibility while configured feeds replace publisher-specific tooling. | Legacy settings remain documented in `docs/EC2_BARE_METAL_BRIDGE.md`; new integrations should prefer generic configured feeds. |
 | Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts/reply drafts/forward drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
 | Himalaya CLI | Local email CLI used by the private bridge to access Gmail. | `HIMALAYA_BIN`, `HIMALAYA_ARCHIVE_FOLDER`, and `HIMALAYA_DRAFTS_FOLDER` in bridge env. |
 | Otter.ai | Transcript source for listing, fetching raw transcript JSON, and transcript search. | Authenticated on the bridge host through Otter CLI config; no Otter credentials are committed. |
@@ -147,7 +147,7 @@ The ElevenLabs agent also has focused wrappers for local CLIs:
 - `himalaya_email_archive`, `himalaya_draft_create`, `create_reply_all_draft`, `create_forward_draft`, and `himalaya_email_send`
 - `otter_speeches_list`, `otter_speech_get`, and `otter_speech_search`
 - `github_cli_common`
-- `rss_recent_economist_entries`, `rss_search_economist_entries`, and `rss_get_economist_article_text`
+- `rss_list_feeds`, `rss_recent_entries`, `rss_search_entries`, `rss_get_article_text`, and `rss_refresh_feeds`
 - `conversation_history_search` and `conversation_history_get`
 - `claude_code`
 
@@ -157,9 +157,9 @@ Email write tools require explicit confirmation. They can archive email and save
 
 `claude_code` is intentionally not a default reasoning path. It supports `auth_status`, `start_session`, `submit_task`, and `job_status`; task submission is confirmation-gated and runs asynchronously on the private EC2 bridge.
 
-`rss_*` tools are backed by Miniflux on the private EC2 bridge, with RSS-Bridge preferred for full-text retrieval when it can match the requested article. For article URLs, the bridge infers the Economist section, queries the matching RSS-Bridge topic feed, then falls back to the latest feed, Miniflux original-content fetch, and the optional authenticated browser fetcher. `setup-and-testing-scripts/setup-miniflux-economist-feeds.mjs` creates an `Economist` category, subscribes to common Economist section feeds, enables Miniflux original-content fetching for those feeds, and triggers a refresh. The article text tool returns cleaned text and includes an `access_note` when the result appears to be only an excerpt or needs authenticated Economist access. Use `npm run elevenlabs:rss:conversation:test` to run an automated ElevenLabs smoke test for recent-list, keyword/date search, and article-text tool calls.
+`rss_*` tools read configured RSS or Atom feeds from `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the private EC2 bridge. Each feed has an id, title, URL, optional request headers, privacy flag, and cache TTL. The bridge fetches feed XML only, parses `content:encoded`, Atom `content`, or summary fields, redacts private URLs in responses, and caches feed fetches to avoid repeated polling. Store private full-text feed URLs, including the Economist feed URL, in `/etc/phoneclaw/rss-feeds.json` or another host-local secret file, not in Git or Worker config.
 
-The Economist's public RSS feeds generally provide headlines and excerpts. Current original-article fetches may be blocked by the publisher's Cloudflare challenge, so true subscriber full text depends on a fresh RSS-Bridge cookie or another authenticated browser path. Phoneclaw detects RSS-Bridge `403 Forbidden` placeholders and does not treat them as article text. Phoneclaw also supports an optional EC2 browser fallback when `ECONOMIST_BROWSER_FETCH_ENABLED=true`; store browser profile and storage state under `/var/lib/phoneclaw/`, not in the repo or service env.
+Use `npm run elevenlabs:rss:conversation:test` to run an automated ElevenLabs smoke test for recent-list, keyword/date search, and article-text tool calls.
 
 On the EC2 bridge, run-mode Claude Code jobs may be configured with `CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true`. That starts confirmed run jobs with Claude Code `bypassPermissions` plus `--dangerously-skip-permissions`, so jobs do not hang on permission prompts. This setting should be paired with a locked-down bridge: localhost-only Fastify, Cloudflare Tunnel, bearer-token tool auth, restricted SSH, and no public bridge port.
 
@@ -180,7 +180,7 @@ Cloudflare Workers cannot run those binaries directly. The Worker proxies `/cli/
 
 `GET /visualizer` serves a password-protected React Router dashboard from the Cloudflare Worker. It displays recent live ElevenLabs conversations, archived Neon summaries, transcript turns, tool calls/results, recent Twilio events, and action links extracted from tool results.
 
-The dashboard turns GitHub issue results, Gmail draft results, and Economist article results into tap-friendly links. Gmail draft links use Gmail search against the exact draft subject because Himalaya draft ids are not stable Gmail web URLs.
+The dashboard turns GitHub issue results, Gmail draft results, and RSS article results into tap-friendly links. Gmail draft links use Gmail search against the exact draft subject because Himalaya draft ids are not stable Gmail web URLs.
 
 Run `npm run visualizer:build` before deploying the Worker. The build embeds the visualizer output into `cloudflare-worker/visualizer-assets.generated.mjs`. Configure `VISUALIZER_PASSWORD` as a Worker secret, not in committed config. After deployment, validate with `npm run visualizer:test` while `VISUALIZER_PASSWORD` is present in the local shell.
 

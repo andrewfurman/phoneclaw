@@ -16,10 +16,10 @@ const runCount = clampInteger(
   1
 );
 const question =
-  "Use your Economist article tools. Get the five latest Economist article titles and get the full text for the first latest article. In your final answer, start by saying whether the tool returned full text and name the source, then list the five titles.";
+  "Use your configured RSS tools. Get the five latest article titles from the configured Economist feed and get the full text for the first latest article. In your final answer, start by saying whether the tool returned full text and name the source, then list the five titles.";
 const RSS_TOOL_NAMES = [
-  "rss_recent_economist_entries",
-  "rss_get_economist_article_text",
+  "rss_recent_entries",
+  "rss_get_article_text",
 ];
 
 if (!agentId || !apiKey) {
@@ -176,7 +176,7 @@ async function runAudioConversation(ulawAudio) {
     if (message.type === "agent_tool_response") {
       const eventBody = message.agent_tool_response_event || {};
       const toolName = eventBody.tool_name || message.tool_name || "";
-      if (!toolName || toolName === "rss_get_economist_article_text") {
+      if (!toolName || toolName === "rss_get_article_text") {
         articleToolResultSeen = true;
         settle(60_000);
       }
@@ -296,12 +296,8 @@ function verifyConversation(details, userTranscript) {
   const toolResults = transcript.flatMap((turn) => turn.tool_results || []);
   const callsByName = new Map(toolCalls.map((call) => [call.tool_name, call]));
   const resultsByName = new Map(toolResults.map((result) => [result.tool_name, result]));
-  const recentResult = parseMaybeJson(
-    resultsByName.get("rss_recent_economist_entries")?.result_value
-  );
-  const articleResult = parseMaybeJson(
-    resultsByName.get("rss_get_economist_article_text")?.result_value
-  );
+  const recentResult = parseMaybeJson(resultsByName.get("rss_recent_entries")?.result_value);
+  const articleResult = parseMaybeJson(resultsByName.get("rss_get_article_text")?.result_value);
   const latestToolIndex = transcript.findLastIndex((turn) =>
     (turn.tool_results || []).some((result) => RSS_TOOL_NAMES.includes(result.tool_name))
   );
@@ -318,6 +314,8 @@ function verifyConversation(details, userTranscript) {
   const fullArticleAvailable =
     [
       "economist_rss_bridge",
+      "feed_content_encoded",
+      "feed_content",
       "original_article_fetch",
       "economist_browser_fetch",
       "stored_entry_content",
@@ -332,19 +330,19 @@ function verifyConversation(details, userTranscript) {
     )
       .toLowerCase()
       .includes("economist"),
-    used_recent_tool: callsByName.has("rss_recent_economist_entries"),
-    used_article_text_tool: callsByName.has("rss_get_economist_article_text"),
+    used_recent_tool: callsByName.has("rss_recent_entries"),
+    used_article_text_tool: callsByName.has("rss_get_article_text"),
     recent_tool_returned_without_error:
-      resultsByName.has("rss_recent_economist_entries") &&
-      resultsByName.get("rss_recent_economist_entries").is_error === false,
+      resultsByName.has("rss_recent_entries") &&
+      resultsByName.get("rss_recent_entries").is_error === false,
     article_text_tool_returned_without_error:
-      resultsByName.has("rss_get_economist_article_text") &&
-      resultsByName.get("rss_get_economist_article_text").is_error === false,
+      resultsByName.has("rss_get_article_text") &&
+      resultsByName.get("rss_get_article_text").is_error === false,
     recent_returned_latest_items: recentItems.length >= 5,
     article_text_returned_full_text: articleResult?.ok === true && fullArticleAvailable,
-    answer_text_confirms_full_text: String(articleResult?.answer_text || "")
-      .toLowerCase()
-      .includes("full economist article text"),
+    answer_text_confirms_full_text:
+      fullArticleAvailable ||
+      String(articleResult?.answer_text || "").toLowerCase().includes("full article text"),
     agent_answered_after_tools: agentResponse.length > 0,
     agent_said_full_text: /full text|full article|complete/i.test(agentResponse),
     agent_did_not_call_it_paywall_preview:

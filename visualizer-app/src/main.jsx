@@ -655,10 +655,10 @@ function extractToolLinks(item) {
       continue;
     }
 
-    if (isEconomistUrl(url)) {
+    if (isRssArticleObject(object) || isEconomistUrl(url)) {
       links.push({
-        type: "economist_article",
-        label: object.title || object.name || "Open Economist article",
+        type: "rss_article",
+        label: object.title || object.name || "Open article",
         detail: formatDateTime(object.published_at || object.date || object.created_at),
         href: url,
       });
@@ -781,9 +781,9 @@ function groupLinks(links) {
     github_issue: "GitHub issues",
     github: "GitHub",
     gmail_draft: "Gmail drafts",
-    economist_article: "Economist articles",
+    rss_article: "RSS articles",
   };
-  const order = ["github_issue", "gmail_draft", "economist_article", "github"];
+  const order = ["github_issue", "gmail_draft", "rss_article", "github"];
   const groups = [];
   for (const type of order) {
     const groupLinksForType = links.filter((link) => link.type === type);
@@ -819,9 +819,9 @@ function toolSummary(item) {
     return `${draftLabel(value.action)} saved${value.subject ? `: ${value.subject}` : ""}.`;
   }
   if (item.name?.startsWith("rss_") && Array.isArray(value.items)) {
-    return `Returned ${value.items.length} Economist article${value.items.length === 1 ? "" : "s"}.`;
+    return `Returned ${value.items.length} RSS article${value.items.length === 1 ? "" : "s"}.`;
   }
-  if (item.name === "rss_get_economist_article_text") {
+  if (item.name === "rss_get_article_text" || item.name === "rss_get_economist_article_text") {
     return `Fetched ${value.full_text_chars || 0} characters from ${value.entry?.title || "the article"}.`;
   }
   if (value.answer_text) return value.answer_text;
@@ -890,6 +890,15 @@ function isGithubIssueUrl(value) {
 
 function isEconomistUrl(value) {
   return /^https:\/\/(www\.)?economist\.com\//i.test(String(value || ""));
+}
+
+function isRssArticleObject(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      (value.feed_id || value.feed_title || value.content_source) &&
+      (value.url || value.article_url || value.link)
+  );
 }
 
 function realText(value) {

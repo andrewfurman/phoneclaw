@@ -36,6 +36,14 @@ import {
   rssSearchEntries,
 } from "./miniflux-tools.mjs";
 import {
+  configuredRssFeedsConfigured,
+  rssConfiguredEntryFullText,
+  rssConfiguredRecentEntries,
+  rssConfiguredSearchEntries,
+  rssListConfiguredFeeds,
+  rssRefreshConfiguredFeeds,
+} from "./rss-feed-tools.mjs";
+import {
   githubCliCatGh,
   githubCliLsGh,
   githubIssueCreateGh,
@@ -132,6 +140,11 @@ app.get("/", async () => ({
     rss_search_economist_entries: "POST /cli/rss/economist/search",
     rss_get_economist_article_text: "POST /cli/rss/economist/article-text",
     rss_refresh_economist_feeds: "POST /cli/rss/economist/refresh",
+    rss_list_feeds: "POST /cli/rss/feeds",
+    rss_recent_entries: "POST /cli/rss/recent",
+    rss_search_entries: "POST /cli/rss/search",
+    rss_get_article_text: "POST /cli/rss/article-text",
+    rss_refresh_feeds: "POST /cli/rss/refresh",
     claude_code: "POST /cli/claude-code",
     conversation_history_search: "POST /conversation-history/search",
     conversation_history_get: "POST /conversation-history/get",
@@ -154,6 +167,7 @@ app.get("/health", async () => ({
   economist_rss_bridge_configured: economistRssBridgeConfigured(),
   economist_public_rss_configured: Boolean(economistPublicRssToken),
   economist_browser_fetch_configured: economistFullTextBrowserConfigured(),
+  configured_rss_feeds_configured: configuredRssFeedsConfigured(),
   conversation_history_configured: conversationHistoryConfigured(),
   expected_elevenlabs_audio_format: ELEVENLABS_TELEPHONY_AUDIO_FORMAT,
   allowed_caller_numbers_configured:
@@ -272,6 +286,24 @@ app.post("/cli/rss/economist/article-text", async (request, reply) =>
 
 app.post("/cli/rss/economist/refresh", async (request, reply) =>
   handleRssRefreshEconomistFeeds(request, reply)
+);
+
+app.post("/cli/rss/feeds", async (request, reply) => handleRssListFeeds(request, reply));
+
+app.post("/cli/rss/recent", async (request, reply) =>
+  handleRssRecentEntries(request, reply)
+);
+
+app.post("/cli/rss/search", async (request, reply) =>
+  handleRssSearchEntries(request, reply)
+);
+
+app.post("/cli/rss/article-text", async (request, reply) =>
+  handleRssGetArticleText(request, reply)
+);
+
+app.post("/cli/rss/refresh", async (request, reply) =>
+  handleRssRefreshFeeds(request, reply)
 );
 
 app.post("/cli/claude-code", async (request, reply) =>
@@ -1037,6 +1069,71 @@ async function handleRssRefreshEconomistFeeds(request, reply) {
   return reply.code(toolResultStatusCode(result)).send(result);
 }
 
+async function handleRssListFeeds(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const result = await rssListConfiguredFeeds();
+
+  return reply.code(toolResultStatusCode(result)).send(result);
+}
+
+async function handleRssRecentEntries(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await rssConfiguredRecentEntries({
+    feedId: body.feed_id || body.feedId,
+    limit: body.limit || body.max_results || body.maxResults,
+    maxExcerptChars: body.max_excerpt_chars || body.maxExcerptChars,
+    refresh: body.refresh,
+  });
+
+  return reply.code(toolResultStatusCode(result)).send(result);
+}
+
+async function handleRssSearchEntries(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await rssConfiguredSearchEntries({
+    feedId: body.feed_id || body.feedId,
+    query: body.query || body.search_query || body.searchQuery,
+    startDate: body.start_date || body.startDate,
+    endDate: body.end_date || body.endDate,
+    limit: body.limit || body.max_results || body.maxResults,
+    maxExcerptChars: body.max_excerpt_chars || body.maxExcerptChars,
+    refresh: body.refresh,
+  });
+
+  return reply.code(toolResultStatusCode(result)).send(result);
+}
+
+async function handleRssGetArticleText(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await rssConfiguredEntryFullText({
+    entryId: body.entry_id || body.entryId || body.id,
+    articleUrl: body.article_url || body.articleUrl || body.url,
+    feedId: body.feed_id || body.feedId,
+    maxTextChars: body.max_text_chars || body.maxTextChars,
+    refresh: body.refresh,
+  });
+
+  return reply.code(toolResultStatusCode(result)).send(result);
+}
+
+async function handleRssRefreshFeeds(request, reply) {
+  if (!validateCliToolAuth(request, reply)) return;
+
+  const body = request.body || {};
+  const result = await rssRefreshConfiguredFeeds({
+    feedId: body.feed_id || body.feedId,
+  });
+
+  return reply.code(toolResultStatusCode(result)).send(result);
+}
+
 async function handleClaudeCodeTool(request, reply) {
   if (!validateCliToolAuth(request, reply)) return;
 
@@ -1134,6 +1231,7 @@ function toolResultStatusCode(result) {
       "conversation_history_not_configured",
       "cli_bridge_not_configured",
       "miniflux_not_configured",
+      "rss_feeds_not_configured",
       "tool_auth_not_configured",
     ].includes(result.status)
   ) {
