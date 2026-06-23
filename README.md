@@ -1,6 +1,6 @@
-# Claw Phone
+# phone-claw
 
-Claw Phone is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
+phone-claw is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
 
 This is intentionally public-safe. Real API keys, account IDs, phone numbers, webhook tokens, and local deploy config stay in ignored files or provider secret stores.
 
@@ -17,7 +17,7 @@ This is intentionally public-safe. Real API keys, account IDs, phone numbers, we
 
 This project intentionally keeps provider configuration explicit because the voice agent touches phone calls, email, GitHub, search, and personal transcripts.
 
-| Service | Role in Claw Phone | Config and secrets |
+| Service | Role in phone-claw | Config and secrets |
 | --- | --- | --- |
 | Twilio | Owns the phone number, receives inbound calls, sends voice/status webhooks, and bridges phone audio through Media Streams. | Twilio account settings plus Worker secrets such as `TWILIO_WEBHOOK_TOKEN`, `ALLOWED_CALLER_NUMBERS`, and `OUTSIDE_COVERAGE_MESSAGE`. Setup notes live in `twilio-setup/`. |
 | ElevenLabs | Hosts the Conversational AI voice agent, voice settings, LLM settings, and webhook tool definitions. | `ELEVENLABS_AGENT_ID` in Worker config, `ELEVENLABS_API_KEY` as a secret, and sanitized exported config in `elevenlabs-setup/`. |
@@ -31,9 +31,9 @@ This project intentionally keeps provider configuration explicit because the voi
 | DuckDuckGo | No-key fallback web search provider. | No secret required. Used only when Tavily is not configured. |
 | Yahoo Finance public chart API | Market-history enrichment for WTI crude high/low/range questions. | No secret required. Used as a compact fallback to avoid relying only on generic search snippets. |
 | ESPN public scoreboard endpoint | Prototype sports enrichment for FIFA World Cup schedule/score queries. | No secret required. Treat as a convenience endpoint, not a committed long-term sports-data contract. |
-| Neon | Optional Postgres archive for Phoneclaw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
-| Miniflux | Private RSS/article backend for Economist feed listings, keyword/date search, and original-content fetch attempts. | Runs on EC2 bound to localhost. Phoneclaw uses `MINIFLUX_BASE_URL` and `MINIFLUX_API_TOKEN` in bridge env. |
-| RSS-Bridge | Secure full-text Economist latest/daily Atom feed. | RSS-Bridge itself stays on `127.0.0.1`; the EC2 bridge exposes a token-protected allow-listed Atom route. Phoneclaw uses `ECONOMIST_RSS_BRIDGE_URL` plus `ECONOMIST_RSS_BRIDGE_TOKEN` or `ECONOMIST_PUBLIC_RSS_TOKEN`. |
+| Neon | Optional Postgres archive for phone-claw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
+| Miniflux | Private RSS/article backend for Economist feed listings, keyword/date search, and original-content fetch attempts. | Runs on EC2 bound to localhost. phone-claw uses `MINIFLUX_BASE_URL` and `MINIFLUX_API_TOKEN` in bridge env. |
+| RSS-Bridge | Secure full-text Economist latest/daily Atom feed. | RSS-Bridge itself stays on `127.0.0.1`; the EC2 bridge exposes a token-protected allow-listed Atom route. phone-claw uses `ECONOMIST_RSS_BRIDGE_URL` plus `ECONOMIST_RSS_BRIDGE_TOKEN` or `ECONOMIST_PUBLIC_RSS_TOKEN`. |
 | Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts/reply drafts/forward drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
 | Himalaya CLI | Local email CLI used by the private bridge to access Gmail. | `HIMALAYA_BIN`, `HIMALAYA_ARCHIVE_FOLDER`, and `HIMALAYA_DRAFTS_FOLDER` in bridge env. |
 | Otter.ai | Transcript source for listing, fetching raw transcript JSON, and transcript search. | Authenticated on the bridge host through Otter CLI config; no Otter credentials are committed. |
@@ -159,7 +159,7 @@ Email write tools require explicit confirmation. They can archive email and save
 
 `rss_*` tools are backed by Miniflux on the private EC2 bridge, with RSS-Bridge preferred for full-text retrieval when it can match the requested article. For article URLs, the bridge infers the Economist section, queries the matching RSS-Bridge topic feed, then falls back to the latest feed, Miniflux original-content fetch, and the optional authenticated browser fetcher. `setup-and-testing-scripts/setup-miniflux-economist-feeds.mjs` creates an `Economist` category, subscribes to common Economist section feeds, enables Miniflux original-content fetching for those feeds, and triggers a refresh. The article text tool returns cleaned text and includes an `access_note` when the result appears to be only an excerpt or needs authenticated Economist access. Use `npm run elevenlabs:rss:conversation:test` to run an automated ElevenLabs smoke test for recent-list, keyword/date search, and article-text tool calls.
 
-The Economist's public RSS feeds generally provide headlines and excerpts. Current original-article fetches may be blocked by the publisher's Cloudflare challenge, so true subscriber full text depends on a fresh RSS-Bridge cookie or another authenticated browser path. Phoneclaw detects RSS-Bridge `403 Forbidden` placeholders and does not treat them as article text. Phoneclaw also supports an optional EC2 browser fallback when `ECONOMIST_BROWSER_FETCH_ENABLED=true`; store browser profile and storage state under `/var/lib/phoneclaw/`, not in the repo or service env.
+The Economist's public RSS feeds generally provide headlines and excerpts. Current original-article fetches may be blocked by the publisher's Cloudflare challenge, so true subscriber full text depends on a fresh RSS-Bridge cookie or another authenticated browser path. phone-claw detects RSS-Bridge `403 Forbidden` placeholders and does not treat them as article text. phone-claw also supports an optional EC2 browser fallback when `ECONOMIST_BROWSER_FETCH_ENABLED=true`; store browser profile and storage state under `/var/lib/phoneclaw/`, not in the repo or service env.
 
 On the EC2 bridge, run-mode Claude Code jobs may be configured with `CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true`. That starts confirmed run jobs with Claude Code `bypassPermissions` plus `--dangerously-skip-permissions`, so jobs do not hang on permission prompts. This setting should be paired with a locked-down bridge: localhost-only Fastify, Cloudflare Tunnel, bearer-token tool auth, restricted SSH, and no public bridge port.
 
