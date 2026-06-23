@@ -1,6 +1,6 @@
-# Claw Phone
+# phone claw
 
-Claw Phone is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
+phone claw is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
 
 This is intentionally public-safe. Real API keys, account IDs, phone numbers, webhook tokens, and local deploy config stay in ignored files or provider secret stores.
 
@@ -17,7 +17,7 @@ This is intentionally public-safe. Real API keys, account IDs, phone numbers, we
 
 This project intentionally keeps provider configuration explicit because the voice agent touches phone calls, email, GitHub, search, and personal transcripts.
 
-| Service | Role in Claw Phone | Config and secrets |
+| Service | Role in phone claw | Config and secrets |
 | --- | --- | --- |
 | Twilio | Owns the phone number, receives inbound calls, sends voice/status webhooks, and bridges phone audio through Media Streams. | Twilio account settings plus Worker secrets such as `TWILIO_WEBHOOK_TOKEN`, `ALLOWED_CALLER_NUMBERS`, and `OUTSIDE_COVERAGE_MESSAGE`. Setup notes live in `twilio-setup/`. |
 | ElevenLabs | Hosts the Conversational AI voice agent, voice settings, LLM settings, and webhook tool definitions. | `ELEVENLABS_AGENT_ID` in Worker config, `ELEVENLABS_API_KEY` as a secret, and sanitized exported config in `elevenlabs-setup/`. |
@@ -31,14 +31,14 @@ This project intentionally keeps provider configuration explicit because the voi
 | DuckDuckGo | No-key fallback web search provider. | No secret required. Used only when Tavily is not configured. |
 | Yahoo Finance public chart API | Market-history enrichment for WTI crude high/low/range questions. | No secret required. Used as a compact fallback to avoid relying only on generic search snippets. |
 | ESPN public scoreboard endpoint | Prototype sports enrichment for FIFA World Cup schedule/score queries. | No secret required. Treat as a convenience endpoint, not a committed long-term sports-data contract. |
-| Neon | Optional Postgres archive for Phoneclaw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
+| Neon | Optional Postgres archive for phone claw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
 | Configured RSS feeds | Public or private RSS/Atom feeds exposed to the voice agent by feed id. | Store feed URLs in `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the EC2 bridge. Private URLs are redacted in tool responses and should never be committed. |
 | Miniflux/RSS-Bridge | Legacy RSS backends kept for compatibility while configured feeds replace publisher-specific tooling. | Legacy settings remain documented in `docs/EC2_BARE_METAL_BRIDGE.md`; new integrations should prefer generic configured feeds. |
 | Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts/reply drafts/forward drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
 | Himalaya CLI | Local email CLI used by the private bridge to access Gmail. | `HIMALAYA_BIN`, `HIMALAYA_ARCHIVE_FOLDER`, and `HIMALAYA_DRAFTS_FOLDER` in bridge env. |
 | Otter.ai | Transcript source for listing, fetching raw transcript JSON, and transcript search. | Authenticated on the bridge host through Otter CLI config; no Otter credentials are committed. |
 | Otter CLI | Local CLI used by the private bridge to access Otter transcripts. | `OTTER_BIN` in bridge env. |
-| Claude Code | Optional explicit escalation target for complex code changes and test runs. The voice agent can start/check sessions and submit async jobs on the EC2 bridge only after confirmation. | `CLAUDE_BIN`, `CLAUDE_CODE_JOB_DIR`, `CLAUDE_CODE_ALLOWED_DIRS`, and either Claude Code login state or `ANTHROPIC_API_KEY` on the private bridge. |
+| Claude Code | Optional explicit escalation target for complex code changes and test runs. The voice agent can start/check/steer sessions and submit async jobs on the EC2 bridge only after confirmation. | `CLAUDE_BIN`, `CLAUDE_CODE_JOB_DIR`, `CLAUDE_CODE_STEERING_DIR`, `CLAUDE_CODE_ALLOWED_DIRS`, and either Claude Code login state or `ANTHROPIC_API_KEY` on the private bridge. |
 | AWS CLI | Available to Claude Code on the EC2 bridge for AWS account operations when explicitly requested. | `AWS_PROFILE=phoneclaw-personal` on the bridge. Credentials stay in the service user's AWS config, not the repo. |
 | Railway CLI, Vercel CLI, Wrangler | Installed on the EC2 bridge for future deployment workflows. | These CLIs still require token/login configuration before use. |
 
@@ -155,7 +155,7 @@ Email write tools require explicit confirmation. They can archive email and save
 
 `himalaya_email_list` is paginated by default and returns compact envelope metadata only: id, subject, sender, recipients, date, flags, and attachment presence. Use `all_pages=true` on the same tool for complete folder lists and total-count questions such as "how many emails are in my inbox?" All-pages mode returns at most 200 envelopes by default and reports `has_more`, `complete`, and `capped` so the agent does not dump an entire mailbox into context.
 
-`claude_code` is intentionally not a default reasoning path. It supports `auth_status`, `start_session`, `submit_task`, and `job_status`; task submission is confirmation-gated and runs asynchronously on the private EC2 bridge.
+`claude_code` is intentionally not a default reasoning path. It supports `auth_status`, `start_session`, `submit_task`, `steer_session`, and `job_status`; task submission and steering instructions are confirmation-gated. Run jobs are asynchronous on the private EC2 bridge, and steering instructions let Andrew update or redirect the same Claude Code session instead of starting over.
 
 `rss_*` tools read configured RSS or Atom feeds from `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the private EC2 bridge. Each feed has an id, title, URL, optional request headers, privacy flag, and cache TTL. The bridge fetches feed XML only, parses `content:encoded`, Atom `content`, or summary fields, redacts private URLs in responses, and caches feed fetches to avoid repeated polling. Store private full-text feed URLs, including the Economist feed URL, in `/etc/phoneclaw/rss-feeds.json` or another host-local secret file, not in Git or Worker config.
 

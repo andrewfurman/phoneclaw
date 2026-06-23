@@ -1146,6 +1146,11 @@ async function handleClaudeCodeTool(request, reply) {
     sessionId: body.session_id || body.sessionId,
     jobId: body.job_id || body.jobId,
     mode: body.mode,
+    instructions:
+      body.instructions ||
+      body.steering_instructions ||
+      body.steeringInstructions ||
+      body.message,
     confirmed: body.confirmed,
     maxSeconds: body.max_seconds || body.maxSeconds,
   });
@@ -1218,6 +1223,7 @@ function isClaudeCodeToolResponse(result) {
       "claude_not_authenticated",
       "job_not_found",
       "session_ready",
+      "steering_recorded",
       "working_directory_not_allowed",
     ].includes(result.status)
   );

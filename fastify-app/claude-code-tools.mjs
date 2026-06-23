@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve, relative, sep } from "node:path";
 
 const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const MAX_TIMEOUT_MS = 30 * 60 * 1000;
 const MAX_OUTPUT_BYTES = 80_000;
 const MAX_ANSWER_BYTES = 6_000;
+const MAX_STEERING_INSTRUCTION_BYTES = 12_000;
 
 const runningJobs = new Map();
 
@@ -17,12 +18,13 @@ export async function claudeCodeTool({
   sessionId,
   jobId,
   mode = "run",
+  instructions = "",
   confirmed = false,
   maxSeconds,
 } = {}) {
   const normalizedAction = normalizeEnum(
     action,
-    ["auth_status", "start_session", "submit_task", "job_status"],
+    ["auth_status", "start_session", "submit_task", "job_status", "steer_session"],
     task ? "submit_task" : "auth_status"
   );
 
@@ -52,6 +54,15 @@ export async function claudeCodeTool({
       return missingField("job_id", "A Claude Code job_id is required.");
     }
     return claudeJobStatus(normalizedJobId);
+  }
+
+  if (normalizedAction === "steer_session") {
+    return claudeSteerSession({
+      instructions: instructions || task,
+      sessionId,
+      jobId,
+      confirmed,
+    });
   }
 
   const prompt = normalizeString(task);
@@ -95,6 +106,7 @@ export async function claudeCodeTool({
     clampInteger(maxSeconds, 30, Math.floor(MAX_TIMEOUT_MS / 1000), DEFAULT_TIMEOUT_MS / 1000) *
     1000;
   const normalizedJobId = randomUUID();
+  const steeringFile = await ensureSteeringFile(normalizedSessionId);
   const now = new Date().toISOString();
   const job = {
     ok: true,
@@ -106,6 +118,9 @@ export async function claudeCodeTool({
     permission_mode: claudePermissionMode(normalizedMode),
     dangerously_skip_permissions: shouldDangerouslySkipPermissions(normalizedMode),
     working_directory: cwdResult.cwd,
+    steering_file: steeringFile,
+    steering_instruction_count: 0,
+    latest_steering_instruction: "",
     created_at: now,
     updated_at: now,
     exit_code: null,
@@ -119,6 +134,8 @@ export async function claudeCodeTool({
 
   runningJobs.set(normalizedJobId, {
     process: null,
+    session_id: normalizedSessionId,
+    steering_file: steeringFile,
     output: "",
     error: "",
     timeout: null,
@@ -127,7 +144,7 @@ export async function claudeCodeTool({
 
   startClaudeJob({
     job,
-    task: buildClaudeTaskPrompt(prompt, normalizedMode),
+    task: buildClaudeTaskPrompt(prompt, normalizedMode, { steeringFile }),
     cwd: cwdResult.cwd,
     sessionId: normalizedSessionId,
     mode: normalizedMode,
@@ -144,9 +161,86 @@ export async function claudeCodeTool({
     permission_mode: job.permission_mode,
     dangerously_skip_permissions: job.dangerously_skip_permissions,
     working_directory: cwdResult.cwd,
+    steering_file: steeringFile,
     answer_text:
       `Started Claude Code ${normalizedMode} job ${normalizedJobId}. ` +
       "Ask for job status before saying the code work is complete.",
+  };
+}
+
+async function claudeSteerSession({
+  instructions,
+  sessionId,
+  jobId,
+  confirmed = false,
+} = {}) {
+  const normalizedInstructions = normalizeString(instructions);
+  if (!normalizedInstructions) {
+    return missingField(
+      "instructions",
+      "Steering instructions are required before updating a Claude Code session."
+    );
+  }
+
+  if (!toBoolean(confirmed)) {
+    return {
+      ok: false,
+      status: "confirmation_required",
+      action: "steer_session",
+      message:
+        "Ask Andrew to confirm the exact steering instructions before appending them to the Claude Code session.",
+      answer_text:
+        "I need Andrew to confirm the exact steering instructions before updating the Claude Code session.",
+    };
+  }
+
+  const normalizedJobId = normalizeUuid(jobId);
+  const running = normalizedJobId ? runningJobs.get(normalizedJobId) : null;
+  const storedJob = normalizedJobId ? await readJob(normalizedJobId).catch(() => null) : null;
+  if (normalizedJobId && !running && !storedJob) {
+    return {
+      ok: false,
+      status: "job_not_found",
+      action: "steer_session",
+      job_id: normalizedJobId,
+      answer_text: `I could not find Claude Code job ${normalizedJobId}.`,
+    };
+  }
+
+  const normalizedSessionId =
+    normalizeUuid(sessionId) ||
+    normalizeUuid(running?.session_id) ||
+    normalizeUuid(storedJob?.session_id);
+  if (!normalizedSessionId) {
+    return missingField(
+      "session_id",
+      "A Claude Code session_id or known job_id is required for steering instructions."
+    );
+  }
+
+  const record = await appendSteeringInstruction({
+    sessionId: normalizedSessionId,
+    jobId: normalizedJobId,
+    instructions: normalizedInstructions,
+  });
+  const runningJob = Boolean(
+    running ||
+      [...runningJobs.values()].some((item) => item.session_id === normalizedSessionId)
+  );
+
+  return {
+    ok: true,
+    status: "steering_recorded",
+    action: "steer_session",
+    session_id: normalizedSessionId,
+    job_id: normalizedJobId,
+    steering_id: record.steering_id,
+    steering_file: record.steering_file,
+    running_job: runningJob,
+    instructions_preview: truncateUtf8(redact(normalizedInstructions), 600).value,
+    answer_text: runningJob
+      ? "Added steering instructions to the active Claude Code session."
+      : "Recorded steering instructions for that Claude Code session.",
   };
 }
 
@@ -181,8 +275,13 @@ async function claudeJobStatus(jobId) {
   const running = runningJobs.get(jobId);
   if (running) {
     const job = await readJob(jobId).catch(() => null);
+    const withSteering = await attachSteeringMetadata(job || {
+      job_id: jobId,
+      session_id: running.session_id,
+      steering_file: running.steering_file,
+    });
     return {
-      ...(job || {}),
+      ...withSteering,
       ok: true,
       status: "running",
       job_id: jobId,
@@ -202,7 +301,7 @@ async function claudeJobStatus(jobId) {
   }
 
   return {
-    ...job,
+    ...(await attachSteeringMetadata(job)),
     output_preview: claudeOutputPreview(job),
     answer_text:
       job.status === "completed"
@@ -283,8 +382,10 @@ function startClaudeJob({ job, task, cwd, sessionId, mode, timeoutMs }) {
     const parsed = parseMaybeJson(output);
     const timedOut = signal === "SIGTERM" && code === null;
     const status = timedOut ? "timed_out" : code === 0 ? "completed" : "failed";
+    const steeringMetadata = await steeringJobMetadata(job.session_id);
     await writeJob({
       ...job,
+      ...steeringMetadata,
       status,
       updated_at: new Date().toISOString(),
       exit_code: code,
@@ -301,13 +402,19 @@ function startClaudeJob({ job, task, cwd, sessionId, mode, timeoutMs }) {
   });
 }
 
-function buildClaudeTaskPrompt(task, mode) {
+function buildClaudeTaskPrompt(task, mode, { steeringFile = "" } = {}) {
   const guardrails = [
-    "You are running from Phoneclaw's voice-agent bridge on an EC2 host.",
+    "You are running from phone claw's voice-agent bridge on an EC2 host.",
     "Work only in the current repository unless the user explicitly named another allowed path.",
     "Do not push commits, deploy, rotate secrets, or perform destructive operations unless the user explicitly requested that exact action.",
     "Do not reveal secrets or credential values. Redact any secret-like value you encounter.",
   ];
+
+  if (steeringFile) {
+    guardrails.push(
+      `This session has a steering instruction file at ${steeringFile}. Re-read it before planning, before editing files, before running verification, and before your final answer. Each JSONL line is an instruction record from Andrew; later records override or refine earlier ones. If a new steering instruction conflicts with the original task, follow the latest steering instruction and mention the change in your final summary.`
+    );
+  }
 
   if (mode === "plan") {
     guardrails.push("Plan only. Do not edit files or run mutating commands.");
@@ -438,6 +545,70 @@ function jobDir() {
 
 function jobPath(jobId) {
   return resolve(jobDir(), `${jobId}.json`);
+}
+
+async function ensureSteeringFile(sessionId) {
+  const filePath = steeringPath(sessionId);
+  await mkdir(steeringDir(), { recursive: true });
+  await appendFile(filePath, "", "utf8");
+  return filePath;
+}
+
+async function appendSteeringInstruction({ sessionId, jobId, instructions }) {
+  const filePath = await ensureSteeringFile(sessionId);
+  const record = {
+    steering_id: randomUUID(),
+    created_at: new Date().toISOString(),
+    session_id: sessionId,
+    job_id: jobId || "",
+    instructions: truncateUtf8(redact(instructions), MAX_STEERING_INSTRUCTION_BYTES).value,
+  };
+  await appendFile(filePath, `${JSON.stringify(record)}\n`, "utf8");
+  return {
+    ...record,
+    steering_file: filePath,
+  };
+}
+
+async function readSteeringInstructions(sessionId) {
+  const normalizedSessionId = normalizeUuid(sessionId);
+  if (!normalizedSessionId) return [];
+
+  const text = await readFile(steeringPath(normalizedSessionId), "utf8").catch(() => "");
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map(parseMaybeJson)
+    .filter((item) => item && typeof item === "object");
+}
+
+async function steeringJobMetadata(sessionId) {
+  const instructions = await readSteeringInstructions(sessionId);
+  const latest = instructions.at(-1);
+  return {
+    steering_file: normalizeUuid(sessionId) ? steeringPath(sessionId) : "",
+    steering_instruction_count: instructions.length,
+    latest_steering_instruction: latest?.instructions
+      ? truncateUtf8(latest.instructions, 1_000).value
+      : "",
+  };
+}
+
+async function attachSteeringMetadata(job) {
+  if (!job) return job;
+  return {
+    ...job,
+    ...(await steeringJobMetadata(job.session_id)),
+  };
+}
+
+function steeringDir() {
+  return process.env.CLAUDE_CODE_STEERING_DIR || resolve(jobDir(), "steering");
+}
+
+function steeringPath(sessionId) {
+  return resolve(steeringDir(), `${normalizeUuid(sessionId)}.jsonl`);
 }
 
 function missingField(field, message) {

@@ -1370,7 +1370,7 @@ function claudeCodeToolConfig() {
   return webhookTool({
     name: "claude_code",
     description:
-      "Explicit escalation tool for Claude Code running on the private EC2 bridge. Use only when Andrew asks to use Claude Code, asks to start/check a Claude Code session, or confirms that a complex code change/test run should be delegated.",
+      "Explicit escalation tool for Claude Code running on the private EC2 bridge. Use only when Andrew asks to use Claude Code, asks to start/check/steer a Claude Code session, or confirms that a complex code change/test run should be delegated.",
     url: `${workerBaseUrl}/cli/claude-code`,
     required: ["action"],
     responseTimeoutSecs: 20,
@@ -1379,8 +1379,8 @@ function claudeCodeToolConfig() {
     requestProperties: {
       action: stringProperty({
         description:
-          "Action to run: auth_status checks Claude auth; start_session creates a session id; submit_task starts an async Claude Code job; job_status checks an existing job.",
-        values: ["auth_status", "start_session", "submit_task", "job_status"],
+          "Action to run: auth_status checks Claude auth; start_session creates a session id; submit_task starts an async Claude Code job; job_status checks an existing job; steer_session appends new steering instructions to an existing session or job.",
+        values: ["auth_status", "start_session", "submit_task", "job_status", "steer_session"],
       }),
       task: stringProperty({
         description:
@@ -1395,7 +1395,12 @@ function claudeCodeToolConfig() {
           "Optional Claude Code session UUID. Reuse this to continue the same Claude Code conversation.",
       }),
       job_id: stringProperty({
-        description: "Claude Code job UUID to check with action=job_status.",
+        description:
+          "Claude Code job UUID to check with action=job_status or to steer with action=steer_session.",
+      }),
+      instructions: stringProperty({
+        description:
+          "New steering instructions for action=steer_session. Use this when Andrew wants to update, redirect, or add requirements to an already-started Claude Code session/job.",
       }),
       mode: stringProperty({
         description:
@@ -1415,7 +1420,7 @@ function claudeCodeToolConfig() {
       ok: booleanProperty("Whether the bridge request succeeded."),
       status: stringProperty({
         description:
-          "Status such as ok, session_ready, running, completed, failed, claude_not_authenticated, confirmation_required, or job_not_found.",
+          "Status such as ok, session_ready, running, steering_recorded, completed, failed, claude_not_authenticated, confirmation_required, or job_not_found.",
       }),
       action: stringProperty({ description: "Action performed." }),
       authenticated: booleanProperty("Whether Claude Code is authenticated on the bridge."),
@@ -1424,6 +1429,21 @@ function claudeCodeToolConfig() {
       job_id: stringProperty({ description: "Claude Code async job UUID." }),
       mode: stringProperty({ description: "Claude Code mode: plan or run." }),
       working_directory: stringProperty({ description: "Repository path used on the bridge." }),
+      steering_file: stringProperty({
+        description:
+          "Bridge-local JSONL file where steering instructions for this session are stored.",
+      }),
+      steering_id: stringProperty({ description: "Steering instruction UUID." }),
+      steering_instruction_count: integerProperty({
+        description: "Number of steering instructions recorded for this session.",
+      }),
+      latest_steering_instruction: stringProperty({
+        description: "Latest recorded steering instruction, truncated.",
+      }),
+      running_job: booleanProperty("Whether a matching Claude Code job is currently running."),
+      instructions_preview: stringProperty({
+        description: "Short preview of the steering instructions that were recorded.",
+      }),
       created_at: stringProperty({ description: "Job creation timestamp." }),
       updated_at: stringProperty({ description: "Last job update timestamp." }),
       exit_code: integerProperty({ description: "Claude Code process exit code." }),
@@ -1838,13 +1858,15 @@ GitHub capability:
 - If a private repo returns 403, 404, or a GitHub validation failure, say the bridge's gh session may not have access to that repo, SSO authorization, org approval, or Contents read permission.
 
 Claude Code capability:
-- You have a webhook tool named claude_code that can check auth, start a session, submit an async Claude Code job on EC2, and check job status.
+- You have a webhook tool named claude_code that can check auth, start a session, submit an async Claude Code job on EC2, append steering instructions to an existing Claude Code session/job, and check job status.
 - Do not use Claude Code by default. First solve directly with conversation, web_search, GitHub, email, or Otter tools when that is enough.
 - Use claude_code only when Andrew explicitly asks to use Claude Code, asks to start/check a Claude Code session, or confirms that a complex code change or test run should be delegated to Claude Code.
 - Use action="auth_status" when Andrew asks whether Claude Code is ready.
 - Use action="start_session" when Andrew asks to start a Claude Code session. Remember and reuse the returned session_id.
 - Before action="submit_task", repeat the exact repository/path and task, then ask Andrew to confirm. Set confirmed=true only after that confirmation.
 - Use mode="plan" for read-only planning. Use mode="run" only after Andrew confirms edits/tests should run.
+- Use action="steer_session" when Andrew wants to update, redirect, clarify, or add instructions to an existing Claude Code session or running job. Pass the known session_id or job_id plus Andrew's new instructions. Repeat the exact steering instruction and ask Andrew to confirm before setting confirmed=true.
+- Steering instructions let Andrew keep shaping a Claude Code session while it runs. Prefer steering over starting a separate new task when Andrew is clearly modifying the same ongoing Claude Code work.
 - Claude Code jobs are asynchronous. After submit_task returns a job_id, tell Andrew the job started and use action="job_status" to check progress. Do not claim the code work is complete until job_status says completed.
 - Do not ask Claude Code to push commits, deploy, rotate secrets, or perform destructive operations unless Andrew explicitly requested that exact action.
 

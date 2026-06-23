@@ -141,13 +141,16 @@ Alternatively, store an Anthropic API key in `/etc/phoneclaw/bridge.env`:
 ANTHROPIC_API_KEY=...
 CLAUDE_BIN=claude
 CLAUDE_CODE_JOB_DIR=/var/lib/phoneclaw/claude-jobs
+CLAUDE_CODE_STEERING_DIR=/var/lib/phoneclaw/claude-steering
 CLAUDE_CODE_ALLOWED_DIRS=/opt/phoneclaw
 CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true
 CLAUDE_CODE_PERMISSION_MODE=bypassPermissions
 AWS_PROFILE=phoneclaw-personal
 ```
 
-The `claude_code` voice tool is intentionally explicit. It can check auth, create a session id, submit a confirmed async job, and poll job status. It should not be used as the default path for ordinary questions.
+The `claude_code` voice tool is intentionally explicit. It can check auth, create a session id, submit a confirmed async job, append confirmed steering instructions to an existing session or job, and poll job status. It should not be used as the default path for ordinary questions.
+
+Steering instructions are stored as session-scoped JSONL records under `CLAUDE_CODE_STEERING_DIR`. When a job starts, the bridge includes that file path in the Claude Code prompt and instructs Claude to re-read it before planning, editing, verification, and final response. This gives Andrew a way to keep shaping an active Claude Code session from the phone agent instead of submitting a task once and losing the thread.
 
 Run-mode jobs use Claude Code `bypassPermissions` plus `--dangerously-skip-permissions` when `CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true`, so they do not stall on permission prompts.
 

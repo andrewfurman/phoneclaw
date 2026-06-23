@@ -52,6 +52,7 @@ GH_BIN=gh
 GITHUB_USERNAME=andrewfurman
 CLAUDE_BIN=claude
 CLAUDE_CODE_JOB_DIR=/var/lib/phoneclaw/claude-jobs
+CLAUDE_CODE_STEERING_DIR=/var/lib/phoneclaw/claude-steering
 CLAUDE_CODE_ALLOWED_DIRS=/opt/phoneclaw
 CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true
 AWS_PROFILE=phoneclaw-personal
