@@ -768,6 +768,7 @@ async function handleHimalayaEmailArchive(request, reply) {
   const body = request.body || {};
   const result = await himalayaEmailArchive({
     id: body.id || body.envelope_id || body.envelopeId,
+    ids: body.ids || body.envelope_ids || body.envelopeIds,
     folder: body.folder,
     archiveFolder: body.archive_folder || body.archiveFolder,
     account: body.account,

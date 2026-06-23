@@ -616,16 +616,23 @@ function himalayaEmailArchiveToolConfig() {
   return webhookTool({
     name: "himalaya_email_archive",
     description:
-      "Archives an email by moving a Himalaya envelope from the source folder to the archive folder. This is a write action and requires Andrew's explicit confirmation.",
+      "Archives one or more emails by moving Himalaya envelopes from the source folder to the archive folder. This is a write action and requires Andrew's explicit confirmation.",
     url: `${workerBaseUrl}/cli/himalaya/email-archive`,
-    required: ["id", "confirmed"],
+    required: ["confirmed"],
     responseTimeoutSecs: 30,
     forcePreToolSpeech: true,
     toolCallSound: "typing",
     requestProperties: {
       id: stringProperty({
-        description: "Himalaya envelope id returned by himalaya_email_list.",
+        description:
+          "Single Himalaya envelope id returned by himalaya_email_list. Use ids instead when archiving multiple emails.",
       }),
+      ids: stringArrayProperty(
+        "Multiple Himalaya envelope ids returned by himalaya_email_list. Use this when Andrew confirms archiving more than one email."
+      ),
+      envelope_ids: stringArrayProperty(
+        "Alias for ids. Multiple Himalaya envelope ids returned by himalaya_email_list."
+      ),
       folder: stringProperty({
         description: "Source mailbox folder. Use INBOX by default.",
       }),
@@ -1483,6 +1490,9 @@ function emailWriteResponseProperties() {
         "Action performed, such as archived, draft_created, reply_draft_created, forward_draft_created, email_send_preview_required, email_send_confirmation_required, email_sent, email_send_timeout, or email_send_failed.",
     }),
     id: stringProperty({ description: "Himalaya envelope id when applicable." }),
+    ids: stringArrayProperty("Himalaya envelope ids when a batch action was requested."),
+    archived_count: integerProperty({ description: "Number of emails archived." }),
+    failed_count: integerProperty({ description: "Number of email archive operations that failed." }),
     draft_id: stringProperty({ description: "Saved Himalaya draft envelope id when available." }),
     source_folder: stringProperty({ description: "Source folder when applicable." }),
     target_folder: stringProperty({ description: "Target folder when applicable." }),
@@ -1715,7 +1725,7 @@ CLI capability:
 - Only treat total_count as exact when complete or exact is true.
 - Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
 - Do not read internal email envelope ids, Otter otids, database ids, UUIDs, Twilio SIDs, or Claude job/session ids aloud unless Andrew explicitly asks for the id or is confirming an action that requires that exact id. Use human-readable subjects, titles, senders, dates, and summaries in normal speech.
-- Use himalaya_email_archive only after Andrew explicitly confirms the exact envelope id and source folder. Set confirmed=true only after that confirmation.
+- Use himalaya_email_archive only after Andrew explicitly confirms the exact email or emails and source folder. For one email, pass id. For multiple emails, pass ids as an array in one tool call. Set confirmed=true only after that confirmation.
 - Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.
 - Use himalaya_draft_reply only after Andrew explicitly confirms the exact envelope id and reply body. It saves a reply draft only; it does not send email.
 - Use himalaya_email_forward when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and does not attach the original .eml.

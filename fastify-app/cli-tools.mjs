@@ -146,53 +146,76 @@ export async function himalayaEmailRead({
 
 export async function himalayaEmailArchive({
   id,
+  ids,
   folder = "INBOX",
   archiveFolder = process.env.HIMALAYA_ARCHIVE_FOLDER || "[Gmail]/All Mail",
   account,
   confirmed = false,
   maxRawBytes = DEFAULT_MAX_RAW_BYTES,
 } = {}) {
-  const messageId = normalizeString(id);
+  const messageIds = normalizeIdList(ids, id);
   const sourceFolder = normalizeString(folder, "INBOX");
   const targetFolder = normalizeString(archiveFolder, "[Gmail]/All Mail");
 
-  if (!messageId) {
+  if (messageIds.length === 0) {
     return missingField("id", "A Himalaya envelope id is required.");
   }
 
   if (!toBoolean(confirmed)) {
+    const countText =
+      messageIds.length === 1 ? "the selected email" : `${messageIds.length} selected emails`;
     return confirmationRequired(
-      `Confirm that Andrew wants to archive the selected email from ${sourceFolder} to ${targetFolder}.`
+      `Confirm that Andrew wants to archive ${countText} from ${sourceFolder} to ${targetFolder}.`
     );
   }
 
-  const args = [
-    "-o",
-    "json",
-    "message",
-    "move",
-    "--folder",
-    sourceFolder,
-  ];
-  if (account) args.push("--account", normalizeString(account));
-  args.push(targetFolder, messageId);
+  const results = [];
+  for (const messageId of messageIds) {
+    const args = [
+      "-o",
+      "json",
+      "message",
+      "move",
+      "--folder",
+      sourceFolder,
+    ];
+    if (account) args.push("--account", normalizeString(account));
+    args.push(targetFolder, messageId);
 
-  const result = await runCli({
-    command: process.env.HIMALAYA_BIN || "himalaya",
-    args,
-    maxRawBytes,
-  });
+    const result = await runCli({
+      command: process.env.HIMALAYA_BIN || "himalaya",
+      args,
+      maxRawBytes,
+    });
+
+    results.push({
+      id: messageId,
+      ok: result.ok,
+      status: result.status,
+      exit_code: result.exit_code,
+      answer_text: result.answer_text,
+    });
+  }
+
+  const archivedCount = results.filter((result) => result.ok).length;
+  const failedCount = results.length - archivedCount;
+  const allArchived = failedCount === 0;
 
   return {
-    ...result,
+    ok: allArchived,
+    status: allArchived ? "ok" : "email_archive_partial_failure",
     command: "himalaya message move",
-    action: "archived",
-    id: messageId,
+    action: allArchived ? "archived" : "archive_partial_failure",
+    id: messageIds[0],
+    ids: messageIds,
+    archived_count: archivedCount,
+    failed_count: failedCount,
+    results,
     source_folder: sourceFolder,
     target_folder: targetFolder,
-    answer_text: result.ok
-      ? "Archived the selected email."
-      : result.answer_text,
+    answer_text: allArchived
+      ? `Archived ${archivedCount === 1 ? "the selected email" : `${archivedCount} selected emails`}.`
+      : `Archived ${archivedCount} of ${messageIds.length} selected emails. ${failedCount} failed.`,
   };
 }
 
@@ -2178,6 +2201,20 @@ function redact(value) {
 function normalizeString(value, fallback = "") {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
+}
+
+function normalizeIdList(ids, fallbackId) {
+  const values = Array.isArray(ids)
+    ? ids
+    : normalizeString(ids)
+      ? normalizeString(ids)
+          .split(",")
+          .map((value) => value.trim())
+      : [];
+  if (values.length === 0 && normalizeString(fallbackId)) values.push(fallbackId);
+  return Array.from(
+    new Set(values.map((value) => normalizeString(value)).filter(Boolean))
+  );
 }
 
 function normalizeHeaderValue(value) {
