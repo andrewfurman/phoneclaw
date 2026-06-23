@@ -63,6 +63,8 @@ npm run worker:deploy
 - `POST /cli/himalaya/draft-create`
 - `POST /cli/himalaya/draft-reply`
 - `POST /cli/himalaya/email-forward`
+- `POST /cli/himalaya/create-reply-all-draft`
+- `POST /cli/himalaya/create-forward-draft`
 - `POST /cli/himalaya/email-send`
 - `POST /cli/otter/speeches-list`
 - `POST /cli/otter/speech-get`
@@ -159,7 +161,7 @@ The `/cli/*` endpoints are authenticated ElevenLabs webhook tools, but the Worke
 
 Supported bridge-backed tools:
 
-- Himalaya: email envelope list/search, all-pages capped listing/count, preview read, confirmed archive, confirmed new draft, confirmed reply draft, confirmed forward draft with inline original HTML when available and no `.eml` attachment, and emergency-only confirmed send.
+- Himalaya: email envelope list/search, all-pages capped listing/count, preview read, confirmed archive, confirmed new draft, confirmed reply-all draft with inline original thread, confirmed forward draft with inline original HTML when available and no `.eml` attachment, and emergency-only confirmed send.
 - Otter: transcript list, raw JSON fetch, and transcript search.
 - GitHub CLI: common read-only repo, issue, PR, and search commands.
 - RSS/Miniflux: Economist recent entries, keyword/date search, original article text fetch attempt, and feed refresh. Article-text responses include `access_note` when the bridge only has an RSS excerpt or the publisher blocks original-content fetching.

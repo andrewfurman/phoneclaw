@@ -121,7 +121,7 @@ async function runConversation(messageText) {
       if (toolName === "himalaya_email_list") {
         sawEmailListResult = true;
       }
-      if (toolName === "himalaya_email_forward" || (!toolName && toolResponseCount >= 2)) {
+      if (isForwardToolName(toolName) || (!toolName && toolResponseCount >= 2)) {
         sawForwardToolResponse = true;
       }
       return;
@@ -187,7 +187,7 @@ async function fetchConversationDetails(conversationId) {
 function conversationHasPostForwardAnswer(details) {
   const transcript = details?.transcript || [];
   const toolResultIndex = transcript.findIndex((turn) =>
-    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_forward")
+    (turn.tool_results || []).some((result) => isForwardToolName(result.tool_name))
   );
   if (toolResultIndex < 0) return false;
   return transcript
@@ -199,14 +199,14 @@ function verifyConversation(details, expected) {
   const transcript = details.transcript || [];
   const toolCalls = transcript.flatMap((turn) => turn.tool_calls || []);
   const listToolCall = toolCalls.find((call) => call.tool_name === "himalaya_email_list");
-  const forwardToolCall = toolCalls.find((call) => call.tool_name === "himalaya_email_forward");
+  const forwardToolCall = toolCalls.find((call) => isForwardToolName(call.tool_name));
   const forwardToolResult = transcript
     .flatMap((turn) => turn.tool_results || [])
-    .find((result) => result.tool_name === "himalaya_email_forward");
+    .find((result) => isForwardToolName(result.tool_name));
   const resultValue = parseMaybeJson(forwardToolResult?.result_value);
   const params = parseMaybeJson(forwardToolCall?.params_as_json);
   const toolResultIndex = transcript.findIndex((turn) =>
-    (turn.tool_results || []).some((result) => result.tool_name === "himalaya_email_forward")
+    (turn.tool_results || []).some((result) => isForwardToolName(result.tool_name))
   );
   const agentResponse =
     transcript
@@ -252,6 +252,10 @@ function verifyConversation(details, expected) {
 function isRealAgentMessage(value) {
   const text = String(value || "").trim();
   return text.length > 5 && text !== "...";
+}
+
+function isForwardToolName(value) {
+  return value === "create_forward_draft" || value === "himalaya_email_forward";
 }
 
 async function requestJson(url) {

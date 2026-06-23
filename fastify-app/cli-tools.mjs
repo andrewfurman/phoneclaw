@@ -16,6 +16,7 @@ const MAX_EMAIL_LIST_ITEMS = 1_000;
 const DEFAULT_HIMALAYA_SEND_TIMEOUT_MS = 8_000;
 const DEFAULT_FORWARD_MAX_ORIGINAL_BYTES = 600_000;
 const MAX_FORWARD_ORIGINAL_BYTES = 1_500_000;
+const MAX_CLI_ARGUMENT_BYTES = 60_000;
 
 export async function himalayaEmailList({
   query = "",
@@ -284,15 +285,25 @@ export async function himalayaDraftReply({
   folder = "INBOX",
   body,
   replyAll = false,
+  includeOriginalThread = false,
   draftFolder = process.env.HIMALAYA_DRAFTS_FOLDER || "[Gmail]/Drafts",
   account,
   confirmed = false,
+  maxOriginalBytes = DEFAULT_FORWARD_MAX_ORIGINAL_BYTES,
   maxRawBytes = DEFAULT_MAX_RAW_BYTES,
 } = {}) {
   const messageId = normalizeString(id);
   const sourceFolder = normalizeString(folder, "INBOX");
   const normalizedDraftFolder = normalizeString(draftFolder, "[Gmail]/Drafts");
   const normalizedBody = normalizeString(body);
+  const shouldReplyAll = toBoolean(replyAll);
+  const shouldIncludeOriginalThread = toBoolean(includeOriginalThread);
+  const boundedMaxOriginalBytes = clampInteger(
+    maxOriginalBytes,
+    10_000,
+    MAX_FORWARD_ORIGINAL_BYTES,
+    DEFAULT_FORWARD_MAX_ORIGINAL_BYTES
+  );
 
   if (!messageId) {
     return missingField("id", "A Himalaya envelope id is required.");
@@ -300,7 +311,7 @@ export async function himalayaDraftReply({
 
   if (!toBoolean(confirmed)) {
     return confirmationRequired(
-      "Confirm that Andrew wants to save a reply draft for the selected email."
+      `Confirm that Andrew wants to save a ${shouldReplyAll ? "reply-all" : "reply"} draft for the selected email.`
     );
   }
 
@@ -319,17 +330,24 @@ export async function himalayaDraftReply({
     mode: "reply",
     id: messageId,
     folder: sourceFolder,
-    replyAll,
+    replyAll: shouldReplyAll,
     account,
     maxRawBytes,
   });
   if (!replyTemplate.ok) return replyTemplate;
 
   const replyHeaders = parseEmailHeaders(replyTemplate.raw_json);
+  let replyFrom = headerValue(replyHeaders, "from");
+  if (!replyFrom) {
+    const fromAddress = await getHimalayaFromAddress({ account, maxRawBytes });
+    if (!fromAddress.ok) return fromAddress;
+    replyFrom = fromAddress.from;
+  }
   const replyTo =
     headerValue(replyHeaders, "to") ||
     headerValue(originalHeaders, "reply-to") ||
     headerValue(originalHeaders, "from");
+  const replyCc = headerValue(replyHeaders, "cc");
   const replySubject =
     headerValue(replyHeaders, "subject") ||
     ensureReplySubject(headerValue(originalHeaders, "subject"));
@@ -343,15 +361,42 @@ export async function himalayaDraftReply({
     };
   }
 
+  let parsedOriginal = null;
+  if (shouldIncludeOriginalThread) {
+    const originalExport = await exportHimalayaRawMessage({
+      id: messageId,
+      folder: sourceFolder,
+      account,
+      maxOriginalBytes: boundedMaxOriginalBytes,
+      maxRawBytes,
+    });
+    if (!originalExport.ok) return originalExport;
+    parsedOriginal = parseForwardOriginal(originalExport.raw_message_buffer);
+  }
+
   const saved = await saveRawHimalayaMessage({
-    rawMessage: buildRawEmailMessage({
-      from: headerValue(replyHeaders, "from"),
-      to: replyTo,
-      subject: replySubject,
-      body: normalizedBody,
-      inReplyTo: headerValue(replyHeaders, "in-reply-to"),
-      references: headerValue(replyHeaders, "references") || headerValue(replyHeaders, "in-reply-to"),
-    }),
+    rawMessage: parsedOriginal
+      ? buildReplyRawEmailMessage({
+          from: replyFrom,
+          to: replyTo,
+          cc: replyCc,
+          subject: replySubject,
+          body: normalizedBody,
+          inReplyTo: headerValue(replyHeaders, "in-reply-to"),
+          references:
+            headerValue(replyHeaders, "references") || headerValue(replyHeaders, "in-reply-to"),
+          original: parsedOriginal,
+        })
+      : buildRawEmailMessage({
+          from: replyFrom,
+          to: replyTo,
+          cc: replyCc,
+          subject: replySubject,
+          body: normalizedBody,
+          inReplyTo: headerValue(replyHeaders, "in-reply-to"),
+          references:
+            headerValue(replyHeaders, "references") || headerValue(replyHeaders, "in-reply-to"),
+        }),
     draftFolder: normalizedDraftFolder,
     account,
     maxRawBytes,
@@ -360,15 +405,44 @@ export async function himalayaDraftReply({
   return {
     ...saved,
     command: "himalaya message save",
-    action: "reply_draft_created",
+    action: shouldReplyAll ? "reply_all_draft_created" : "reply_draft_created",
     draft_id: savedHimalayaMessageId(saved),
     id: messageId,
     source_folder: sourceFolder,
     draft_folder: normalizedDraftFolder,
+    reply_all: shouldReplyAll,
+    original_has_html: Boolean(parsedOriginal?.html),
+    original_has_plain: Boolean(parsedOriginal?.plain),
+    attached_original_eml: false,
     answer_text: saved.ok
-      ? "Saved a reply draft for the selected email."
+      ? `Saved a ${shouldReplyAll ? "reply-all" : "reply"} draft for the selected email.`
       : saved.answer_text,
   };
+}
+
+export async function himalayaCreateReplyAllDraft({
+  id,
+  folder = "INBOX",
+  body,
+  message,
+  draftFolder = process.env.HIMALAYA_DRAFTS_FOLDER || "[Gmail]/Drafts",
+  account,
+  confirmed = false,
+  maxOriginalBytes = DEFAULT_FORWARD_MAX_ORIGINAL_BYTES,
+  maxRawBytes = DEFAULT_MAX_RAW_BYTES,
+} = {}) {
+  return himalayaDraftReply({
+    id,
+    folder,
+    body: body || message,
+    replyAll: true,
+    includeOriginalThread: true,
+    draftFolder,
+    account,
+    confirmed,
+    maxOriginalBytes,
+    maxRawBytes,
+  });
 }
 
 export async function himalayaEmailForward({
@@ -487,6 +561,10 @@ export async function himalayaEmailForward({
       ? `Saved a forward draft to ${normalizedTo} with subject "${forwardSubject}".`
       : saved.answer_text,
   };
+}
+
+export async function himalayaCreateForwardDraft(options = {}) {
+  return himalayaEmailForward(options);
 }
 
 export async function himalayaEmailSend({
@@ -912,55 +990,74 @@ function runCli({ command, args, timeoutMs = DEFAULT_TIMEOUT_MS, maxRawBytes, in
   const rawLimit = clampInteger(maxRawBytes, 1_000, MAX_RAW_BYTES, DEFAULT_MAX_RAW_BYTES);
 
   return new Promise((resolve) => {
-    const child = execFile(
-      command,
-      args,
-      {
-        env: {
-          ...process.env,
-          NO_COLOR: "1",
+    let child;
+    try {
+      child = execFile(
+        command,
+        args,
+        {
+          env: {
+            ...process.env,
+            NO_COLOR: "1",
+          },
+          timeout: timeoutMs,
+          maxBuffer: DEFAULT_MAX_BUFFER_BYTES,
+          windowsHide: true,
         },
-        timeout: timeoutMs,
-        maxBuffer: DEFAULT_MAX_BUFFER_BYTES,
-        windowsHide: true,
-      },
-      (error, stdout, stderr) => {
-        const cleanStdout = redact(stdout || "");
-        const cleanStderr = redact(stderr || "");
-        const truncated = truncateUtf8(cleanStdout, rawLimit);
-        const parsed = parseMaybeJson(cleanStdout);
+        (error, stdout, stderr) => {
+          const cleanStdout = redact(stdout || "");
+          const cleanStderr = redact(stderr || "");
+          const truncated = truncateUtf8(cleanStdout, rawLimit);
+          const parsed = parseMaybeJson(cleanStdout);
 
-        if (error) {
+          if (error) {
+            resolve({
+              ok: false,
+              status: error.killed ? "cli_timeout" : "cli_failed",
+              timeout_ms: timeoutMs,
+              exit_code: typeof error.code === "number" ? error.code : null,
+              signal: error.signal || null,
+              message: cleanStderr.trim() || error.message || "CLI command failed.",
+              raw_json: truncated.value,
+              raw_truncated: truncated.truncated,
+              stderr: truncateUtf8(cleanStderr, 10_000).value,
+              parsed_json: parsed,
+              answer_text:
+                cleanStderr.trim() || error.message || "The CLI command failed.",
+            });
+            return;
+          }
+
           resolve({
-            ok: false,
-            status: error.killed ? "cli_timeout" : "cli_failed",
+            ok: true,
+            status: "ok",
             timeout_ms: timeoutMs,
-            exit_code: typeof error.code === "number" ? error.code : null,
-            signal: error.signal || null,
-            message: cleanStderr.trim() || error.message || "CLI command failed.",
+            exit_code: 0,
             raw_json: truncated.value,
             raw_truncated: truncated.truncated,
             stderr: truncateUtf8(cleanStderr, 10_000).value,
             parsed_json: parsed,
-            answer_text:
-              cleanStderr.trim() || error.message || "The CLI command failed.",
+            answer_text: "The CLI command completed successfully.",
           });
-          return;
         }
-
-        resolve({
-          ok: true,
-          status: "ok",
-          timeout_ms: timeoutMs,
-          exit_code: 0,
-          raw_json: truncated.value,
-          raw_truncated: truncated.truncated,
-          stderr: truncateUtf8(cleanStderr, 10_000).value,
-          parsed_json: parsed,
-          answer_text: "The CLI command completed successfully.",
-        });
+      );
+    } catch (error) {
+      resolve({
+        ok: false,
+        status: "cli_spawn_failed",
+        timeout_ms: timeoutMs,
+        exit_code: null,
+        signal: null,
+        message: error?.message || "CLI command failed to start.",
+        raw_json: "",
+        raw_truncated: false,
+        stderr: "",
+        parsed_json: null,
+        answer_text: error?.message || "The CLI command failed to start.",
       }
-    );
+      );
+      return;
+    }
 
     if (input != null) {
       child.stdin?.end(input);
@@ -1100,7 +1197,7 @@ async function saveRawHimalayaMessage({
     normalizeString(draftFolder, "[Gmail]/Drafts"),
   ];
   if (account) args.push("--account", normalizeString(account));
-  args.push(rawMessage);
+  args.push(...splitCliArgument(rawMessage));
 
   return runCli({
     command: process.env.HIMALAYA_BIN || "himalaya",
@@ -1108,6 +1205,30 @@ async function saveRawHimalayaMessage({
     timeoutMs: 20_000,
     maxRawBytes,
   });
+}
+
+function splitCliArgument(value, maxBytes = MAX_CLI_ARGUMENT_BYTES) {
+  const text = String(value || "");
+  if (Buffer.byteLength(text) <= maxBytes) return [text];
+
+  const chunks = [];
+  let chunk = "";
+  let chunkBytes = 0;
+
+  for (const char of text) {
+    const charBytes = Buffer.byteLength(char);
+    if (chunk && chunkBytes + charBytes > maxBytes) {
+      chunks.push(chunk);
+      chunk = char;
+      chunkBytes = charBytes;
+    } else {
+      chunk += char;
+      chunkBytes += charBytes;
+    }
+  }
+
+  if (chunk) chunks.push(chunk);
+  return chunks;
 }
 
 function savedHimalayaMessageId(result) {
@@ -1308,6 +1429,55 @@ function buildForwardRawEmailMessage({
   ].join("\r\n");
 }
 
+function buildReplyRawEmailMessage({
+  from,
+  to,
+  cc,
+  subject,
+  body,
+  inReplyTo,
+  references,
+  original,
+}) {
+  const alternativeBoundary = mimeBoundary("phoneclaw-reply-alt");
+  const plainBody = buildReplyPlainBody({ body, original });
+  const htmlBody = buildReplyHtmlBody({ body, original });
+
+  const headers = [
+    ["From", normalizeHeaderValue(from)],
+    ["To", normalizeHeaderValue(to)],
+    ["Cc", normalizeHeaderValue(cc)],
+    ["Subject", normalizeHeaderValue(subject)],
+    ["In-Reply-To", normalizeHeaderValue(inReplyTo)],
+    ["References", normalizeHeaderValue(references)],
+    ["Date", new Date().toUTCString()],
+    ["Message-ID", generatedMessageId()],
+    ["MIME-Version", "1.0"],
+    ["Content-Type", `multipart/alternative; boundary="${alternativeBoundary}"`],
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}: ${value}`);
+
+  return [
+    headers.join("\r\n"),
+    "",
+    `--${alternativeBoundary}`,
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    plainBody,
+    "",
+    `--${alternativeBoundary}`,
+    "Content-Type: text/html; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    htmlBody,
+    "",
+    `--${alternativeBoundary}--`,
+    "",
+  ].join("\r\n");
+}
+
 function buildForwardPlainBody({ body, original }) {
   const metadata = forwardedMetadata(original);
   const originalPlain =
@@ -1323,6 +1493,25 @@ function buildForwardPlainBody({ body, original }) {
     ...metadata.map(([label, value]) => `${label}: ${value}`),
     "",
     normalizeEmailBody(originalPlain),
+  ]
+    .filter((line, index, lines) => line || index < lines.length - 1)
+    .join("\r\n")
+    .trimEnd();
+}
+
+function buildReplyPlainBody({ body, original }) {
+  const originalPlain = originalPlainText(original);
+  const intro = replyIntro(original);
+  const quoted = normalizeEmailBody(originalPlain)
+    .split("\n")
+    .map((line) => `> ${line}`)
+    .join("\r\n");
+
+  return [
+    normalizeEmailBody(body),
+    "",
+    intro,
+    quoted,
   ]
     .filter((line, index, lines) => line || index < lines.length - 1)
     .join("\r\n")
@@ -1355,6 +1544,26 @@ function buildForwardHtmlBody({ body, original }) {
     originalHtml,
     "</blockquote>",
     "</div>",
+    "</body></html>",
+  ].join("");
+}
+
+function buildReplyHtmlBody({ body, original }) {
+  const noteHtml = normalizeEmailBody(body)
+    ? `<div>${textToHtml(normalizeEmailBody(body))}</div><br>`
+    : "";
+  const originalHtml = original.html
+    ? htmlBodyFragment(original.html)
+    : `<pre style="white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;">${escapeHtml(original.plain || "")}</pre>`;
+
+  return [
+    "<!doctype html>",
+    '<html><body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px;line-height:1.45;color:#111;">',
+    noteHtml,
+    `<div style="margin:0 0 8px 0;color:#555;">${escapeHtml(replyIntro(original))}</div>`,
+    '<blockquote style="margin:0;padding:0 0 0 14px;border-left:3px solid #ddd;">',
+    originalHtml,
+    "</blockquote>",
     "</body></html>",
   ].join("");
 }
@@ -1422,6 +1631,24 @@ function forwardedMetadata(original) {
     ["Cc", decodedHeaderValue(headerValue(headers, "cc"))],
     ["Subject", decodedHeaderValue(headerValue(headers, "subject"))],
   ].filter(([, value]) => value);
+}
+
+function replyIntro(original) {
+  const headers = original?.headers || {};
+  const date = decodedHeaderValue(headerValue(headers, "date"));
+  const from = decodedHeaderValue(headerValue(headers, "from"));
+  if (date && from) return `On ${date}, ${from} wrote:`;
+  if (from) return `${from} wrote:`;
+  return "Previous message:";
+}
+
+function originalPlainText(original) {
+  if (original?.plain) return original.plain;
+  if (!original?.html) return "";
+  return htmlToText(original.html, {
+    wordwrap: false,
+    selectors: [{ selector: "a", options: { ignoreHref: true } }],
+  });
 }
 
 function parseMimeEntity(rawEntity) {
