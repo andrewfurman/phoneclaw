@@ -227,7 +227,37 @@ function extractReadableText(extracted) {
   });
   const fallback = extracted.body_text || "";
   const text = htmlText.length >= 200 ? htmlText : fallback;
-  return normalizeArticleText(text);
+  return stripEconomistBoilerplate(normalizeArticleText(text));
+}
+
+function stripEconomistBoilerplate(value) {
+  return String(value || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      const normalized = line.toLowerCase().replace(/\s+/g, " ").trim();
+      const compact = normalized.replace(/[^a-z0-9]+/g, "");
+      if (
+        compact === "alreadyhaveanaccountlogin" ||
+        compact === "continuewithafreetrial" ||
+        compact === "freetrial"
+      ) {
+        return false;
+      }
+      return ![
+        /^log in$/i,
+        /^sign in$/i,
+        /^subscribe$/i,
+        /^start your free trial$/i,
+        /^continue with a free trial$/i,
+        /^free trial$/i,
+        /^share$/i,
+        /^save$/i,
+      ].some((pattern) => pattern.test(line));
+    })
+    .join("\n")
+    .trim();
 }
 
 function articleStatus({ extracted, text, responseStatus }) {
