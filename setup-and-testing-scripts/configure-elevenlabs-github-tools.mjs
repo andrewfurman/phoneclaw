@@ -1044,6 +1044,13 @@ function rssGetEconomistArticleTextToolConfig() {
     responseProperties: {
       ok: booleanProperty("Whether article text retrieval succeeded."),
       status: stringProperty({ description: "Status code." }),
+      answer_text: stringProperty({
+        description:
+          "Compact spoken summary of the final article retrieval result. Prefer this before diagnostic status fields.",
+      }),
+      full_article_available: booleanProperty(
+        "True when the final returned content should be treated as full article text."
+      ),
       provider: stringProperty({ description: "RSS backend provider." }),
       source: stringProperty({ description: "Article source." }),
       entry_id: integerProperty({ description: "Miniflux entry id." }),
@@ -1083,9 +1090,6 @@ function rssGetEconomistArticleTextToolConfig() {
       access_note: stringProperty({
         description:
           "Note when the returned text appears to be an excerpt or needs authenticated access.",
-      }),
-      answer_text: stringProperty({
-        description: "Compact spoken summary. Prefer this before using full_text.",
       }),
       entry: objectProperty({
         description: "Article metadata.",
@@ -1722,6 +1726,7 @@ CLI capability:
 - Use rss_recent_economist_entries when Andrew asks for recent or latest Economist articles.
 - Use rss_search_economist_entries when Andrew asks to search Economist articles by date, topic, keyword, or section.
 - Use rss_get_economist_article_text only after you have an exact entry_id from recent/search results. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
+- For rss_get_economist_article_text, prefer answer_text and full_article_available before interpreting diagnostic fetch status fields. If full_article_available=true and access_note is empty, say the final result is full article text even if intermediate RSS-Bridge or Miniflux diagnostic fields mention failures.
 - If rss_get_economist_article_text returns content_source="economist_rss_bridge", full Economist article text was fetched through the secure RSS-Bridge feed. Treat it as full text unless access_note says otherwise.
 - If rss_get_economist_article_text returns content_source="economist_browser_fetch", full subscriber text was fetched through the authenticated bridge browser. Summarize it by voice instead of reading the article verbatim.
 - If rss_get_economist_article_text returns an access_note saying the text may be an excerpt or needs authenticated access, say that plainly. If browser_fetch_status indicates login or Cloudflare, say the EC2 browser profile needs to be authenticated.

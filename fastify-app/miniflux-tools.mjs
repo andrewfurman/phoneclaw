@@ -306,15 +306,43 @@ export async function rssEntryFullText({
   }
 
   const truncated = truncateText(contentText, boundedMax);
+  const access = accessNote(contentText, entry, {
+    fetchStatus,
+    fetchMessage,
+    rssBridgeFetchStatus,
+    rssBridgeFetchMessage,
+    contentSource,
+    browserFetchStatus,
+    browserFetchMessage,
+  });
+  const answerText = articleAnswerText({
+    title: compact.title,
+    contentSource,
+    truncated: truncated.truncated,
+    recoveredFromIntermediateFailure:
+      contentSource === "economist_browser_fetch" &&
+      (fetchStatus !== "ok" || rssBridgeFetchStatus !== "ok"),
+  });
+  const fullArticleAvailable = articleFullTextAvailable({
+    contentSource,
+    text: contentText,
+    accessNote: access,
+  });
 
   return {
     ok: true,
     status: "ok",
+    answer_text: answerText,
+    full_article_available: fullArticleAvailable,
     provider: "miniflux",
     source: "economist",
     entry: compact,
     entry_id: normalizedId,
     content_source: contentSource,
+    full_text_chars: contentText.length,
+    returned_text_chars: truncated.value.length,
+    full_text_truncated: truncated.truncated,
+    access_note: access,
     original_fetch_status: fetchStatus,
     original_fetch_message: fetchMessage,
     rss_bridge_fetch_status: rssBridgeFetchStatus,
@@ -323,20 +351,7 @@ export async function rssEntryFullText({
     browser_fetch_status: browserFetchStatus,
     browser_fetch_message: browserFetchMessage,
     browser_fetch_url: browserFetchUrl,
-    full_text_chars: contentText.length,
-    returned_text_chars: truncated.value.length,
-    full_text_truncated: truncated.truncated,
     full_text: truncated.value,
-    access_note: accessNote(contentText, entry, {
-      fetchStatus,
-      fetchMessage,
-      rssBridgeFetchStatus,
-      rssBridgeFetchMessage,
-      contentSource,
-      browserFetchStatus,
-      browserFetchMessage,
-    }),
-    answer_text: `Retrieved article text for "${compact.title}". ${truncated.truncated ? "The returned text is truncated." : "The returned text is complete within the configured limit."}`,
   };
 }
 
@@ -443,28 +458,88 @@ function browserArticleTextResult({ articleUrl, browserResult, maxTextChars, bas
     title: browserResult.title || "",
     url: browserResult.final_url || articleUrl,
   };
+  const access = accessNote(browserResult.full_text || "", entry, {
+    contentSource: "economist_browser_fetch",
+    browserFetchStatus: browserResult.status || "ok",
+    browserFetchMessage: browserResult.message || "",
+    rssBridgeFetchStatus: baseResult.rss_bridge_fetch_status,
+    rssBridgeFetchMessage: baseResult.rss_bridge_fetch_message,
+  });
+  const answerText = articleAnswerText({
+    title: entry?.title || "the article",
+    contentSource: "economist_browser_fetch",
+    truncated: truncated.truncated,
+    recoveredFromIntermediateFailure:
+      baseResult.rss_bridge_fetch_status &&
+      !["ok", "not_requested"].includes(baseResult.rss_bridge_fetch_status),
+  });
   return {
-    ...baseResult,
     ok: true,
     status: "ok",
+    answer_text: answerText,
+    full_article_available: articleFullTextAvailable({
+      contentSource: "economist_browser_fetch",
+      text: browserResult.full_text || "",
+      accessNote: access,
+    }),
+    provider: baseResult.provider || "browser",
+    source: baseResult.source || "economist",
     entry,
+    entry_id: baseResult.entry_id ?? entry?.id ?? null,
     content_source: "economist_browser_fetch",
-    browser_fetch_status: browserResult.status || "ok",
-    browser_fetch_message: browserResult.message || "",
-    browser_fetch_url: browserResult.final_url || browserResult.url || articleUrl,
     full_text_chars: browserResult.full_text_chars,
     returned_text_chars: truncated.value.length,
     full_text_truncated: truncated.truncated,
+    access_note: access,
+    browser_fetch_status: browserResult.status || "ok",
+    browser_fetch_message: browserResult.message || "",
+    browser_fetch_url: browserResult.final_url || browserResult.url || articleUrl,
+    original_fetch_status: baseResult.original_fetch_status || "not_requested",
+    original_fetch_message: baseResult.original_fetch_message || "",
+    rss_bridge_fetch_status: baseResult.rss_bridge_fetch_status || "not_requested",
+    rss_bridge_fetch_message: baseResult.rss_bridge_fetch_message || "",
+    rss_bridge_url: baseResult.rss_bridge_url || "",
+    checked_topics: baseResult.checked_topics || undefined,
     full_text: truncated.value,
-    access_note: accessNote(browserResult.full_text || "", entry, {
-      contentSource: "economist_browser_fetch",
-      browserFetchStatus: browserResult.status || "ok",
-      browserFetchMessage: browserResult.message || "",
-      rssBridgeFetchStatus: baseResult.rss_bridge_fetch_status,
-      rssBridgeFetchMessage: baseResult.rss_bridge_fetch_message,
-    }),
-    answer_text: `Retrieved full Economist article text for "${entry?.title || "the article"}" from the authenticated browser fallback. ${truncated.truncated ? "The returned text is truncated." : "The returned text is complete within the configured limit."}`,
   };
+}
+
+function articleAnswerText({
+  title,
+  contentSource,
+  truncated,
+  recoveredFromIntermediateFailure = false,
+}) {
+  const name = title || "the article";
+  const completeness = truncated
+    ? "The returned text is truncated."
+    : "The returned text is complete within the configured limit.";
+  if (contentSource === "economist_browser_fetch") {
+    const recovery = recoveredFromIntermediateFailure
+      ? " Earlier RSS-Bridge or Miniflux fetch errors were recovered by the browser fallback; this final result should not be described as paywalled or blocked when access_note is empty."
+      : "";
+    return `Final result: retrieved full Economist article text for "${name}" using the authenticated browser fallback. ${completeness}${recovery}`;
+  }
+  if (contentSource === "economist_rss_bridge") {
+    return `Final result: retrieved full Economist article text for "${name}" from RSS-Bridge. ${completeness}`;
+  }
+  if (contentSource === "original_article_fetch") {
+    return `Final result: retrieved full Economist article text for "${name}" from Miniflux original-content fetch. ${completeness}`;
+  }
+  return `Final result: retrieved stored Economist article text for "${name}" from Miniflux. ${completeness}`;
+}
+
+function articleFullTextAvailable({ contentSource, text, accessNote }) {
+  return (
+    [
+      "economist_rss_bridge",
+      "original_article_fetch",
+      "economist_browser_fetch",
+      "stored_entry_content",
+    ].includes(contentSource) &&
+    String(text || "").length >= 700 &&
+    !accessNote
+  );
 }
 
 async function rssBridgeCompactEntries({
@@ -567,15 +642,34 @@ function rssBridgeEntryResult({ match, feed, maxTextChars }) {
   const text = normalizeArticleText(match.full_text || "");
   const truncated = truncateText(text, maxTextChars);
   const entry = compactRssBridgeEntry(match, { maxExcerptChars: 420 });
+  const access = accessNote(text, entry, {
+    contentSource: "economist_rss_bridge",
+    rssBridgeFetchStatus: "ok",
+  });
+  const answerText = articleAnswerText({
+    title: entry.title,
+    contentSource: "economist_rss_bridge",
+    truncated: truncated.truncated,
+  });
 
   return {
     ok: true,
     status: "ok",
+    answer_text: answerText,
+    full_article_available: articleFullTextAvailable({
+      contentSource: "economist_rss_bridge",
+      text,
+      accessNote: access,
+    }),
     provider: "rss_bridge",
     source: "economist",
     entry,
     entry_id: entry.id,
     content_source: "economist_rss_bridge",
+    full_text_chars: text.length,
+    returned_text_chars: truncated.value.length,
+    full_text_truncated: truncated.truncated,
+    access_note: access,
     original_fetch_status: "not_requested",
     original_fetch_message: "",
     rss_bridge_fetch_status: "ok",
@@ -585,15 +679,7 @@ function rssBridgeEntryResult({ match, feed, maxTextChars }) {
     browser_fetch_status: "not_requested",
     browser_fetch_message: "",
     browser_fetch_url: "",
-    full_text_chars: text.length,
-    returned_text_chars: truncated.value.length,
-    full_text_truncated: truncated.truncated,
     full_text: truncated.value,
-    access_note: accessNote(text, entry, {
-      contentSource: "economist_rss_bridge",
-      rssBridgeFetchStatus: "ok",
-    }),
-    answer_text: `Retrieved full Economist article text for "${entry.title}" from RSS-Bridge. ${truncated.truncated ? "The returned text is truncated." : "The returned text is complete within the configured limit."}`,
   };
 }
 
