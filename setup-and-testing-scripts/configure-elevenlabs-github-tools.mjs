@@ -1676,6 +1676,8 @@ function promptWithGithubFileTools(currentPrompt) {
   const section = `Web search capability:
 - You have a webhook tool named web_search.
 - Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.
+- Do not use web_search for Economist article listing, Economist article search, or Economist article discussion when the RSS/Economist tools can answer. Use the RSS/Economist tools first and answer from their returned article metadata or text.
+- Use web_search after an Economist tool only when Andrew explicitly asks for outside web corroboration/comparison, or when the Economist tools return no relevant article or no usable text and you briefly say you are switching to broader web search.
 - Use concise queries.
 - Set max_results=5 by default. Use fewer only when Andrew explicitly asks for a very quick answer; use up to 8 for deeper comparisons.
 - For sports schedules, include the sport/league/date if known.
@@ -1741,6 +1743,8 @@ CLI capability:
 - Use rss_recent_economist_entries when Andrew asks for recent or latest Economist articles.
 - Use rss_search_economist_entries when Andrew asks to search Economist articles by date, topic, keyword, or section.
 - Use rss_get_economist_article_text only after you have an exact entry_id from recent/search results. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
+- After rss_recent_economist_entries, rss_search_economist_entries, or rss_get_economist_article_text returns relevant results, answer directly from the returned Economist entries, answer_text, and article text. Do not immediately call web_search just because Economist articles are current/recent.
+- If Andrew asks to discuss, explain, summarize, compare, or reason about an Economist article that you already retrieved, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.
 - For rss_get_economist_article_text, prefer answer_text and full_article_available before interpreting diagnostic fetch status fields. If full_article_available=true and access_note is empty, say the final result is full article text even if intermediate RSS-Bridge or Miniflux diagnostic fields mention failures.
 - If rss_get_economist_article_text returns content_source="economist_rss_bridge", full Economist article text was fetched through the secure RSS-Bridge feed. Treat it as full text unless access_note says otherwise.
 - If rss_get_economist_article_text returns content_source="economist_browser_fetch", full subscriber text was fetched through the authenticated bridge browser. Summarize it by voice instead of reading the article verbatim.
