@@ -99,7 +99,7 @@ const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`,
   body: JSON.stringify({
     conversation_config: conversationConfig,
     version_description:
-      "Refresh Phoneclaw tools and stabilize the configured voice",
+      "Refresh phone-claw tools and stabilize the configured voice",
   }),
 });
 
@@ -242,7 +242,7 @@ function githubSummaryToolConfig() {
   return webhookTool({
     name: "github_summary",
     description:
-      "Returns read-only summaries of open GitHub issues or pull requests visible to the GitHub CLI account authenticated on the private Phoneclaw bridge. Supports optional repo, owner, and organization filters.",
+      "Returns read-only summaries of open GitHub issues or pull requests visible to the GitHub CLI account authenticated on the private phone-claw bridge. Supports optional repo, owner, and organization filters.",
     url: `${workerBaseUrl}/github-summary`,
     required: ["item_type"],
     forcePreToolSpeech: true,
@@ -1244,7 +1244,7 @@ function conversationHistorySearchToolConfig() {
   return webhookTool({
     name: "conversation_history_search",
     description:
-      "Search archived Phoneclaw phone conversations by keyword and optional date range. Returns compact hundred-word summaries and keywords, not full transcripts.",
+      "Search archived phone-claw phone conversations by keyword and optional date range. Returns compact hundred-word summaries and keywords, not full transcripts.",
     url: `${workerBaseUrl}/conversation-history/search`,
     required: [],
     responseTimeoutSecs: 20,
@@ -1289,7 +1289,7 @@ function conversationHistoryGetToolConfig() {
   return webhookTool({
     name: "conversation_history_get",
     description:
-      "Fetch compact details for a specific archived Phoneclaw conversation_id returned by conversation_history_search. Returns a capped transcript excerpt by default to avoid overloading the live call.",
+      "Fetch compact details for a specific archived phone-claw conversation_id returned by conversation_history_search. Returns a capped transcript excerpt by default to avoid overloading the live call.",
     url: `${workerBaseUrl}/conversation-history/get`,
     required: ["conversation_id"],
     responseTimeoutSecs: 20,
@@ -1388,7 +1388,7 @@ function claudeCodeToolConfig() {
       }),
       repo_path: stringProperty({
         description:
-          "Optional absolute repository path on the EC2 bridge. Omit for the default Phoneclaw repo.",
+          "Optional absolute repository path on the EC2 bridge. Omit for the default phone-claw repo.",
       }),
       session_id: stringProperty({
         description:
@@ -1836,7 +1836,7 @@ function promptWithGithubFileTools(currentPrompt) {
 - Do not say you cannot browse when the web_search tool is available.
 
 Conversation memory:
-- At the start of a call, the dynamic variable recent_conversation_context may contain compact summaries of recent archived Phoneclaw conversations. Use it quietly as background context; do not read it aloud unless Andrew asks what context you have.
+- At the start of a call, the dynamic variable recent_conversation_context may contain compact summaries of recent archived phone-claw conversations. Use it quietly as background context; do not read it aloud unless Andrew asks what context you have.
 - You have webhook tools named conversation_history_search and conversation_history_get.
 - Use conversation_history_search when Andrew asks about prior phone calls, previous conversations, things discussed earlier, or wants to find a past call by keyword/date.
 - conversation_history_search returns compact summaries and keywords only. Use conversation_history_get only when Andrew asks for transcript excerpts, tool calls, or exact details from a specific archived conversation_id. It returns capped excerpts by default; set include_transcript=true or include_tool_details=true only when Andrew explicitly asks for those details.

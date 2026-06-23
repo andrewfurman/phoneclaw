@@ -1,6 +1,6 @@
-# phone claw
+# phone-claw
 
-phone claw is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
+phone-claw is a small voice bridge for calling a Twilio phone number and being connected to an ElevenLabs voice agent. The current repo contains a local Fastify app, a Cloudflare Worker version for the public webhook, setup notes for Twilio and ElevenLabs, tool-call sound settings for slower webhook calls, and a starter webhook tool config for the later Claude Code bridge.
 
 This is intentionally public-safe. Real API keys, account IDs, phone numbers, webhook tokens, and local deploy config stay in ignored files or provider secret stores.
 
@@ -17,7 +17,7 @@ This is intentionally public-safe. Real API keys, account IDs, phone numbers, we
 
 This project intentionally keeps provider configuration explicit because the voice agent touches phone calls, email, GitHub, search, and personal transcripts.
 
-| Service | Role in phone claw | Config and secrets |
+| Service | Role in phone-claw | Config and secrets |
 | --- | --- | --- |
 | Twilio | Owns the phone number, receives inbound calls, sends voice/status webhooks, and bridges phone audio through Media Streams. | Twilio account settings plus Worker secrets such as `TWILIO_WEBHOOK_TOKEN`, `ALLOWED_CALLER_NUMBERS`, and `OUTSIDE_COVERAGE_MESSAGE`. Setup notes live in `twilio-setup/`. |
 | ElevenLabs | Hosts the Conversational AI voice agent, voice settings, LLM settings, and webhook tool definitions. | `ELEVENLABS_AGENT_ID` in Worker config, `ELEVENLABS_API_KEY` as a secret, and sanitized exported config in `elevenlabs-setup/`. |
@@ -31,7 +31,7 @@ This project intentionally keeps provider configuration explicit because the voi
 | DuckDuckGo | No-key fallback web search provider. | No secret required. Used only when Tavily is not configured. |
 | Yahoo Finance public chart API | Market-history enrichment for WTI crude high/low/range questions. | No secret required. Used as a compact fallback to avoid relying only on generic search snippets. |
 | ESPN public scoreboard endpoint | Prototype sports enrichment for FIFA World Cup schedule/score queries. | No secret required. Treat as a convenience endpoint, not a committed long-term sports-data contract. |
-| Neon | Optional Postgres archive for phone claw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
+| Neon | Optional Postgres archive for phone-claw conversation memory. Stores transcript JSON, summaries, keywords, and tool-call logs. | `CONVERSATION_DATABASE_URL` on the bridge. `NEON_API_KEY` is used only by the setup script and should not be committed. |
 | Configured RSS feeds | Public or private RSS/Atom feeds exposed to the voice agent by feed id. | Store feed URLs in `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the EC2 bridge. Private URLs are redacted in tool responses and should never be committed. |
 | Miniflux/RSS-Bridge | Legacy RSS backends kept for compatibility while configured feeds replace publisher-specific tooling. | Legacy settings remain documented in `docs/EC2_BARE_METAL_BRIDGE.md`; new integrations should prefer generic configured feeds. |
 | Gmail | Email account accessed through the private CLI bridge for listing, reading previews, archiving, saving drafts/reply drafts/forward drafts, and emergency-only confirmed sends. | Authenticated locally on the bridge host through Himalaya CLI config; no Gmail credentials are committed. |
@@ -69,13 +69,15 @@ npm run check
 npm run worker:check
 npm run elevenlabs:github:test
 npm run elevenlabs:github:files:test
+npm run elevenlabs:rss:conversation:test
+npm run elevenlabs:claude-steering:test
 ```
 
 ## PR And Merge Policy
 
 All non-trivial changes should go through a pull request before merging to `main`.
 
-Before merging a PR that changes agent behavior, tool schemas, tool endpoints, Twilio/ElevenLabs routing, or the EC2 bridge, run the most relevant automated ElevenLabs bot test. For Economist/RSS changes, run `npm run elevenlabs:rss:conversation:test`; for GitHub, email, logging, or audio changes, run the matching `elevenlabs:*:test` script. After the test, review the resulting ElevenLabs conversation transcript and bridge/Worker logs for tool errors, timeouts, or dropped media streams. Merge only after the automated test and logs support the change.
+Before merging a PR that changes agent behavior, tool schemas, tool endpoints, Twilio/ElevenLabs routing, or the EC2 bridge, run the most relevant automated ElevenLabs bot test. For Economist/RSS changes, run `npm run elevenlabs:rss:conversation:test`; for Claude Code steering changes, run `npm run elevenlabs:claude-steering:test`; for GitHub, email, logging, or audio changes, run the matching `elevenlabs:*:test` script. After the test, review the resulting ElevenLabs conversation transcript and bridge/Worker logs for tool errors, timeouts, or dropped media streams. Merge only after the automated test and logs support the change.
 
 ## Cloudflare Worker
 
@@ -159,7 +161,7 @@ Email write tools require explicit confirmation. They can archive email and save
 
 `rss_*` tools read configured RSS or Atom feeds from `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the private EC2 bridge. Each feed has an id, title, URL, optional request headers, privacy flag, and cache TTL. The bridge fetches feed XML only, parses `content:encoded`, Atom `content`, or summary fields, redacts private URLs in responses, and caches feed fetches to avoid repeated polling. Store private full-text feed URLs, including the Economist feed URL, in `/etc/phoneclaw/rss-feeds.json` or another host-local secret file, not in Git or Worker config.
 
-Use `npm run elevenlabs:rss:conversation:test` to run an automated ElevenLabs smoke test for recent-list, keyword/date search, and article-text tool calls.
+Use `npm run elevenlabs:rss:conversation:test` to run an automated ElevenLabs smoke test for recent-list, keyword/date search, and article-text tool calls. Use `npm run elevenlabs:claude-steering:test` to verify that the live ElevenLabs agent can start a Claude Code session and append confirmed steering instructions without launching a code job.
 
 On the EC2 bridge, run-mode Claude Code jobs may be configured with `CLAUDE_CODE_DANGEROUSLY_SKIP_PERMISSIONS=true`. That starts confirmed run jobs with Claude Code `bypassPermissions` plus `--dangerously-skip-permissions`, so jobs do not hang on permission prompts. This setting should be paired with a locked-down bridge: localhost-only Fastify, Cloudflare Tunnel, bearer-token tool auth, restricted SSH, and no public bridge port.
 

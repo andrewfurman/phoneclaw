@@ -151,7 +151,7 @@ function Dashboard() {
     <main className={`app-shell mobile-${mobileView}`}>
       <header className="topbar">
         <div>
-          <div className="eyebrow">Phoneclaw</div>
+          <div className="eyebrow">phone-claw</div>
           <h1>Live demo console</h1>
         </div>
         <div className="topbar-actions">

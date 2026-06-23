@@ -3,8 +3,8 @@ const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
 const sendTo = process.env.EMAIL_SEND_TEST_TO || "aifurman@gmail.com";
 const testStamp = new Date().toISOString().replace(/[:.]/g, "-");
-const subject = `Phoneclaw emergency send validation ${testStamp}`;
-const body = "Phoneclaw automated ElevenLabs validation: emergency send path test.";
+const subject = `phone-claw emergency send validation ${testStamp}`;
+const body = "phone-claw automated ElevenLabs validation: emergency send path test.";
 const question = `Please prepare an emergency email to ${sendTo}. The subject is "${subject}". The body is "${body}". Please read me the exact preview and ask for final confirmation before sending.`;
 
 if (!agentId || !apiKey) {

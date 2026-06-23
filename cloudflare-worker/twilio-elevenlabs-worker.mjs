@@ -716,7 +716,7 @@ function visualizerLoginHtml(message) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Phoneclaw Login</title>
+  <title>phone-claw Login</title>
   <style>
     :root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1d2430; background: #f6f7f9; }
     * { box-sizing: border-box; }
@@ -732,7 +732,7 @@ function visualizerLoginHtml(message) {
 </head>
 <body>
   <main>
-    <h1>Phoneclaw Live</h1>
+    <h1>phone-claw Live</h1>
     <p>Enter the visualizer password to view live transcripts, tool calls, and call events.</p>
     ${message ? `<div class="message">${escapeHtml(message)}</div>` : ""}
     <form method="post" action="/visualizer/login">

@@ -1,7 +1,7 @@
 const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
-const testRepo = process.env.GITHUB_FILES_TEST_REPO || "andrewfurman/phoneclaw";
+const testRepo = process.env.GITHUB_FILES_TEST_REPO || "andrewfurman/phone-claw";
 const testFile = process.env.GITHUB_FILES_TEST_FILE || "README.md";
 const testPath = process.env.GITHUB_FILES_TEST_PATH || "";
 

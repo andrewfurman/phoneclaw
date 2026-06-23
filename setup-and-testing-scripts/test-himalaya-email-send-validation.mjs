@@ -16,7 +16,7 @@ const response = await fetch(`${workerBaseUrl}/cli/himalaya/email-send`, {
   },
   body: JSON.stringify({
     to: "not-an-email",
-    subject: "Phoneclaw email send validation test",
+    subject: "phone-claw email send validation test",
     body: "This should not send.",
     emergency: true,
     previewed: true,

@@ -49,7 +49,7 @@ for (const feedUrl of economistFeeds) {
       category_id: category.id,
       crawler: true,
       user_agent:
-        "Mozilla/5.0 (compatible; PhoneclawMiniflux/1.0; +https://github.com/andrewfurman/phoneclaw)",
+        "Mozilla/5.0 (compatible; phone-claw-miniflux/1.0; +https://github.com/andrewfurman/phone-claw)",
     },
     allowFailure: true,
   });
