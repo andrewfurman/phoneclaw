@@ -104,7 +104,11 @@ async function fetchWithBrowser({ url, maxTextChars }) {
       waitUntil: "domcontentloaded",
       timeout: envInteger("ECONOMIST_BROWSER_NAVIGATION_TIMEOUT_MS", DEFAULT_TIMEOUT_MS),
     });
-    await page.waitForLoadState("networkidle", { timeout: 15_000 }).catch(() => {});
+    await page
+      .waitForLoadState("networkidle", {
+        timeout: envInteger("ECONOMIST_BROWSER_NETWORK_IDLE_TIMEOUT_MS", 5_000),
+      })
+      .catch(() => {});
     await page.waitForTimeout(envInteger("ECONOMIST_BROWSER_WAIT_MS", DEFAULT_WAIT_MS));
 
     const extracted = await page.evaluate(() => {
@@ -255,12 +259,15 @@ function browserMessage({ status, extracted, text }) {
 
 function requiresLogin(value) {
   const text = String(value || "").toLowerCase();
-  return (
-    text.includes("subscribe") ||
-    text.includes("sign in") ||
-    text.includes("log in") ||
-    text.includes("subscriber")
-  );
+  return [
+    /\bsign in\s+(to|for)\s+(continue|read|access|unlock)\b/,
+    /\blog in\s+(to|for)\s+(continue|read|access|unlock)\b/,
+    /\bsubscribe\s+(to|for)\s+(continue|read|access|unlock)\b/,
+    /\bsubscribe now\b/,
+    /\bstart (your )?(free )?trial\b/,
+    /\bcreate (an )?account\s+(to|for)\s+(continue|read|access|unlock)\b/,
+    /\byou need to be (signed|logged) in\b/,
+  ].some((pattern) => pattern.test(text));
 }
 
 function normalizeUrl(value) {
