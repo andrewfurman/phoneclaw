@@ -1135,7 +1135,8 @@ function rssRecentEntriesToolConfig() {
           "Optional configured feed id, for example the id returned by rss_list_feeds. Omit to search all configured feeds.",
       }),
       limit: integerProperty({
-        description: "Maximum articles to return. Use 5 by default for phone answers.",
+        description:
+          "Maximum articles to return. Omit for the default 100-entry recent list; use a smaller value only when Andrew asks for a short summary.",
       }),
       refresh: booleanProperty(
         "Set true only when Andrew explicitly asks to refresh the bridge cache now."
@@ -1171,7 +1172,8 @@ function rssSearchEntriesToolConfig() {
         description: "Optional inclusive published-before date or timestamp.",
       }),
       limit: integerProperty({
-        description: "Maximum articles to return. Use 5 by default for phone answers.",
+        description:
+          "Maximum articles to return. Omit for the default 100-entry search result list; use a smaller value only when Andrew asks for a short summary.",
       }),
       refresh: booleanProperty(
         "Set true only when Andrew explicitly asks to refresh the bridge cache now."
@@ -1950,6 +1952,7 @@ CLI capability:
 - Use rss_list_feeds when Andrew asks what feeds are configured or when you need the feed_id for a named feed.
 - Use rss_recent_entries when Andrew asks for recent or latest articles from configured RSS feeds. Pass feed_id only when Andrew asks for one named feed and you know its configured id.
 - Use rss_search_entries when Andrew asks to search configured RSS feeds by date, topic, keyword, publication, or section.
+- RSS recent/search calls default to up to 100 entries. Ask for 100 when Andrew wants a long list or wants to browse the latest feed; use a smaller limit only when Andrew explicitly asks for a brief shortlist.
 - Use rss_get_article_text only after you have an exact entry_id from rss_recent_entries or rss_search_entries. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
 - After rss_recent_entries, rss_search_entries, or rss_get_article_text returns relevant results, answer directly from the returned RSS entries, answer_text, and article text. Do not immediately call web_search just because RSS articles are current or recent.
 - If Andrew asks to discuss, explain, summarize, compare, or reason about an article that you already retrieved from RSS, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.
