@@ -4,6 +4,12 @@ const apiKey = process.env.ELEVENLABS_API_KEY;
 const workerBaseUrl =
   process.env.PHONECLAW_WORKER_BASE_URL || "https://webhooks.aifurman.com";
 const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
+const maxConversationDurationSeconds = clampInteger(
+  process.env.ELEVENLABS_MAX_CONVERSATION_DURATION_SECONDS,
+  60,
+  7_200,
+  7_200
+);
 
 if (!agentId || !apiKey) {
   console.error("Missing ELEVENLABS_AGENT_ID or ELEVENLABS_API_KEY.");
@@ -62,7 +68,13 @@ for (const name of obsoleteToolNames) {
 const agent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`);
 const conversationConfig = structuredClone(agent.conversation_config || {});
 const promptConfig = conversationConfig.agent?.prompt || {};
+const {
+  tools: _legacyPromptTools,
+  built_in_tools: currentBuiltInTools = {},
+  ...promptConfigWithoutLegacyTools
+} = promptConfig;
 const currentTtsConfig = conversationConfig.tts || {};
+const currentConversationConfig = conversationConfig.conversation || {};
 const currentToolIds = promptConfig.tool_ids || [];
 const obsoleteToolIds = new Set(obsoleteTools.map((tool) => tool.id));
 const toolIds = unique([
@@ -80,13 +92,21 @@ conversationConfig.tts = {
   speed: Number(process.env.ELEVENLABS_AGENT_VOICE_SPEED || currentTtsConfig.speed || 1),
 };
 
-delete promptConfig.tools;
+conversationConfig.conversation = {
+  ...currentConversationConfig,
+  max_duration_seconds: maxConversationDurationSeconds,
+};
+
 conversationConfig.agent = {
   ...(conversationConfig.agent || {}),
   prompt: {
-    ...promptConfig,
+    ...promptConfigWithoutLegacyTools,
     prompt: nextPrompt,
     tool_ids: toolIds,
+    built_in_tools: {
+      ...(isPlainObject(currentBuiltInTools) ? currentBuiltInTools : {}),
+      end_call: endCallBuiltInToolConfig(),
+    },
   },
 };
 
@@ -113,6 +133,8 @@ console.log(
         id: tool.id,
         name: tool.tool_config?.name,
       })),
+      max_conversation_duration_seconds: maxConversationDurationSeconds,
+      system_tools: ["end_call"],
     },
     null,
     2
@@ -1510,6 +1532,19 @@ function webhookTool({
   };
 }
 
+function endCallBuiltInToolConfig() {
+  return {
+    type: "system",
+    name: "end_call",
+    description:
+      "End the call when Andrew clearly says goodbye, says that's all for now, thanks the assistant and says goodbye, or otherwise indicates the conversation is complete.",
+    response_timeout_secs: 20,
+    params: {
+      system_tool_type: "end_call",
+    },
+  };
+}
+
 function githubEntryProperties() {
   return {
     type: stringProperty({ description: "Entry type, usually dir or file." }),
@@ -1897,7 +1932,14 @@ CLI capability:
 - If rss_get_article_text returns access_note saying the text may be an excerpt, say that plainly.
 - Do not call rss_refresh_feeds before every RSS lookup. Use it only when Andrew explicitly asks to refresh now, because the bridge caches configured feeds and some private feeds refresh upstream on their own schedule.
 - These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.
-- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.`;
+- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.
+
+End-call behavior:
+- You have a system tool named end_call.
+- Use end_call when Andrew clearly says goodbye, says "that's all for now", says "thanks, goodbye", says he is done, or otherwise indicates the call should end.
+- Before ending the call, include a short farewell message such as "Sounds good, goodbye." Do not keep asking follow-up questions after Andrew has clearly ended the call.
+- Do not use end_call merely because there is a pause, because a tool call completed, or because a task is difficult.
+`;
   const webMarker = "\n\nWeb search capability:";
   const readMarker = "\n\nGitHub read capability:";
   const capabilityMarker = "\n\nGitHub capability:";
@@ -1942,4 +1984,14 @@ function parseMaybeJson(text) {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function clampInteger(value, min, max, fallback = min) {
+  const number = Number.parseInt(value, 10);
+  if (!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, number));
 }

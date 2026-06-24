@@ -41,6 +41,9 @@ const snapshot = redact({
         tool.tool_config?.api_schema?.response_body_schema?.properties || {}
       ),
     })),
+    system_tools: Object.keys(
+      agent.conversation_config?.agent?.prompt?.built_in_tools || {}
+    ),
   },
   agent,
   tools,

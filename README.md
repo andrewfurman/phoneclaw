@@ -70,6 +70,7 @@ npm run worker:check
 npm run elevenlabs:github:test
 npm run elevenlabs:github:files:test
 npm run elevenlabs:rss:conversation:test
+npm run elevenlabs:end-call:test
 npm run elevenlabs:claude-steering:test
 ```
 
@@ -77,7 +78,7 @@ npm run elevenlabs:claude-steering:test
 
 All non-trivial changes should go through a pull request before merging to `main`.
 
-Before merging a PR that changes agent behavior, tool schemas, tool endpoints, Twilio/ElevenLabs routing, or the EC2 bridge, run the most relevant automated ElevenLabs bot test. For RSS changes, run `npm run elevenlabs:rss:conversation:test`; for Claude Code steering changes, run `npm run elevenlabs:claude-steering:test`; for GitHub, email, logging, or audio changes, run the matching `elevenlabs:*:test` script. After the test, review the resulting ElevenLabs conversation transcript and bridge/Worker logs for tool errors, timeouts, or dropped media streams. Merge only after the automated test and logs support the change.
+Before merging a PR that changes agent behavior, tool schemas, tool endpoints, Twilio/ElevenLabs routing, or the EC2 bridge, run the most relevant automated ElevenLabs bot test. For RSS changes, run `npm run elevenlabs:rss:conversation:test`; for end-call behavior, run `npm run elevenlabs:end-call:test`; for Claude Code steering changes, run `npm run elevenlabs:claude-steering:test`; for GitHub, email, logging, or audio changes, run the matching `elevenlabs:*:test` script. After the test, review the resulting ElevenLabs conversation transcript and bridge/Worker logs for tool errors, timeouts, or dropped media streams. Merge only after the automated test and logs support the change.
 
 ## Cloudflare Worker
 
@@ -158,6 +159,8 @@ Email write tools require explicit confirmation. They can archive email and save
 `himalaya_email_list` is paginated by default and returns compact envelope metadata only: id, subject, sender, recipients, date, flags, and attachment presence. Use `all_pages=true` on the same tool for complete folder lists and total-count questions such as "how many emails are in my inbox?" All-pages mode returns at most 200 envelopes by default and reports `has_more`, `complete`, and `capped` so the agent does not dump an entire mailbox into context.
 
 `claude_code` is intentionally not a default reasoning path. It supports `auth_status`, `start_session`, `submit_task`, `steer_session`, and `job_status`; task submission and steering instructions are confirmation-gated. Run jobs are asynchronous on the private EC2 bridge, and steering instructions let Andrew update or redirect the same Claude Code session instead of starting over.
+
+The ElevenLabs agent includes the `end_call` system tool. When Andrew clearly says goodbye or says he is done for now, the agent should say a short farewell and let ElevenLabs end the live call. The configured conversation duration limit is two hours (`7200` seconds).
 
 `rss_*` tools read configured RSS or Atom feeds from `RSS_FEEDS_CONFIG_PATH` or `RSS_FEEDS_JSON` on the private EC2 bridge. Each feed has an id, title, URL, optional request headers, privacy flag, and cache TTL. The bridge fetches feed XML only, parses `content:encoded`, Atom `content`, or summary fields, redacts private URLs in responses, and caches feed fetches to avoid repeated polling. Store private feed URLs in `/etc/phoneclaw/rss-feeds.json` or another host-local secret file, not in Git or Worker config.
 

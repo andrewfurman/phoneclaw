@@ -27,6 +27,7 @@ This log captures the prototype shape without publishing credentials or live pro
 - Added KV-backed Twilio event logging so future call disconnects can be inspected after the call.
 - Added confirmed GitHub issue create/update webhook tools backed by a separate write token.
 - Increased the ElevenLabs phone conversation maximum duration from 10 minutes to 30 minutes after confirming a call ended at the prior limit.
+- Increased the ElevenLabs phone conversation maximum duration from 30 minutes to two hours and enabled the `end_call` system tool so the agent can hang up when Andrew says goodbye.
 
 ## Current Prototype
 
