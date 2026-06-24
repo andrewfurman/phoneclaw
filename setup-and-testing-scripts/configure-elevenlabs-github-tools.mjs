@@ -1136,7 +1136,7 @@ function rssRecentEntriesToolConfig() {
       }),
       limit: integerProperty({
         description:
-          "Maximum articles to return. Omit for the default 100-entry recent list; use a smaller value only when Andrew asks for a short summary.",
+          "Maximum articles to return. Omit for the default 200-entry recent list; use up to 1000 only when Andrew explicitly asks for a large list or broad export.",
       }),
       refresh: booleanProperty(
         "Set true only when Andrew explicitly asks to refresh the bridge cache now."
@@ -1173,7 +1173,7 @@ function rssSearchEntriesToolConfig() {
       }),
       limit: integerProperty({
         description:
-          "Maximum articles to return. Omit for the default 100-entry search result list; use a smaller value only when Andrew asks for a short summary.",
+          "Maximum articles to return. Omit for the default 200-entry search result list; use up to 1000 only when Andrew explicitly asks for a large search or broad export.",
       }),
       refresh: booleanProperty(
         "Set true only when Andrew explicitly asks to refresh the bridge cache now."
@@ -1626,8 +1626,14 @@ function rssEntriesResponseProperties() {
     start_date: stringProperty({ description: "Start date when applicable." }),
     end_date: stringProperty({ description: "End date when applicable." }),
     feed_id: stringProperty({ description: "Configured feed id when applicable." }),
+    limit: integerProperty({ description: "Effective result limit applied by PhoneClaw." }),
+    max_limit: integerProperty({ description: "Maximum result limit supported by PhoneClaw." }),
     returned_count: integerProperty({ description: "Number of entries returned." }),
-    total_count: integerProperty({ description: "Total matching entries if reported." }),
+    total_count: integerProperty({ description: "Total matching entries found before limiting." }),
+    available_count: integerProperty({
+      description: "Matching entries available from the configured upstream feeds before limiting.",
+    }),
+    has_more: booleanProperty("Whether additional matching entries were omitted by the limit."),
     category_id: integerProperty({ description: "Legacy category id, when present." }),
     category_title: stringProperty({ description: "Legacy category title, when present." }),
     answer_text: stringProperty({
@@ -1952,7 +1958,8 @@ CLI capability:
 - Use rss_list_feeds when Andrew asks what feeds are configured or when you need the feed_id for a named feed.
 - Use rss_recent_entries when Andrew asks for recent or latest articles from configured RSS feeds. Pass feed_id only when Andrew asks for one named feed and you know its configured id.
 - Use rss_search_entries when Andrew asks to search configured RSS feeds by date, topic, keyword, publication, or section.
-- RSS recent/search calls default to up to 100 entries. Ask for 100 when Andrew wants a long list or wants to browse the latest feed; use a smaller limit only when Andrew explicitly asks for a brief shortlist.
+- RSS recent/search calls default to up to 200 entries and support up to 1000 entries. Use 1000 only when Andrew explicitly asks for a large search, broad export, or comprehensive list; use a smaller limit when Andrew asks for a brief shortlist.
+- If an RSS call asks for a high limit but returns fewer entries, compare returned_count with available_count and the feed item_count. Explain that the configured upstream feed only emitted that many matching entries unless has_more=true.
 - Use rss_get_article_text only after you have an exact entry_id from rss_recent_entries or rss_search_entries. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.
 - After rss_recent_entries, rss_search_entries, or rss_get_article_text returns relevant results, answer directly from the returned RSS entries, answer_text, and article text. Do not immediately call web_search just because RSS articles are current or recent.
 - If Andrew asks to discuss, explain, summarize, compare, or reason about an article that you already retrieved from RSS, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.

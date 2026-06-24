@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import { htmlToText } from "html-to-text";
 
-const DEFAULT_LIMIT = 100;
-const MAX_LIMIT = 100;
+const DEFAULT_LIMIT = 200;
+const MAX_LIMIT = 1_000;
 const DEFAULT_MAX_TEXT_CHARS = 30_000;
 const MAX_TEXT_CHARS = 120_000;
 const DEFAULT_EXCERPT_CHARS = 320;
@@ -83,9 +83,8 @@ export async function rssConfiguredSearchEntries({
     }
   }
 
-  const sorted = dedupeEntries(items)
-    .sort(compareEntriesByPublishedDesc)
-    .slice(0, boundedLimit);
+  const matchingItems = dedupeEntries(items).sort(compareEntriesByPublishedDesc);
+  const sorted = matchingItems.slice(0, boundedLimit);
   const failures = feedResults.filter((result) => !result.ok);
   if (!sorted.length && failures.length === feedResults.length) {
     return {
@@ -109,8 +108,12 @@ export async function rssConfiguredSearchEntries({
     start_date: startDate || "",
     end_date: endDate || "",
     feed_id: normalizeString(feedId),
+    limit: boundedLimit,
+    max_limit: MAX_LIMIT,
     returned_count: sorted.length,
-    total_count: sorted.length,
+    total_count: matchingItems.length,
+    available_count: matchingItems.length,
+    has_more: matchingItems.length > sorted.length,
     feeds: feedResults.map(feedFetchSummary),
     configuration_errors: config.errors,
     items: sorted,
