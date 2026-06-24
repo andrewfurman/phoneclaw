@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import { htmlToText } from "html-to-text";
 
-const DEFAULT_LIMIT = 10;
-const MAX_LIMIT = 50;
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 100;
 const DEFAULT_MAX_TEXT_CHARS = 30_000;
 const MAX_TEXT_CHARS = 120_000;
 const DEFAULT_EXCERPT_CHARS = 320;
