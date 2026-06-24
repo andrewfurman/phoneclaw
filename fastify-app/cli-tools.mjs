@@ -13,6 +13,8 @@ const MAX_LIST_RESULTS = 50;
 const MAX_EMAIL_LIST_PAGES = 200;
 const DEFAULT_EMAIL_LIST_MAX_ITEMS = 200;
 const MAX_EMAIL_LIST_ITEMS = 1_000;
+const DEFAULT_EMAIL_READ_BODY_CHARS = 8_000;
+const MAX_EMAIL_READ_BODY_CHARS = 40_000;
 const DEFAULT_HIMALAYA_SEND_TIMEOUT_MS = 8_000;
 const DEFAULT_FORWARD_MAX_ORIGINAL_BYTES = 600_000;
 const MAX_FORWARD_ORIGINAL_BYTES = 1_500_000;
@@ -107,6 +109,8 @@ export async function himalayaEmailRead({
   account,
   includeHeaders = true,
   markSeen = false,
+  includeRaw = false,
+  maxBodyChars = DEFAULT_EMAIL_READ_BODY_CHARS,
   maxRawBytes = DEFAULT_MAX_RAW_BYTES,
 } = {}) {
   const messageId = normalizeString(id);
@@ -134,14 +138,31 @@ export async function himalayaEmailRead({
     maxRawBytes,
   });
 
+  if (!result.ok) {
+    return {
+      ...compactCliResult(result),
+      command: "himalaya message read",
+      folder: normalizeString(folder, "INBOX"),
+      id: messageId,
+      answer_text: result.answer_text,
+    };
+  }
+
+  const compactMessage = compactEmailReadResult({
+    rawMessage: normalizeHimalayaReadOutput(result),
+    includeHeaders,
+    maxBodyChars,
+  });
+
   return {
-    ...result,
+    ...compactCliResult(result),
     command: "himalaya message read",
     folder: normalizeString(folder, "INBOX"),
     id: messageId,
-    answer_text: result.ok
-      ? "I found that email message. Use the raw output to summarize the headers and body."
-      : result.answer_text,
+    ...compactMessage,
+    raw_json: toBoolean(includeRaw) ? result.raw_json : "",
+    raw_truncated: toBoolean(includeRaw) ? result.raw_truncated : false,
+    answer_text: formatEmailReadAnswer(compactMessage),
   };
 }
 
@@ -1579,6 +1600,94 @@ function parseForwardOriginal(rawMessageBuffer) {
     html: htmlPart ? decodeMimePartBody(htmlPart) : "",
     plain: plainPart ? decodeMimePartBody(plainPart) : "",
   };
+}
+
+function compactEmailReadResult({ rawMessage, includeHeaders = true, maxBodyChars }) {
+  const message = String(rawMessage || "");
+  const boundedBodyChars = clampInteger(
+    maxBodyChars,
+    500,
+    MAX_EMAIL_READ_BODY_CHARS,
+    DEFAULT_EMAIL_READ_BODY_CHARS
+  );
+  const root = parseMimeEntity(message);
+  const htmlPart = findMimePart(root, "text/html");
+  const plainPart = findMimePart(root, "text/plain");
+  const html = htmlPart ? decodeMimePartBody(htmlPart) : "";
+  const plain = plainPart ? decodeMimePartBody(plainPart) : fallbackPlainEmailBody(message);
+  const bodyText = normalizeEmailBody(
+    plain ||
+      (html
+        ? htmlToText(html, {
+            wordwrap: false,
+            selectors: [{ selector: "a", options: { ignoreHref: true } }],
+          })
+        : "")
+  );
+  const bodyExcerpt = truncateUtf8(bodyText, boundedBodyChars);
+  const headers = toBoolean(includeHeaders, true) ? compactEmailHeaders(root.headers) : {};
+
+  return {
+    message_size_chars: message.length,
+    max_body_chars: boundedBodyChars,
+    body_text_chars: bodyText.length,
+    body_text_truncated: bodyExcerpt.truncated,
+    has_plain: Boolean(plain),
+    has_html: Boolean(html),
+    headers,
+    subject: headers.subject || "",
+    from: headers.from || "",
+    to: headers.to || "",
+    cc: headers.cc || "",
+    date: headers.date || "",
+    body_text: bodyExcerpt.value,
+  };
+}
+
+function normalizeHimalayaReadOutput(result) {
+  const parsed = result?.parsed_json;
+  if (typeof parsed === "string") return parsed;
+  if (parsed && typeof parsed === "object") {
+    const message =
+      parsed.raw ||
+      parsed.content ||
+      parsed.body ||
+      parsed.message ||
+      parsed.text ||
+      parsed.email ||
+      "";
+    if (typeof message === "string") return message;
+  }
+
+  const raw = result?.raw_json;
+  if (typeof raw !== "string") return "";
+  const decoded = parseMaybeJson(raw);
+  return typeof decoded === "string" ? decoded : raw;
+}
+
+function fallbackPlainEmailBody(rawMessage) {
+  const { body } = splitMimeHeadersAndBody(rawMessage);
+  return body || rawMessage || "";
+}
+
+function compactEmailHeaders(headers) {
+  return {
+    subject: decodedHeaderValue(headerValue(headers, "subject")),
+    from: decodedHeaderValue(headerValue(headers, "from")),
+    to: decodedHeaderValue(headerValue(headers, "to")),
+    cc: decodedHeaderValue(headerValue(headers, "cc")),
+    date: decodedHeaderValue(headerValue(headers, "date")),
+    message_id: decodedHeaderValue(headerValue(headers, "message-id")),
+    content_type: decodedHeaderValue(headerValue(headers, "content-type")),
+  };
+}
+
+function formatEmailReadAnswer(message) {
+  const subject = message.subject ? ` "${message.subject}"` : "";
+  const truncation = message.body_text_truncated
+    ? ` Returned the first ${message.max_body_chars} characters of the readable body.`
+    : "";
+  return `Read email${subject}. The compact response includes headers and a readable body excerpt.${truncation}`;
 }
 
 function parseEmailHeaders(value) {

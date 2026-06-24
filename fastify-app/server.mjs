@@ -696,6 +696,8 @@ async function handleHimalayaEmailRead(request, reply) {
     account: body.account,
     includeHeaders: body.include_headers ?? body.includeHeaders,
     markSeen: body.mark_seen ?? body.markSeen,
+    includeRaw: body.include_raw ?? body.includeRaw,
+    maxBodyChars: body.max_body_chars || body.maxBodyChars,
     maxRawBytes: body.max_raw_bytes || body.maxRawBytes,
   });
 

@@ -654,13 +654,20 @@ function himalayaEmailReadToolConfig() {
       include_headers: booleanProperty(
         "Set true to include message headers. Keep true unless Andrew asks for body only."
       ),
+      max_body_chars: integerProperty({
+        description:
+          "Maximum readable body excerpt characters to return. Use the default 8000 for phone calls; raise only when Andrew explicitly asks for a longer excerpt.",
+      }),
+      include_raw: booleanProperty(
+        "Set true only when Andrew explicitly asks for raw email source or debugging output. Leave false for normal phone-call reading."
+      ),
       max_raw_bytes: integerProperty({
         description:
-          "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+          "Maximum raw output bytes available when include_raw=true. Leave unset for normal compact reading.",
       }),
     },
     responseDescription: "Himalaya email message response.",
-    responseProperties: cliResponseProperties(),
+    responseProperties: emailReadResponseProperties(),
   });
 }
 
@@ -1732,6 +1739,45 @@ function emailWriteResponseProperties() {
   };
 }
 
+function emailReadResponseProperties() {
+  return {
+    ...cliResponseProperties(),
+    id: stringProperty({ description: "Himalaya envelope id that was read." }),
+    folder: stringProperty({ description: "Mailbox folder used for the read." }),
+    message_size_chars: integerProperty({ description: "Full raw message size in characters." }),
+    max_body_chars: integerProperty({
+      description: "Maximum readable body excerpt characters requested.",
+    }),
+    body_text_chars: integerProperty({
+      description: "Readable body text length before excerpt truncation.",
+    }),
+    body_text_truncated: booleanProperty("Whether body_text is an excerpt."),
+    has_plain: booleanProperty("Whether a plain-text body was found."),
+    has_html: booleanProperty("Whether an HTML body was found."),
+    headers: objectProperty({
+      description: "Compact decoded email headers.",
+      properties: {
+        subject: stringProperty({ description: "Email subject." }),
+        from: stringProperty({ description: "Email sender." }),
+        to: stringProperty({ description: "Email recipients." }),
+        cc: stringProperty({ description: "Email CC recipients." }),
+        date: stringProperty({ description: "Email date." }),
+        message_id: stringProperty({ description: "Email Message-ID." }),
+        content_type: stringProperty({ description: "Email Content-Type." }),
+      },
+    }),
+    subject: stringProperty({ description: "Email subject." }),
+    from: stringProperty({ description: "Email sender." }),
+    to: stringProperty({ description: "Email recipients." }),
+    cc: stringProperty({ description: "Email CC recipients." }),
+    date: stringProperty({ description: "Email date." }),
+    body_text: stringProperty({
+      description:
+        "Readable plain-text email body excerpt. Use this for normal phone-call summaries.",
+    }),
+  };
+}
+
 function cliResponseProperties() {
   return {
     ok: booleanProperty("Whether the CLI command succeeded."),
@@ -1938,7 +1984,7 @@ CLI capability:
 - You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, himalaya_email_forward, create_reply_all_draft, create_forward_draft, himalaya_email_send, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.
 - Use himalaya_email_list with all_pages=true when Andrew asks how many emails are in a mailbox folder, asks for all emails, or asks for a complete folder list. This mode returns at most 200 envelopes by default to protect context; if capped or has_more is true, say it is a partial list and suggest narrowing the query.
 - Only treat total_count as exact when complete or exact is true.
-- Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.
+- Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. himalaya_email_read returns compact headers and body_text by default; do not set include_raw=true unless Andrew explicitly asks for raw email source or debugging output.
 - Do not read internal email envelope ids, Otter otids, database ids, UUIDs, Twilio SIDs, or Claude job/session ids aloud unless Andrew explicitly asks for the id or is confirming an action that requires that exact id. Use human-readable subjects, titles, senders, dates, and summaries in normal speech.
 - Use himalaya_email_archive only after Andrew explicitly confirms the exact email or emails and source folder. For one email, pass id. For multiple emails, pass ids as an array in one tool call. Set confirmed=true only after that confirmation.
 - Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.

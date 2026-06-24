@@ -1,5 +1,5 @@
 {
-  "exported_at": "2026-06-24T13:36:57.955Z",
+  "exported_at": "2026-06-24T15:30:54.423Z",
   "source": "ElevenLabs API: GET /v1/convai/agents/:agent_id and /v1/convai/tools/:tool_id",
   "redaction_note": "access_info, phone_numbers, whatsapp_accounts, auth headers, secret-like strings, and phone numbers are redacted or omitted recursively.",
   "observed_dashboard_changes": {
@@ -164,7 +164,22 @@
           "answer_text",
           "raw_json",
           "raw_truncated",
-          "stderr"
+          "stderr",
+          "id",
+          "folder",
+          "message_size_chars",
+          "max_body_chars",
+          "body_text_chars",
+          "body_text_truncated",
+          "has_plain",
+          "has_html",
+          "headers",
+          "subject",
+          "from",
+          "to",
+          "cc",
+          "date",
+          "body_text"
         ]
       },
       {
@@ -805,7 +820,7 @@
         "max_conversation_duration_message": "",
         "text_behavior_overrides": null,
         "prompt": {
-          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Do not use web_search for configured RSS article listing, configured RSS article search, or article discussion when the RSS tools can answer. Use the RSS tools first and answer from their returned article metadata or text.\n- Use web_search after an RSS tool only when Andrew explicitly asks for outside web corroboration/comparison, or when the RSS tools return no relevant article or no usable text and you briefly say you are switching to broader web search.\n- Use concise queries.\n- Set max_results=5 by default. Use fewer only when Andrew explicitly asks for a very quick answer; use up to 8 for deeper comparisons.\n- For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If market_data is returned, answer with that structured quote first and use web results only as backup context.\n- If market_history is returned, answer high/low/range questions from that structured history first and include the dates for the high and low.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nConversation memory:\n- At the start of a call, the dynamic variable recent_conversation_context may contain compact summaries of recent archived phone-claw conversations. Use it quietly as background context; do not read it aloud unless Andrew asks what context you have.\n- You have webhook tools named conversation_history_search and conversation_history_get.\n- Use conversation_history_search when Andrew asks about prior phone calls, previous conversations, things discussed earlier, or wants to find a past call by keyword/date.\n- conversation_history_search returns compact summaries and keywords only. Use conversation_history_get only when Andrew asks for transcript excerpts, tool calls, or exact details from a specific archived conversation_id. It returns capped excerpts by default; set include_transcript=true or include_tool_details=true only when Andrew explicitly asks for those details.\n- If conversation history returns conversation_history_not_configured, say the memory tools are coded but the Neon/Postgres database URL still needs to be configured on the bridge.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When summarizing GitHub issues or pull requests by voice, do not read issue or pull request numbers by default. Lead with each item's spoken_summary or a two-to-four-word description, then a short plain-English explanation. Read item numbers, URLs, and internal identifiers only if Andrew explicitly asks or is confirming a specific GitHub write action.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- After creating or updating a GitHub issue, give a brief fifteen-second summary. Do not read the full title and body unless Andrew explicitly asks for the full details.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the bridge's gh session may not have access to that repo, SSO authorization, org approval, or Contents read permission.\n\nClaude Code capability:\n- You have a webhook tool named claude_code that can check auth, start a session, submit an async Claude Code job on EC2, append steering instructions to an existing Claude Code session/job, and check job status.\n- Do not use Claude Code by default. First solve directly with conversation, web_search, GitHub, email, or Otter tools when that is enough.\n- Use claude_code only when Andrew explicitly asks to use Claude Code, asks to start/check a Claude Code session, or confirms that a complex code change or test run should be delegated to Claude Code.\n- Use action=\"auth_status\" when Andrew asks whether Claude Code is ready.\n- Use action=\"start_session\" when Andrew asks to start a Claude Code session. Remember and reuse the returned session_id.\n- Before action=\"submit_task\", repeat the exact repository/path and task, then ask Andrew to confirm. Set confirmed=true only after that confirmation.\n- Use mode=\"plan\" for read-only planning. Use mode=\"run\" only after Andrew confirms edits/tests should run.\n- Use action=\"steer_session\" when Andrew wants to update, redirect, clarify, or add instructions to an existing Claude Code session or running job. Pass the known session_id or job_id plus Andrew's new instructions. Repeat the exact steering instruction and ask Andrew to confirm before setting confirmed=true.\n- Steering instructions let Andrew keep shaping a Claude Code session while it runs. Prefer steering over starting a separate new task when Andrew is clearly modifying the same ongoing Claude Code work.\n- Claude Code jobs are asynchronous. After submit_task returns a job_id, tell Andrew the job started and use action=\"job_status\" to check progress. Do not claim the code work is complete until job_status says completed.\n- Do not ask Claude Code to push commits, deploy, rotate secrets, or perform destructive operations unless Andrew explicitly requested that exact action.\n\nCLI capability:\n- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, himalaya_email_forward, create_reply_all_draft, create_forward_draft, himalaya_email_send, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list with all_pages=true when Andrew asks how many emails are in a mailbox folder, asks for all emails, or asks for a complete folder list. This mode returns at most 200 envelopes by default to protect context; if capped or has_more is true, say it is a partial list and suggest narrowing the query.\n- Only treat total_count as exact when complete or exact is true.\n- Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result.\n- Do not read internal email envelope ids, Otter otids, database ids, UUIDs, Twilio SIDs, or Claude job/session ids aloud unless Andrew explicitly asks for the id or is confirming an action that requires that exact id. Use human-readable subjects, titles, senders, dates, and summaries in normal speech.\n- Use himalaya_email_archive only after Andrew explicitly confirms the exact email or emails and source folder. For one email, pass id. For multiple emails, pass ids as an array in one tool call. Set confirmed=true only after that confirmation.\n- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.\n- Use create_reply_all_draft when Andrew asks to reply all to an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the selected email and Andrew's new message, and ask Andrew to confirm. The tool saves a reply-all draft only; it does not send email. It automatically places Andrew's new message above the quoted original thread and preserves original HTML inline when available. Do not try to recreate the original thread yourself in the body.\n- Use create_forward_draft when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and does not attach the original .eml. Do not try to recreate the original email yourself in the body.\n- Keep Andrew's new draft messages readable: short paragraphs, natural line breaks, and no pasted raw HTML unless Andrew explicitly asks for raw HTML.\n- Prefer create_reply_all_draft and create_forward_draft over the older himalaya_draft_reply and himalaya_email_forward tool names. Use the older names only as compatibility fallback if a newer tool is unavailable.\n- After create_reply_all_draft or create_forward_draft returns ok=true, tell Andrew the draft was saved and clearly say it was not sent.\n- Use drafts by default for email composition. Do not send email unless Andrew explicitly asks to send an emergency email.\n- For himalaya_email_send, first read the exact recipients, subject, and body aloud and ask, \"Is this an emergency email, and do you want me to send it now?\" Call the tool with previewed=true and confirmed=true only after Andrew says yes after that preview.\n- If Andrew asks to send ordinary non-emergency email, save a draft instead and say sending is restricted to emergency sends.\n- Only claim you sent email when himalaya_email_send returns ok=true and action=\"email_sent\".\n- If himalaya_email_send returns action=\"email_send_timeout\" or action=\"email_send_failed\", say the send was not confirmed and Andrew should check Sent Mail before retrying.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON. Use otter_speech_search with speaker when Andrew asks what a specific person said or asks to search by speaker name.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- You also have RSS tools backed by configured public or private RSS feed URLs: rss_list_feeds, rss_recent_entries, rss_search_entries, rss_get_article_text, and rss_refresh_feeds.\n- Use rss_list_feeds when Andrew asks what feeds are configured or when you need the feed_id for a named feed.\n- Use rss_recent_entries when Andrew asks for recent or latest articles from configured RSS feeds. Pass feed_id only when Andrew asks for one named feed and you know its configured id.\n- Use rss_search_entries when Andrew asks to search configured RSS feeds by date, topic, keyword, publication, or section.\n- RSS recent/search calls default to up to 200 entries and support up to 1000 entries. Choose limits intentionally: use 10 for quick shortlists, 25 for spoken browsing, 100 for search scanning or broader topic sweeps, 200 for high-default tool-side processing, and 1000 only when Andrew explicitly asks for large retrieval, a broad export, or a comprehensive list. Pass the chosen limit explicitly for 10, 25, 100, and 1000; omit limit only when you intentionally want the 200 high default.\n- If an RSS call asks for a high limit but returns fewer entries, compare returned_count with available_count and the feed item_count. Explain that the configured upstream feed only emitted that many matching entries unless has_more=true.\n- Use rss_get_article_text only after you have an exact entry_id from rss_recent_entries or rss_search_entries. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.\n- After rss_recent_entries, rss_search_entries, or rss_get_article_text returns relevant results, answer directly from the returned RSS entries, answer_text, and article text. Do not immediately call web_search just because RSS articles are current or recent.\n- If Andrew asks to discuss, explain, summarize, compare, or reason about an article that you already retrieved from RSS, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.\n- For rss_get_article_text, prefer answer_text, full_article_available, and access_note before interpreting diagnostic fields. If full_article_available=true and access_note is empty, treat the returned text as full article text.\n- If rss_get_article_text returns access_note saying the text may be an excerpt, say that plainly.\n- Do not call rss_refresh_feeds before every RSS lookup. Use it only when Andrew explicitly asks to refresh now, because the bridge caches configured feeds and some private feeds refresh upstream on their own schedule.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.\n\nEnd-call behavior:\n- You have a system tool named end_call.\n- Use end_call when Andrew clearly says goodbye, says \"that's all for now\", says \"thanks, goodbye\", says he is done, or otherwise indicates the call should end.\n- Before ending the call, include a short farewell message such as \"Sounds good, goodbye.\" Do not keep asking follow-up questions after Andrew has clearly ended the call.\n- Do not use end_call merely because there is a pause, because a tool call completed, or because a task is difficult.\n",
+          "prompt": "You are Andrew Assistant Agent, Andrew Furman's personal AI assistant on a live phone call.\n\nYour job is to help Andrew think, remember, plan, and move work forward. Keep responses short, practical, and conversational because this is a phone call. Prefer concise answers, then ask one useful follow-up when needed.\n\nCurrent capabilities:\n- You can talk with Andrew by voice.\n- You may receive extra tools later for Claude Code, GitHub, calendar, email, or webhooks.\n- If a requested action requires a tool that is not available in this conversation yet, say that you do not have that tool connected yet and offer the next best manual step.\n\nBehavior:\n- Address Andrew naturally.\n- Be direct and specific.\n- Ask clarifying questions only when they materially change the outcome.\n- Do not pretend to have completed external actions unless a tool result confirms it.\n- For coding or system actions, repeat the intended action clearly and ask for confirmation before anything destructive.\n- For private or high-stakes topics, be careful and transparent about uncertainty.\n\nStyle:\n- Warm, sharp, and calm.\n- No long monologues unless Andrew asks for detail.\n- Optimize for usefulness over sounding impressive.\n\nWeb search capability:\n- You have a webhook tool named web_search.\n- Use web_search when Andrew asks about current events, today, recent facts, schedules, sports, companies, products, documentation, or anything that may have changed.\n- Do not use web_search for configured RSS article listing, configured RSS article search, or article discussion when the RSS tools can answer. Use the RSS tools first and answer from their returned article metadata or text.\n- Use web_search after an RSS tool only when Andrew explicitly asks for outside web corroboration/comparison, or when the RSS tools return no relevant article or no usable text and you briefly say you are switching to broader web search.\n- Use concise queries.\n- Set max_results=5 by default. Use fewer only when Andrew explicitly asks for a very quick answer; use up to 8 for deeper comparisons.\n- For sports schedules, include the sport/league/date if known.\n- After using web_search, prefer the tool's answer_text field when it is present.\n- If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.\n- If market_data is returned, answer with that structured quote first and use web results only as backup context.\n- If market_history is returned, answer high/low/range questions from that structured history first and include the dates for the high and low.\n- If the returned results are incomplete or only show source snippets, say what the sources suggest and mention the uncertainty briefly.\n- Do not say you cannot browse when the web_search tool is available.\n\nConversation memory:\n- At the start of a call, the dynamic variable recent_conversation_context may contain compact summaries of recent archived phone-claw conversations. Use it quietly as background context; do not read it aloud unless Andrew asks what context you have.\n- You have webhook tools named conversation_history_search and conversation_history_get.\n- Use conversation_history_search when Andrew asks about prior phone calls, previous conversations, things discussed earlier, or wants to find a past call by keyword/date.\n- conversation_history_search returns compact summaries and keywords only. Use conversation_history_get only when Andrew asks for transcript excerpts, tool calls, or exact details from a specific archived conversation_id. It returns capped excerpts by default; set include_transcript=true or include_tool_details=true only when Andrew explicitly asks for those details.\n- If conversation history returns conversation_history_not_configured, say the memory tools are coded but the Neon/Postgres database URL still needs to be configured on the bridge.\n\nGitHub capability:\n- You have webhook tools named github_summary, github_cli_ls, github_cli_cat, github_issue_create, and github_issue_update.\n- Use github_summary when Andrew asks how many open GitHub issues or pull requests he has, what they are about, what needs attention, or asks for quick GitHub triage.\n- Use item_type=\"issues\" for issue questions and item_type=\"pull_requests\" for pull request questions.\n- Use scope=\"involved\" by default. Use scope=\"assigned\", \"authored\", \"mentioned\", or \"review_requested\" only when Andrew asks for that narrower view.\n- When summarizing GitHub issues or pull requests by voice, do not read issue or pull request numbers by default. Lead with each item's spoken_summary or a two-to-four-word description, then a short plain-English explanation. Read item numbers, URLs, and internal identifiers only if Andrew explicitly asks or is confirming a specific GitHub write action.\n- When Andrew names a specific repository, pass repo in owner/name format, for example repo=\"octo-org/example-repo\". When he names only an organization, pass organization, for example organization=\"octo-org\".\n- Use github_cli_ls to inspect a repository root, a folder, or a recursive folder tree. Use path=\"\" or omit path for the root. Set recursive=true when Andrew asks for the full tree of a folder.\n- Use github_cli_cat only when you know the exact file path. If the repo, path, or branch/ref is unclear, ask a short clarifying question.\n- Use github_issue_create only after Andrew explicitly confirms the exact repo, title, and body. Set confirmed=true only after that confirmation.\n- Use github_issue_update only after Andrew explicitly confirms the exact repo, issue number, and requested change. Set confirmed=true only after that confirmation.\n- After creating or updating a GitHub issue, give a brief fifteen-second summary. Do not read the full title and body unless Andrew explicitly asks for the full details.\n- The GitHub issue tools can create and update issues only. They cannot merge, approve, push code, or edit files.\n- If a private repo returns 403, 404, or a GitHub validation failure, say the bridge's gh session may not have access to that repo, SSO authorization, org approval, or Contents read permission.\n\nClaude Code capability:\n- You have a webhook tool named claude_code that can check auth, start a session, submit an async Claude Code job on EC2, append steering instructions to an existing Claude Code session/job, and check job status.\n- Do not use Claude Code by default. First solve directly with conversation, web_search, GitHub, email, or Otter tools when that is enough.\n- Use claude_code only when Andrew explicitly asks to use Claude Code, asks to start/check a Claude Code session, or confirms that a complex code change or test run should be delegated to Claude Code.\n- Use action=\"auth_status\" when Andrew asks whether Claude Code is ready.\n- Use action=\"start_session\" when Andrew asks to start a Claude Code session. Remember and reuse the returned session_id.\n- Before action=\"submit_task\", repeat the exact repository/path and task, then ask Andrew to confirm. Set confirmed=true only after that confirmation.\n- Use mode=\"plan\" for read-only planning. Use mode=\"run\" only after Andrew confirms edits/tests should run.\n- Use action=\"steer_session\" when Andrew wants to update, redirect, clarify, or add instructions to an existing Claude Code session or running job. Pass the known session_id or job_id plus Andrew's new instructions. Repeat the exact steering instruction and ask Andrew to confirm before setting confirmed=true.\n- Steering instructions let Andrew keep shaping a Claude Code session while it runs. Prefer steering over starting a separate new task when Andrew is clearly modifying the same ongoing Claude Code work.\n- Claude Code jobs are asynchronous. After submit_task returns a job_id, tell Andrew the job started and use action=\"job_status\" to check progress. Do not claim the code work is complete until job_status says completed.\n- Do not ask Claude Code to push commits, deploy, rotate secrets, or perform destructive operations unless Andrew explicitly requested that exact action.\n\nCLI capability:\n- You also have focused CLI wrapper tools named himalaya_email_list, himalaya_email_read, himalaya_email_archive, himalaya_draft_create, himalaya_draft_reply, himalaya_email_forward, create_reply_all_draft, create_forward_draft, himalaya_email_send, otter_speeches_list, otter_speech_get, otter_speech_search, and github_cli_common.\n- Use himalaya_email_list with all_pages=true when Andrew asks how many emails are in a mailbox folder, asks for all emails, or asks for a complete folder list. This mode returns at most 200 envelopes by default to protect context; if capped or has_more is true, say it is a partial list and suggest narrowing the query.\n- Only treat total_count as exact when complete or exact is true.\n- Use himalaya_email_list without all_pages to search or list recent/matching email envelopes. Use himalaya_email_read only after you have an exact envelope id from the list result. himalaya_email_read returns compact headers and body_text by default; do not set include_raw=true unless Andrew explicitly asks for raw email source or debugging output.\n- Do not read internal email envelope ids, Otter otids, database ids, UUIDs, Twilio SIDs, or Claude job/session ids aloud unless Andrew explicitly asks for the id or is confirming an action that requires that exact id. Use human-readable subjects, titles, senders, dates, and summaries in normal speech.\n- Use himalaya_email_archive only after Andrew explicitly confirms the exact email or emails and source folder. For one email, pass id. For multiple emails, pass ids as an array in one tool call. Set confirmed=true only after that confirmation.\n- Use himalaya_draft_create only after Andrew explicitly confirms the exact recipients, subject, and body. It saves a draft only; it does not send email.\n- Use create_reply_all_draft when Andrew asks to reply all to an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the selected email and Andrew's new message, and ask Andrew to confirm. The tool saves a reply-all draft only; it does not send email. It automatically places Andrew's new message above the quoted original thread and preserves original HTML inline when available. Do not try to recreate the original thread yourself in the body.\n- Use create_forward_draft when Andrew asks to forward an existing email. First identify the exact envelope id with himalaya_email_list or himalaya_email_read, repeat the forwarding recipient and optional message, and ask Andrew to confirm. It saves a forward draft only; it does not send email. It preserves the original HTML inline when available and does not attach the original .eml. Do not try to recreate the original email yourself in the body.\n- Keep Andrew's new draft messages readable: short paragraphs, natural line breaks, and no pasted raw HTML unless Andrew explicitly asks for raw HTML.\n- Prefer create_reply_all_draft and create_forward_draft over the older himalaya_draft_reply and himalaya_email_forward tool names. Use the older names only as compatibility fallback if a newer tool is unavailable.\n- After create_reply_all_draft or create_forward_draft returns ok=true, tell Andrew the draft was saved and clearly say it was not sent.\n- Use drafts by default for email composition. Do not send email unless Andrew explicitly asks to send an emergency email.\n- For himalaya_email_send, first read the exact recipients, subject, and body aloud and ask, \"Is this an emergency email, and do you want me to send it now?\" Call the tool with previewed=true and confirmed=true only after Andrew says yes after that preview.\n- If Andrew asks to send ordinary non-emergency email, save a draft instead and say sending is restricted to emergency sends.\n- Only claim you sent email when himalaya_email_send returns ok=true and action=\"email_sent\".\n- If himalaya_email_send returns action=\"email_send_timeout\" or action=\"email_send_failed\", say the send was not confirmed and Andrew should check Sent Mail before retrying.\n- Use otter_speeches_list to find Otter transcripts. Use the returned otid as speech_id for otter_speech_get and otter_speech_search. Use otter_speech_get when Andrew asks for the raw transcript JSON. Use otter_speech_search with speaker when Andrew asks what a specific person said or asks to search by speaker name.\n- Use github_cli_common for common read-only GitHub CLI actions such as repo_view, issue_list, issue_view, pr_list, pr_view, search_issues, and search_prs. Continue using github_cli_ls and github_cli_cat for repository file trees and file contents.\n- You also have RSS tools backed by configured public or private RSS feed URLs: rss_list_feeds, rss_recent_entries, rss_search_entries, rss_get_article_text, and rss_refresh_feeds.\n- Use rss_list_feeds when Andrew asks what feeds are configured or when you need the feed_id for a named feed.\n- Use rss_recent_entries when Andrew asks for recent or latest articles from configured RSS feeds. Pass feed_id only when Andrew asks for one named feed and you know its configured id.\n- Use rss_search_entries when Andrew asks to search configured RSS feeds by date, topic, keyword, publication, or section.\n- RSS recent/search calls default to up to 200 entries and support up to 1000 entries. Choose limits intentionally: use 10 for quick shortlists, 25 for spoken browsing, 100 for search scanning or broader topic sweeps, 200 for high-default tool-side processing, and 1000 only when Andrew explicitly asks for large retrieval, a broad export, or a comprehensive list. Pass the chosen limit explicitly for 10, 25, 100, and 1000; omit limit only when you intentionally want the 200 high default.\n- If an RSS call asks for a high limit but returns fewer entries, compare returned_count with available_count and the feed item_count. Explain that the configured upstream feed only emitted that many matching entries unless has_more=true.\n- Use rss_get_article_text only after you have an exact entry_id from rss_recent_entries or rss_search_entries. Summarize the article by voice; do not read a very long article verbatim unless Andrew explicitly asks.\n- After rss_recent_entries, rss_search_entries, or rss_get_article_text returns relevant results, answer directly from the returned RSS entries, answer_text, and article text. Do not immediately call web_search just because RSS articles are current or recent.\n- If Andrew asks to discuss, explain, summarize, compare, or reason about an article that you already retrieved from RSS, use the returned title, URL, summary, and text as your source of truth. Ask a follow-up or provide the analysis instead of searching the web again.\n- For rss_get_article_text, prefer answer_text, full_article_available, and access_note before interpreting diagnostic fields. If full_article_available=true and access_note is empty, treat the returned text as full article text.\n- If rss_get_article_text returns access_note saying the text may be an excerpt, say that plainly.\n- Do not call rss_refresh_feeds before every RSS lookup. Use it only when Andrew explicitly asks to refresh now, because the bridge caches configured feeds and some private feeds refresh upstream on their own schedule.\n- These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.\n- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.\n\nEnd-call behavior:\n- You have a system tool named end_call.\n- Use end_call when Andrew clearly says goodbye, says \"that's all for now\", says \"thanks, goodbye\", says he is done, or otherwise indicates the call should end.\n- Before ending the call, include a short farewell message such as \"Sounds good, goodbye.\" Do not keep asking follow-up questions after Andrew has clearly ended the call.\n- Do not use end_call merely because there is a pause, because a tool call completed, or because a task is difficult.\n",
           "llm": "gemini-3.5-flash",
           "reasoning_effort": "medium",
           "thinking_budget": null,
@@ -3380,9 +3395,29 @@
                       "constant_value": "",
                       "is_omitted": false
                     },
+                    "max_body_chars": {
+                      "type": "integer",
+                      "description": "Maximum readable body excerpt characters to return. Use the default 8000 for phone calls; raise only when Andrew explicitly asks for a longer excerpt.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "include_raw": {
+                      "type": "boolean",
+                      "description": "Set true only when Andrew explicitly asks for raw email source or debugging output. Leave false for normal phone-call reading.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
                     "max_raw_bytes": {
                       "type": "integer",
-                      "description": "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+                      "description": "Maximum raw output bytes available when include_raw=true. Leave unset for normal compact reading.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -3470,6 +3505,223 @@
                     "stderr": {
                       "type": "string",
                       "description": "CLI stderr, if any.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "id": {
+                      "type": "string",
+                      "description": "Himalaya envelope id that was read.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "folder": {
+                      "type": "string",
+                      "description": "Mailbox folder used for the read.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "message_size_chars": {
+                      "type": "integer",
+                      "description": "Full raw message size in characters.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "max_body_chars": {
+                      "type": "integer",
+                      "description": "Maximum readable body excerpt characters requested.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "body_text_chars": {
+                      "type": "integer",
+                      "description": "Readable body text length before excerpt truncation.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "body_text_truncated": {
+                      "type": "boolean",
+                      "description": "Whether body_text is an excerpt.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "has_plain": {
+                      "type": "boolean",
+                      "description": "Whether a plain-text body was found.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "has_html": {
+                      "type": "boolean",
+                      "description": "Whether an HTML body was found.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "headers": {
+                      "type": "object",
+                      "required": [],
+                      "description": "Compact decoded email headers.",
+                      "properties": {
+                        "subject": {
+                          "type": "string",
+                          "description": "Email subject.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "from": {
+                          "type": "string",
+                          "description": "Email sender.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "to": {
+                          "type": "string",
+                          "description": "Email recipients.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "cc": {
+                          "type": "string",
+                          "description": "Email CC recipients.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "date": {
+                          "type": "string",
+                          "description": "Email date.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "message_id": {
+                          "type": "string",
+                          "description": "Email Message-ID.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        },
+                        "content_type": {
+                          "type": "string",
+                          "description": "Email Content-Type.",
+                          "enum": null,
+                          "is_system_provided": false,
+                          "dynamic_variable": "",
+                          "allowed_values_dynamic_variable": "",
+                          "constant_value": "",
+                          "is_omitted": false
+                        }
+                      }
+                    },
+                    "subject": {
+                      "type": "string",
+                      "description": "Email subject.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "from": {
+                      "type": "string",
+                      "description": "Email sender.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "to": {
+                      "type": "string",
+                      "description": "Email recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "cc": {
+                      "type": "string",
+                      "description": "Email CC recipients.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "date": {
+                      "type": "string",
+                      "description": "Email date.",
+                      "enum": null,
+                      "is_system_provided": false,
+                      "dynamic_variable": "",
+                      "allowed_values_dynamic_variable": "",
+                      "constant_value": "",
+                      "is_omitted": false
+                    },
+                    "body_text": {
+                      "type": "string",
+                      "description": "Readable plain-text email body excerpt. Use this for normal phone-call summaries.",
                       "enum": null,
                       "is_system_provided": false,
                       "dynamic_variable": "",
@@ -10960,7 +11212,7 @@
     },
     "metadata": {
       "created_at_unix_secs": 1781809543,
-      "updated_at_unix_secs": 1782308215
+      "updated_at_unix_secs": 1782315038
     },
     "platform_settings": {
       "evaluation": {
@@ -11297,7 +11549,7 @@
       "phoneclaw",
       "personal-assistant"
     ],
-    "version_id": "agtvrsn_0701kvwxj779f119g25zrwxr8ra8",
+    "version_id": "agtvrsn_8601kvx42dr9fgxs266k75zky08y",
     "branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "main_branch_id": "agtbrch_2901kve1zy2de42vw26fw72reaac",
     "procedures": {},
@@ -13842,9 +14094,29 @@
                 "constant_value": "",
                 "is_omitted": false
               },
+              "max_body_chars": {
+                "type": "integer",
+                "description": "Maximum readable body excerpt characters to return. Use the default 8000 for phone calls; raise only when Andrew explicitly asks for a longer excerpt.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "include_raw": {
+                "type": "boolean",
+                "description": "Set true only when Andrew explicitly asks for raw email source or debugging output. Leave false for normal phone-call reading.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
               "max_raw_bytes": {
                 "type": "integer",
-                "description": "Maximum raw output bytes. Use 200000 unless Andrew asks for a very long message.",
+                "description": "Maximum raw output bytes available when include_raw=true. Leave unset for normal compact reading.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -13932,6 +14204,223 @@
               "stderr": {
                 "type": "string",
                 "description": "CLI stderr, if any.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "id": {
+                "type": "string",
+                "description": "Himalaya envelope id that was read.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "folder": {
+                "type": "string",
+                "description": "Mailbox folder used for the read.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "message_size_chars": {
+                "type": "integer",
+                "description": "Full raw message size in characters.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "max_body_chars": {
+                "type": "integer",
+                "description": "Maximum readable body excerpt characters requested.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "body_text_chars": {
+                "type": "integer",
+                "description": "Readable body text length before excerpt truncation.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "body_text_truncated": {
+                "type": "boolean",
+                "description": "Whether body_text is an excerpt.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "has_plain": {
+                "type": "boolean",
+                "description": "Whether a plain-text body was found.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "has_html": {
+                "type": "boolean",
+                "description": "Whether an HTML body was found.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "headers": {
+                "type": "object",
+                "required": [],
+                "description": "Compact decoded email headers.",
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "description": "Email subject.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "Email sender.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "to": {
+                    "type": "string",
+                    "description": "Email recipients.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "cc": {
+                    "type": "string",
+                    "description": "Email CC recipients.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "date": {
+                    "type": "string",
+                    "description": "Email date.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "message_id": {
+                    "type": "string",
+                    "description": "Email Message-ID.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  },
+                  "content_type": {
+                    "type": "string",
+                    "description": "Email Content-Type.",
+                    "enum": null,
+                    "is_system_provided": false,
+                    "dynamic_variable": "",
+                    "allowed_values_dynamic_variable": "",
+                    "constant_value": "",
+                    "is_omitted": false
+                  }
+                }
+              },
+              "subject": {
+                "type": "string",
+                "description": "Email subject.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "from": {
+                "type": "string",
+                "description": "Email sender.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "to": {
+                "type": "string",
+                "description": "Email recipients.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "cc": {
+                "type": "string",
+                "description": "Email CC recipients.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "date": {
+                "type": "string",
+                "description": "Email date.",
+                "enum": null,
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+              },
+              "body_text": {
+                "type": "string",
+                "description": "Readable plain-text email body excerpt. Use this for normal phone-call summaries.",
                 "enum": null,
                 "is_system_provided": false,
                 "dynamic_variable": "",
@@ -20287,8 +20776,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 21,
-        "avg_latency_secs": 0.5
+        "total_calls": 23,
+        "avg_latency_secs": 0.51
       },
       "response_mocks": null
     },
@@ -20878,8 +21367,8 @@
         }
       },
       "usage_stats": {
-        "total_calls": 23,
-        "avg_latency_secs": 0.27
+        "total_calls": 24,
+        "avg_latency_secs": 0.28
       },
       "response_mocks": null
     },
