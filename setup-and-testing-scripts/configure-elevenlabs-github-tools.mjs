@@ -213,7 +213,11 @@ function webSearchToolConfig() {
     responseProperties: {
       ok: booleanProperty("Whether the search request succeeded."),
       query: stringProperty({ description: "Original query." }),
+      searched_query: stringProperty({ description: "Query sent to the search provider after date context expansion." }),
       provider: stringProperty({ description: "Search provider used." }),
+      source_note: stringProperty({ description: "Short note about provider selection and fallback behavior." }),
+      result_count: integerProperty({ description: "Number of search results returned." }),
+      as_of: stringProperty({ description: "Timestamp when the search ran." }),
       answer_text: stringProperty({
         description: "Compact spoken summary. Prefer this when answering by voice.",
       }),
@@ -275,6 +279,17 @@ function webSearchToolConfig() {
           url: stringProperty({ description: "Result URL." }),
           snippet: stringProperty({ description: "Short snippet or content summary." }),
           source: stringProperty({ description: "Source provider or domain." }),
+        },
+      }),
+      diagnostics: arrayProperty({
+        description: "Provider-level search diagnostics for troubleshooting empty or fallback results.",
+        itemDescription: "One provider diagnostic record.",
+        properties: {
+          provider: stringProperty({ description: "Provider name." }),
+          ok: booleanProperty("Whether that provider request succeeded."),
+          status: stringProperty({ description: "Provider status code or status label." }),
+          result_count: integerProperty({ description: "Number of results returned by that provider." }),
+          message: stringProperty({ description: "Short provider error or status message." }),
         },
       }),
     },

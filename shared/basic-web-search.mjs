@@ -1,5 +1,7 @@
 const DUCKDUCKGO_PROVIDER = "DuckDuckGo";
 const TAVILY_PROVIDER = "Tavily";
+const WIKIPEDIA_PROVIDER = "Wikipedia";
+const RETRYABLE_STATUS_CODES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
 export async function basicWebSearch({
   query,
@@ -22,6 +24,7 @@ export async function basicWebSearch({
   const limit = clampInteger(maxResults, 1, 8);
   const now = new Date();
   const searchedQuery = addRelativeDateContext(cleanQuery, now);
+  const diagnostics = [];
 
   if (shouldUseTavily({ provider, tavilyApiKey })) {
     const tavily = await fetchTavilySearch({
@@ -34,35 +37,29 @@ export async function basicWebSearch({
       ok: false,
       status: "tavily_failed",
       message: error?.message || "Tavily search failed.",
+      results: [],
     }));
-    if (tavily.ok) {
-      const [sports, marketData, marketHistory] = await Promise.all([
-        fetchSportsEnrichment(cleanQuery, now, fetchImpl).catch(() => null),
-        fetchMarketEnrichment(cleanQuery, now, fetchImpl).catch(() => null),
-        fetchMarketHistoryEnrichment(cleanQuery, now, fetchImpl).catch(() => null),
-      ]);
-      return {
-        ok: true,
-        query: cleanQuery,
-        searched_query: searchedQuery,
+    diagnostics.push(providerDiagnostic(TAVILY_PROVIDER, tavily));
+    if (tavily.ok && tavily.results.length > 0) {
+      const { sports, marketData, marketHistory } = await fetchEnrichments(
+        cleanQuery,
+        now,
+        fetchImpl
+      );
+      return searchResponse({
+        cleanQuery,
+        searchedQuery,
         provider: TAVILY_PROVIDER,
-        as_of: now.toISOString(),
-        source_note:
-          "Web search uses Tavily when selected and configured, with DuckDuckGo available as the no-key fallback.",
-        result_count: tavily.results.length,
-        sports_events: sports?.events || [],
-        market_data: marketData,
-        market_history: marketHistory,
-        answer_text: formatAnswerText(
-          cleanQuery,
-          searchedQuery,
-          tavily.results,
-          sports,
-          marketData,
-          marketHistory
-        ),
-        results: tavily.results.slice(0, limit),
-      };
+        sourceNote:
+          "Web search uses Tavily when selected and configured, with DuckDuckGo and Wikipedia fallbacks for empty or failed provider responses.",
+        results: tavily.results,
+        sports,
+        marketData,
+        marketHistory,
+        now,
+        limit,
+        diagnostics,
+      });
     }
   }
 
@@ -103,29 +100,73 @@ export async function basicWebSearch({
     results.push(result);
     if (results.length >= limit) break;
   }
+  diagnostics.push(
+    providerDiagnostic(DUCKDUCKGO_PROVIDER, {
+      ok: instantAnswer.status === "fulfilled" || htmlResults.status === "fulfilled",
+      status:
+        instantAnswer.status === "rejected" && htmlResults.status === "rejected"
+          ? "duckduckgo_failed"
+          : "ok",
+      result_count: results.length,
+      message: [
+        instantAnswer.status === "rejected" ? instantAnswer.reason?.message : "",
+        htmlResults.status === "rejected" ? htmlResults.reason?.message : "",
+      ]
+        .filter(Boolean)
+        .join("; "),
+    })
+  );
 
-  return {
-    ok: true,
-    query: cleanQuery,
-    searched_query: searchedQuery,
+  if (
+    results.length === 0 &&
+    !sports?.events?.length &&
+    !marketData &&
+    !marketHistory
+  ) {
+    const wikipedia = await fetchWikipediaSearch({
+      query: searchedQuery,
+      maxResults: limit,
+      fetchImpl,
+    }).catch((error) => ({
+      ok: false,
+      status: "wikipedia_failed",
+      message: error?.message || "Wikipedia fallback search failed.",
+      results: [],
+    }));
+    diagnostics.push(providerDiagnostic(WIKIPEDIA_PROVIDER, wikipedia));
+
+    if (wikipedia.ok && wikipedia.results.length > 0) {
+      return searchResponse({
+        cleanQuery,
+        searchedQuery,
+        provider: WIKIPEDIA_PROVIDER,
+        sourceNote:
+          "Primary web search returned no useful results, so this response uses Wikipedia as a factual no-key fallback.",
+        results: wikipedia.results,
+        sports,
+        marketData,
+        marketHistory,
+        now,
+        limit,
+        diagnostics,
+      });
+    }
+  }
+
+  return searchResponse({
+    cleanQuery,
+    searchedQuery,
     provider: DUCKDUCKGO_PROVIDER,
-    as_of: now.toISOString(),
-    source_note:
-      "Basic web search uses DuckDuckGo public endpoints and may be incomplete for live sports schedules or fast-moving news.",
-    result_count: results.length,
-    sports_events: sports?.events || [],
-    market_data: marketData,
-    market_history: marketHistory,
-    answer_text: formatAnswerText(
-      cleanQuery,
-      searchedQuery,
-      results,
-      sports,
-      marketData,
-      marketHistory
-    ),
-    results: results.slice(0, limit),
-  };
+    sourceNote:
+      "Basic web search uses DuckDuckGo public endpoints and may be incomplete for live sports schedules or fast-moving news. Wikipedia is attempted when DuckDuckGo returns no useful results.",
+    results,
+    sports,
+    marketData,
+    marketHistory,
+    now,
+    limit,
+    diagnostics,
+  });
 }
 
 function shouldUseTavily({ provider, tavilyApiKey }) {
@@ -138,6 +179,74 @@ function shouldUseTavily({ provider, tavilyApiKey }) {
     (configuredKey ? "auto" : "");
   const normalizedProvider = String(configuredProvider || "").toLowerCase();
   return Boolean(configuredKey) && ["tavily", "auto"].includes(normalizedProvider);
+}
+
+async function fetchEnrichments(query, now, fetchImpl) {
+  const [sports, marketData, marketHistory] = await Promise.all([
+    fetchSportsEnrichment(query, now, fetchImpl).catch(() => null),
+    fetchMarketEnrichment(query, now, fetchImpl).catch(() => null),
+    fetchMarketHistoryEnrichment(query, now, fetchImpl).catch(() => null),
+  ]);
+
+  return { sports, marketData, marketHistory };
+}
+
+function searchResponse({
+  cleanQuery,
+  searchedQuery,
+  provider,
+  sourceNote,
+  results,
+  sports,
+  marketData,
+  marketHistory,
+  now,
+  limit,
+  diagnostics,
+}) {
+  const cappedResults = results.slice(0, limit);
+
+  return {
+    ok: true,
+    query: cleanQuery,
+    searched_query: searchedQuery,
+    provider,
+    as_of: now.toISOString(),
+    source_note: sourceNote,
+    result_count: cappedResults.length,
+    sports_events: sports?.events || [],
+    market_data: marketData,
+    market_history: marketHistory,
+    diagnostics: diagnostics.map((item) => ({
+      provider: item.provider,
+      ok: item.ok,
+      status: item.status,
+      result_count: item.result_count,
+      message: item.message,
+    })),
+    answer_text: formatAnswerText(
+      cleanQuery,
+      searchedQuery,
+      cappedResults,
+      sports,
+      marketData,
+      marketHistory
+    ),
+    results: cappedResults,
+  };
+}
+
+function providerDiagnostic(provider, result) {
+  const results = Array.isArray(result?.results) ? result.results : [];
+  return {
+    provider,
+    ok: Boolean(result?.ok),
+    status: result?.status || (result?.ok ? "ok" : "failed"),
+    result_count: Number.isFinite(Number(result?.result_count))
+      ? Number(result.result_count)
+      : results.length,
+    message: normalizeWhitespace(result?.message || "").slice(0, 240),
+  };
 }
 
 async function fetchTavilySearch({
@@ -158,25 +267,30 @@ async function fetchTavilySearch({
     };
   }
 
-  const response = await fetchImpl("https://api.tavily.com/search", {
-    method: "POST",
-    headers: {
-      accept: "application/json",
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-      "user-agent": "phoneclaw/0.1 web-search",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    "https://api.tavily.com/search",
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`,
+        "user-agent": "phoneclaw/0.1 web-search",
+      },
+      body: JSON.stringify({
+        query,
+        search_depth:
+          tavilySearchDepth ||
+          (typeof process === "undefined" ? "" : process.env.TAVILY_SEARCH_DEPTH) ||
+          "fast",
+        max_results: maxResults,
+        include_answer: "basic",
+        include_raw_content: false,
+      }),
     },
-    body: JSON.stringify({
-      query,
-      search_depth:
-        tavilySearchDepth ||
-        (typeof process === "undefined" ? "" : process.env.TAVILY_SEARCH_DEPTH) ||
-        "fast",
-      max_results: maxResults,
-      include_answer: "basic",
-      include_raw_content: false,
-    }),
-  });
+    { attempts: 2 }
+  );
 
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -212,8 +326,123 @@ async function fetchTavilySearch({
   return {
     ok: true,
     provider: TAVILY_PROVIDER,
+    result_count: Math.min(results.length, maxResults),
     results: results.slice(0, maxResults),
   };
+}
+
+async function fetchWikipediaSearch({ query, maxResults, fetchImpl }) {
+  const searchUrl = new URL("https://en.wikipedia.org/w/api.php");
+  searchUrl.searchParams.set("action", "query");
+  searchUrl.searchParams.set("list", "search");
+  searchUrl.searchParams.set("srsearch", query);
+  searchUrl.searchParams.set("srlimit", String(maxResults));
+  searchUrl.searchParams.set("srprop", "snippet|titlesnippet");
+  searchUrl.searchParams.set("format", "json");
+  searchUrl.searchParams.set("origin", "*");
+
+  const searchResponse = await fetchWithRetry(
+    fetchImpl,
+    searchUrl.toString(),
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent": "phoneclaw/0.1 wikipedia-fallback",
+      },
+    },
+    { attempts: 2 }
+  );
+  const searchBody = await searchResponse.json().catch(() => ({}));
+  if (!searchResponse.ok) {
+    return {
+      ok: false,
+      status: "wikipedia_search_failed",
+      wikipedia_status: searchResponse.status,
+      message:
+        searchBody.error?.info ||
+        searchBody.message ||
+        "Wikipedia search fallback failed.",
+      results: [],
+    };
+  }
+
+  const searchRows = Array.isArray(searchBody.query?.search)
+    ? searchBody.query.search.slice(0, maxResults)
+    : [];
+  if (searchRows.length === 0) {
+    return {
+      ok: true,
+      status: "ok",
+      result_count: 0,
+      results: [],
+    };
+  }
+
+  const pageIds = searchRows.map((row) => row.pageid).filter(Boolean);
+  const snippetByPageId = new Map(
+    searchRows.map((row) => [String(row.pageid), cleanHtml(row.snippet || "")])
+  );
+
+  const detailUrl = new URL("https://en.wikipedia.org/w/api.php");
+  detailUrl.searchParams.set("action", "query");
+  detailUrl.searchParams.set("prop", "extracts|info");
+  detailUrl.searchParams.set("exintro", "1");
+  detailUrl.searchParams.set("explaintext", "1");
+  detailUrl.searchParams.set("inprop", "url");
+  detailUrl.searchParams.set("pageids", pageIds.join("|"));
+  detailUrl.searchParams.set("redirects", "1");
+  detailUrl.searchParams.set("format", "json");
+  detailUrl.searchParams.set("origin", "*");
+
+  const detailResponse = await fetchWithRetry(
+    fetchImpl,
+    detailUrl.toString(),
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent": "phoneclaw/0.1 wikipedia-fallback",
+      },
+    },
+    { attempts: 2 }
+  ).catch(() => null);
+  const detailBody =
+    detailResponse && detailResponse.ok
+      ? await detailResponse.json().catch(() => ({}))
+      : {};
+  const pages = detailBody.query?.pages || {};
+
+  const results = searchRows
+    .map((row) => {
+      const page = pages[String(row.pageid)] || {};
+      const title = page.title || cleanHtml(row.title || "") || "Wikipedia result";
+      const url = page.fullurl || wikipediaArticleUrl(title);
+      const snippet =
+        normalizeWhitespace(page.extract || snippetByPageId.get(String(row.pageid)) || "")
+          .slice(0, 700);
+
+      return {
+        title,
+        url,
+        snippet,
+        source: WIKIPEDIA_PROVIDER,
+      };
+    })
+    .filter((result) => result.url || result.snippet)
+    .slice(0, maxResults);
+
+  return {
+    ok: true,
+    status: "ok",
+    provider: WIKIPEDIA_PROVIDER,
+    result_count: results.length,
+    results,
+  };
+}
+
+function wikipediaArticleUrl(title) {
+  return `https://en.wikipedia.org/wiki/${encodeURIComponent(
+    String(title || "").replace(/\s+/g, "_")
+  )}`;
 }
 
 function addRelativeDateContext(query, now) {
@@ -241,12 +470,17 @@ async function fetchSportsEnrichment(query, now, fetchImpl) {
   url.searchParams.set("dates", date.espnDate);
   url.searchParams.set("limit", "100");
 
-  const response = await fetchImpl(url.toString(), {
-    headers: {
-      accept: "application/json",
-      "user-agent": "phoneclaw/0.1 basic-web-search",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    url.toString(),
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent": "phoneclaw/0.1 basic-web-search",
+      },
     },
-  });
+    { attempts: 2 }
+  );
 
   if (!response.ok) return null;
 
@@ -267,12 +501,17 @@ async function fetchMarketEnrichment(query, now, fetchImpl) {
   if (!isWtiCrudeOilQuery(query)) return null;
 
   const url = "https://www.tradingview.com/symbols/NYMEX-CL1!/";
-  const response = await fetchImpl(url, {
-    headers: {
-      accept: "text/html",
-      "user-agent": "phoneclaw/0.1 market-enrichment",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    url,
+    {
+      headers: {
+        accept: "text/html",
+        "user-agent": "phoneclaw/0.1 market-enrichment",
+      },
     },
-  });
+    { attempts: 2 }
+  );
   if (!response.ok) return null;
 
   const html = await response.text();
@@ -307,12 +546,17 @@ async function fetchMarketHistoryEnrichment(query, now, fetchImpl) {
   url.searchParams.set("range", range);
   url.searchParams.set("interval", "1d");
 
-  const response = await fetchImpl(url.toString(), {
-    headers: {
-      accept: "application/json",
-      "user-agent": "phoneclaw/0.1 market-history",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    url.toString(),
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent": "phoneclaw/0.1 market-history",
+      },
     },
-  });
+    { attempts: 2 }
+  );
   if (!response.ok) return null;
 
   const body = await response.json();
@@ -548,12 +792,17 @@ async function fetchDuckDuckGoInstantAnswer(query, fetchImpl) {
   url.searchParams.set("no_redirect", "1");
   url.searchParams.set("skip_disambig", "1");
 
-  const response = await fetchImpl(url.toString(), {
-    headers: {
-      accept: "application/json",
-      "user-agent": "phoneclaw/0.1 basic-web-search",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    url.toString(),
+    {
+      headers: {
+        accept: "application/json",
+        "user-agent": "phoneclaw/0.1 basic-web-search",
+      },
     },
-  });
+    { attempts: 2 }
+  );
 
   if (!response.ok) return null;
 
@@ -575,15 +824,20 @@ async function fetchDuckDuckGoInstantAnswer(query, fetchImpl) {
 }
 
 async function fetchDuckDuckGoHtmlResults(query, maxResults, fetchImpl) {
-  const response = await fetchImpl("https://html.duckduckgo.com/html/", {
-    method: "POST",
-    headers: {
-      accept: "text/html",
-      "content-type": "application/x-www-form-urlencoded",
-      "user-agent": "phoneclaw/0.1 basic-web-search",
+  const response = await fetchWithRetry(
+    fetchImpl,
+    "https://html.duckduckgo.com/html/",
+    {
+      method: "POST",
+      headers: {
+        accept: "text/html",
+        "content-type": "application/x-www-form-urlencoded",
+        "user-agent": "phoneclaw/0.1 basic-web-search",
+      },
+      body: new URLSearchParams({ q: query }).toString(),
     },
-    body: new URLSearchParams({ q: query }).toString(),
-  });
+    { attempts: 2 }
+  );
 
   if (!response.ok) return [];
 
@@ -639,6 +893,31 @@ function isLikelyAdUrl(value) {
   } catch {
     return false;
   }
+}
+
+async function fetchWithRetry(fetchImpl, url, options, { attempts = 2 } = {}) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetchImpl(url, options);
+      if (!RETRYABLE_STATUS_CODES.has(response.status) || attempt === attempts) {
+        return response;
+      }
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) throw error;
+    }
+
+    await wait(150 * attempt);
+  }
+
+  throw lastError || new Error("Request failed.");
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function cleanHtml(value) {
