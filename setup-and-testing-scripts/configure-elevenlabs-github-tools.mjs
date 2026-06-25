@@ -72,18 +72,22 @@ const conversationConfig = structuredClone(agent.conversation_config || {});
 const promptConfig = conversationConfig.agent?.prompt || {};
 const {
   tools: _legacyPromptTools,
+  tool_ids: currentToolIds = [],
   built_in_tools: currentBuiltInTools = {},
   ...promptConfigWithoutLegacyTools
 } = promptConfig;
 const currentTtsConfig = conversationConfig.tts || {};
 const currentConversationConfig = conversationConfig.conversation || {};
-const currentToolIds = promptConfig.tool_ids || [];
 const obsoleteToolIds = new Set(obsoleteTools.map((tool) => tool.id));
 const toolIds = unique([
   ...currentToolIds.filter((toolId) => !obsoleteToolIds.has(toolId)),
   ...tools.map((tool) => tool.id),
 ]);
 const nextPrompt = promptWithGithubFileTools(promptConfig.prompt || "");
+const inlineTools = [
+  ...configs,
+  endCallBuiltInToolConfig(),
+];
 
 conversationConfig.tts = {
   ...currentTtsConfig,
@@ -104,7 +108,7 @@ conversationConfig.agent = {
   prompt: {
     ...promptConfigWithoutLegacyTools,
     prompt: nextPrompt,
-    tool_ids: toolIds,
+    tools: inlineTools,
     built_in_tools: {
       ...(isPlainObject(currentBuiltInTools) ? currentBuiltInTools : {}),
       end_call: endCallBuiltInToolConfig(),
@@ -112,7 +116,7 @@ conversationConfig.agent = {
   },
 };
 
-const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`, {
+await requestJson(`${apiBase}/v1/convai/agents/${agentId}`, {
   method: "PATCH",
   body: JSON.stringify({
     conversation_config: conversationConfig,
@@ -120,6 +124,8 @@ const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`,
       "Refresh phone-claw tools and stabilize the configured voice",
   }),
 });
+const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`);
+const webSearchValidation = validateAgentWebSearchTool(updatedAgent);
 
 console.log(
   JSON.stringify(
@@ -130,13 +136,15 @@ console.log(
         id: tool.id,
         name: tool.tool_config?.name,
       })),
-      attached_tool_ids: toolIds,
+      updated_shared_tool_ids: toolIds,
+      inline_tool_names: inlineTools.map((tool) => tool.name),
       detached_tool_ids: obsoleteTools.map((tool) => ({
         id: tool.id,
         name: tool.tool_config?.name,
       })),
       max_conversation_duration_seconds: maxConversationDurationSeconds,
       system_tools: ["end_call"],
+      web_search_validation: webSearchValidation,
     },
     null,
     2
@@ -189,6 +197,34 @@ async function verifyWorkerToolToken() {
         "Refusing to patch ElevenLabs tool Authorization headers with a token the Worker rejects."
     );
   }
+}
+
+function validateAgentWebSearchTool(agent) {
+  const prompt = agent.conversation_config?.agent?.prompt || {};
+  const inlineTools = Array.isArray(prompt.tools) ? prompt.tools : [];
+  const webSearchTool = inlineTools.find((tool) => tool.name === "web_search");
+  const expectedUrl = `${workerBaseUrl}/web-search`;
+  const actualUrl = webSearchTool?.api_schema?.url || "";
+  const responseProperties =
+    webSearchTool?.api_schema?.response_body_schema?.properties || {};
+
+  if (actualUrl !== expectedUrl) {
+    throw new Error(
+      `Configured agent web_search URL mismatch. Expected ${expectedUrl}, got ${actualUrl || "(missing)"}.`
+    );
+  }
+
+  if (!responseProperties.diagnostics || !responseProperties.result_count) {
+    throw new Error(
+      "Configured agent web_search response schema is missing diagnostics or result_count."
+    );
+  }
+
+  return {
+    inline_tool_url: actualUrl,
+    has_diagnostics_schema: Boolean(responseProperties.diagnostics),
+    has_result_count_schema: Boolean(responseProperties.result_count),
+  };
 }
 
 function webSearchToolConfig() {

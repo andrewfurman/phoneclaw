@@ -1,6 +1,9 @@
 const apiBase = process.env.ELEVENLABS_API_BASE || "https://api.elevenlabs.io";
 const agentId = process.env.ELEVENLABS_AGENT_ID;
 const apiKey = process.env.ELEVENLABS_API_KEY;
+const workerBaseUrl =
+  process.env.PHONECLAW_WORKER_BASE_URL || "https://webhooks.aifurman.com";
+const toolToken = process.env.WEB_SEARCH_TOKEN || process.env.COMMAND_BRIDGE_TOKEN;
 const WEB_SEARCH_TOOL_NAME = "web_search";
 const expectedQueries = ["Ivory Coast population", "United States population"];
 const question =
@@ -11,6 +14,12 @@ if (!agentId || !apiKey) {
   process.exit(1);
 }
 
+if (!toolToken) {
+  console.error("Missing WEB_SEARCH_TOKEN or COMMAND_BRIDGE_TOKEN.");
+  process.exit(1);
+}
+
+const wiring = await verifyWebSearchWiring();
 const conversation = await runConversation(question);
 const details = await fetchConversationDetails(conversation.conversationId);
 const verification = verifyConversation(details);
@@ -22,6 +31,7 @@ console.log(
       conversation_id: conversation.conversationId,
       conversation_status: details?.status || null,
       user_message: question,
+      wiring,
       web_search_result_count: verification.webSearchResults.length,
       web_search_results: verification.webSearchResults,
       agent_response_preview: verification.agentResponse.slice(0, 700),
@@ -33,6 +43,56 @@ console.log(
 );
 
 process.exit(verification.ok ? 0 : 1);
+
+async function verifyWebSearchWiring() {
+  const agent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`);
+  const tools = agent.conversation_config?.agent?.prompt?.tools || [];
+  const webSearchTool = tools.find((tool) => tool.name === WEB_SEARCH_TOOL_NAME);
+  const expectedUrl = `${workerBaseUrl}/web-search`;
+  const actualUrl = webSearchTool?.api_schema?.url || "";
+  const responseProperties =
+    webSearchTool?.api_schema?.response_body_schema?.properties || {};
+
+  if (actualUrl !== expectedUrl) {
+    throw new Error(
+      `ElevenLabs web_search tool URL mismatch. Expected ${expectedUrl}, got ${actualUrl || "(missing)"}.`
+    );
+  }
+
+  if (!responseProperties.diagnostics || !responseProperties.result_count) {
+    throw new Error(
+      "ElevenLabs web_search tool schema is missing diagnostics or result_count."
+    );
+  }
+
+  const response = await fetch(expectedUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${toolToken}`,
+    },
+    body: JSON.stringify({
+      query: "United States population",
+      max_results: 5,
+    }),
+  });
+  const body = await response.json().catch(async () => ({
+    raw: await response.text(),
+  }));
+
+  if (!response.ok || body.ok !== true || Number(body.result_count || 0) <= 0) {
+    throw new Error(
+      `Direct Worker web_search preflight failed (${response.status}): ${JSON.stringify(body)}`
+    );
+  }
+
+  return {
+    url: actualUrl,
+    direct_worker_provider: body.provider,
+    direct_worker_result_count: body.result_count,
+    direct_worker_has_diagnostics: Array.isArray(body.diagnostics),
+  };
+}
 
 async function runConversation(messageText) {
   const signed = await requestJson(
