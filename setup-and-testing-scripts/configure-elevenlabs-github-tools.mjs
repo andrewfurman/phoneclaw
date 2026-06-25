@@ -116,12 +116,21 @@ conversationConfig.agent = {
   },
 };
 
+const conversationConfigPatch = {
+  agent: conversationConfig.agent,
+  conversation: conversationConfig.conversation,
+};
+
+if (process.env.ELEVENLABS_PATCH_TTS === "true") {
+  conversationConfigPatch.tts = conversationConfig.tts;
+}
+
 await requestJson(`${apiBase}/v1/convai/agents/${agentId}`, {
   method: "PATCH",
   body: JSON.stringify({
-    conversation_config: conversationConfig,
+    conversation_config: conversationConfigPatch,
     version_description:
-      "Refresh phone-claw tools and stabilize the configured voice",
+      "Refresh phone-claw tools and prompt guardrails",
   }),
 });
 const updatedAgent = await requestJson(`${apiBase}/v1/convai/agents/${agentId}`);
@@ -1992,6 +2001,7 @@ function promptWithGithubFileTools(currentPrompt) {
 - Never make more than two web_search calls for one user turn unless Andrew explicitly asks you to continue searching after hearing what you already found.
 - If one or two searches still do not answer every detail, answer from the best available snippets, state the uncertainty briefly, and ask whether Andrew wants deeper research.
 - Say at most one short natural status phrase before the first search. If you make a second web_search call, call it silently and answer after it returns. Do not narrate every retry with repeated "I'm searching" updates.
+- A second web_search call must have no spoken preamble. Do not say "I will now search", "let me check", "I am looking up", or similar before a second web_search in the same user turn.
 - If Andrew says to stop searching, immediately stop calling web_search and answer from the information already gathered.
 - Set max_results=5 by default. Use fewer only when Andrew explicitly asks for a very quick answer; use up to 8 for deeper comparisons.
 - For sports schedules, include the sport/league/date if known.
