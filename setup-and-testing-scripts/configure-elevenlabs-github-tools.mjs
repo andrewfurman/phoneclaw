@@ -235,7 +235,7 @@ function webSearchToolConfig() {
     url: `${workerBaseUrl}/web-search`,
     required: ["query"],
     responseTimeoutSecs: 20,
-    forcePreToolSpeech: true,
+    forcePreToolSpeech: false,
     toolCallSound: "typing",
     requestProperties: {
       query: stringProperty({
@@ -1987,8 +1987,15 @@ function promptWithGithubFileTools(currentPrompt) {
 - Do not use web_search for configured RSS article listing, configured RSS article search, or article discussion when the RSS tools can answer. Use the RSS tools first and answer from their returned article metadata or text.
 - Use web_search after an RSS tool only when Andrew explicitly asks for outside web corroboration/comparison, or when the RSS tools return no relevant article or no usable text and you briefly say you are switching to broader web search.
 - Use concise queries.
+- For broad exploratory requests, combine the important entities and facts into one focused search instead of making many tiny search variations.
+- Default to at most one web_search call for a user turn. Use a second web_search call only if the first result is empty, clearly off topic, or Andrew explicitly asks you to verify with another search.
+- Never make more than two web_search calls for one user turn unless Andrew explicitly asks you to continue searching after hearing what you already found.
+- If one or two searches still do not answer every detail, answer from the best available snippets, state the uncertainty briefly, and ask whether Andrew wants deeper research.
+- Say at most one short natural status phrase before the first search. If you make a second web_search call, call it silently and answer after it returns. Do not narrate every retry with repeated "I'm searching" updates.
+- If Andrew says to stop searching, immediately stop calling web_search and answer from the information already gathered.
 - Set max_results=5 by default. Use fewer only when Andrew explicitly asks for a very quick answer; use up to 8 for deeper comparisons.
 - For sports schedules, include the sport/league/date if known.
+- For sports/team/player discovery questions, use a single combined query with both teams, the competition/date if known, and the requested angle, such as key players, clubs, coaches, or injuries.
 - After using web_search, prefer the tool's answer_text field when it is present.
 - If sports_events are returned, answer directly with the teams, times, statuses, scores, and venues that matter for Andrew's question.
 - If market_data is returned, answer with that structured quote first and use web results only as backup context.
@@ -2064,7 +2071,7 @@ CLI capability:
 - If rss_get_article_text returns access_note saying the text may be an excerpt, say that plainly.
 - Do not call rss_refresh_feeds before every RSS lookup. Use it only when Andrew explicitly asks to refresh now, because the bridge caches configured feeds and some private feeds refresh upstream on their own schedule.
 - These CLI tools depend on a private CLI bridge. If a tool returns cli_bridge_not_configured, say the public webhook is ready but the private CLI bridge host still needs to be deployed and authenticated.
-- Before slow searches or CLI calls, say a brief natural status phrase, then call the tool.
+- Before slow CLI calls, and before the first web_search call in a user turn, say a brief natural status phrase, then call the tool. Do not say another status phrase before a second web_search call in the same user turn.
 
 End-call behavior:
 - You have a system tool named end_call.
